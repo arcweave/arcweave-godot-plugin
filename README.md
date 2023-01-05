@@ -8,7 +8,7 @@ The exports consist from two `.gd` files, `data_export.gd` and `state_export.gd`
 
 ## Table of Contents
 
-  - [Arcweave Godot Plugin](#arcweave-godot-plugin)
+- [Arcweave Godot Plugin](#arcweave-godot-plugin)
   - [Table of Contents](#table-of-contents)
   - [Installing the Plugin](#installing-the-plugin)
   - [Importing your project](#importing-your-project)
@@ -93,7 +93,7 @@ Also a **Util** Class exists with Utility Functions used to transpile Arcscript 
 
 To start a Project's Story you have to initialize a Story instance.
 
-```godot
+```gdscript
 var story: Story
 func _ready():
     self.story = Story.new()
@@ -103,7 +103,7 @@ During the initialization, the data is loaded, the starting_element is set and t
 
 If you have a text container you can use the `story.get_current_content()` function to get the text of the current element and set it.
 
-```godot
+```gdscript
 var textContainer: RichTextLabel
 var story: Story
 func _ready():
@@ -115,7 +115,7 @@ func _ready():
 
 You can also use `story.get_current_options()` function to get the options of the current element:
 
-```godot
+```gdscript
 var textContainer: RichTextLabel
 var optionContainer: VBoxContainer
 
