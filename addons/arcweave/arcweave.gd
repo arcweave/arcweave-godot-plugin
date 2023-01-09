@@ -157,6 +157,7 @@ func _select_project_files_button_pressed():
 func _project_dir_selected(dir: String):
 	selected_folder_input.set_text(dir)
 	selected_folder = dir
+	refresh_from_folder.disabled = false
 
 func _refresh_from_folder():
 	var file = File.new()
