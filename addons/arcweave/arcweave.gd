@@ -176,6 +176,7 @@ func _refresh_from_folder():
 	file.open("res://addons/arcweave/state_export.gd", File.WRITE)
 	file.store_string(state)
 	file.close()
+	print("Arcweave: Successfully refreshed from folder!")
 	
 
 func _on_request_completed(result, response_code, headers, body):
@@ -185,7 +186,7 @@ func _on_request_completed(result, response_code, headers, body):
 		print(body.get_string_from_utf8())
 		return
 	else:
-		print("SUCCESS")
+		print("Arcweave: Successfully refreshed from API!")
 	var res = JSON.parse(body.get_string_from_utf8()).result
 	var file = File.new()
 	file.open("res://addons/arcweave/data_export.gd", File.WRITE)
