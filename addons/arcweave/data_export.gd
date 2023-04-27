@@ -322,7 +322,7 @@ var data = {
 			"contentRef": "element_12_content",
 			"cover": {
 				"type": "image",
-				"file": "/New Folder/the door.jpeg"
+				"file": "/the door.jpeg"
 			}
 		}
 	},
@@ -403,7 +403,7 @@ var data = {
 		},
 		"6738d031-bbd5-4d98-993f-a4926fc7fa33": {
 			"type": "Bezier",
-			"label": "...",
+			"label": null,
 			"theme": "red",
 			"sourceid": "4c7d10f2-e68b-498f-9ced-ffd74977a8f5",
 			"targetid": "4d61d93e-e541-4dff-b10d-42c4fd81ad0b",
@@ -439,7 +439,7 @@ var data = {
 		},
 		"80407dcb-6a30-4720-8d87-0d53419c4d30": {
 			"type": "Bezier",
-			"label": "...",
+			"label": null,
 			"theme": "red",
 			"sourceid": "601034d9-b442-449a-a927-cd112fca8f7e",
 			"targetid": "4d61d93e-e541-4dff-b10d-42c4fd81ad0b",
@@ -659,15 +659,14 @@ var data = {
 		},
 		"5caff231-4102-41f0-8eb6-755d48660fb7": {
 			"output": "1a09fe9a-062e-4dbb-8615-bf0aa455f783",
-			"script": "(state.paintingExamined == true)"
+			"script": "(state.get_var(\"paintingExamined\") == true)"
 		}
 	},
 	"name": "The Castle",
 	"cover": {
 		"file": "cover.jpg",
 		"type": "template-image"
-	},
-	"globalFunctions": {}
+	}
 }
 
 func _init(utils: Utils):
@@ -722,9 +721,9 @@ func element_7_content(state):
 func element_8_content(state):
 	var content_result: String = ""
 	content_result += "The knight is guarding a mysterious gate. You see a name written above his head:\n[quote]\"Conrad IV, Count of Exeter\"\n[/quote] "
-	if not state.paintingExamined:
-		content_result += "You make a mental note of the knight's name.\n "
-	state.paintingExamined = true
+	if not state.get_var("paintingExamined"):
+		content_result += "\nYou make a mental note of the knight's name.\n "
+	state.set_var("paintingExamined", true)
 	return content_result.trim_suffix(" ")
 
 func element_9_content(state):
@@ -746,8 +745,6 @@ func element_12_content(state):
 	var content_result: String = ""
 	content_result += "In the blink of an eye the Crusader disappears... Almost as if he was never there. Curious.\n "
 	return content_result.trim_suffix(" ")
-
-
 
 func get_data():
 	return self.data

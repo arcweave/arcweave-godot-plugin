@@ -20,7 +20,7 @@ var utils: Utils
 var state: StateExport
 
 var starting_element: Element
-var current_element: Element
+
 var current_options: Array = []
 var history: Array = []
 
@@ -29,6 +29,10 @@ func _init():
 	self.utils = Utils.new()
 	var DataExport = load("res://addons/arcweave/data_export.gd")
 	var data = DataExport.new(self.utils)
+	
+	# Create State
+	self.state = StateExport.new()
+	
 	data = data.get_data()
 	self.name = data.name
 	self.current_options = []
@@ -71,7 +75,7 @@ func _init():
 				element.content, element.theme, component_array.duplicate(),
 				connection_array.duplicate(), {}, cover)
 	self.starting_element = self.elements[data.startingElement]
-	self.current_element = self.elements[data.startingElement]
+	self.state.set_current_element(self.elements[data.startingElement])
 	# Create Jumpers
 	for jumper_id in data.jumpers:
 		var jumper = data.jumpers[jumper_id]
@@ -119,9 +123,6 @@ func _init():
 			for node_id in board[node_type]:
 				board_nodes[node_type][node_id] = self[node_type][node_id]
 		self.boards[board_id] = Board.new(board_id, board.name, custom_id, board_nodes)
-	
-	# Create State
-	self.state = StateExport.new()
 
 	self.generate_current_options()
 
@@ -129,15 +130,15 @@ func start():
 	pass
 
 func get_current_element() -> Element:
-	return self.current_element
+	return self.state.get_current_element()
 
 func set_current_element(id: String) -> Element:
-	self.current_element = self.elements[id]
+	self.state.set_current_element(self.elements[id])
 	self.generate_current_options()
-	return self.current_element
+	return self.state.get_current_element()
 
 func get_current_content():
-	return self.current_element.get_content(self.state)
+	return self.state.get_current_element().get_content(self.state)
 
 func print_elements_content():
 	for element_id in self.elements:
@@ -159,7 +160,7 @@ func set_state(state):
 
 func generate_current_options():
 	self.current_options = []
-	for output in self.current_element.outputs:
+	for output in self.state.get_current_element().outputs:
 		if output.targetType == 'elements':
 			self.current_options.append({"targetid": output.targetid, "connectionPath": [output]})
 		if output.targetType == 'jumpers':
@@ -201,7 +202,7 @@ func _get_truthy_condition(branchId):
 	return null
 	
 func select_option(optionId):
-	self.current_element = self.elements[optionId]
+	self.state.set_current_element(self.elements[optionId])
 	self.generate_current_options()
 
 func evaluate(command, variable_names = [], variable_values = []):
