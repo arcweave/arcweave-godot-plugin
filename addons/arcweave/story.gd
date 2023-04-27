@@ -123,7 +123,8 @@ func _init():
 			for node_id in board[node_type]:
 				board_nodes[node_type][node_id] = self[node_type][node_id]
 		self.boards[board_id] = Board.new(board_id, board.name, custom_id, board_nodes)
-
+	
+	self.state.increment_visits(data.startingElement)
 	self.generate_current_options()
 
 func start():
@@ -202,6 +203,7 @@ func _get_truthy_condition(branchId):
 	return null
 	
 func select_option(optionId):
+	self.state.increment_visits(optionId)
 	self.state.set_current_element(self.elements[optionId])
 	self.generate_current_options()
 

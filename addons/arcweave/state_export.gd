@@ -3,9 +3,7 @@ class_name StateExport
 
 var aw_visits: Dictionary
 var aw_current_element: Element
-
 var variables: Dictionary
-
 
 var defaults = {
 	"paintingExamined": false
@@ -17,8 +15,7 @@ func _init():
 		self.variables[variable_name] = Variable.new(variable_name, self.defaults[variable_name])
 
 func reset_all_vars(except_vars: Array):
-	for variable_name in self.variables:
-		var variable = self.variables[variable_name]
+	for variable in self.variables:
 		if not(variable.name in except_vars):
 			variable.reset_to_default()
 
@@ -33,15 +30,19 @@ func set_var(name, value):
 	self.variables[name].value = value
 
 func get_current_state() -> Dictionary:
-	var result = {}
+	var result = {
+		"variables": {},
+		"visits": self.aw_visits.duplicate(),
+	}
 	for variable_name in self.variables:
 		var variable = self.variables[variable_name]
-		result[variable.name] = variable.value
+		result.variables[variable.name] = variable.value
 	return result
 
 func set_state(state: Dictionary):
-	for variable_name in state:
-		self.variables[variable_name].value = state[variable_name]
+	for variable_name in state.variables:
+		self.variables[variable_name].value = state.variables[variable_name]
+	self.aw_visits = state.visits.duplicate()
 
 func get_current_element() -> Element:
 	return self.aw_current_element
@@ -61,6 +62,11 @@ func decrement_visits(element_id: String):
 		self.aw_visits[element_id] = 0
 	elif self.aw_visits[element_id] > 0:
 		self.aw_visits[element_id] -= 1
+	return self.aw_visits[element_id]
+
+func get_visits(element_id: String):
+	if not (element_id in self.aw_visits):
+		return 0
 	return self.aw_visits[element_id]
 
 func set_visits(element_id: String, value: int):
