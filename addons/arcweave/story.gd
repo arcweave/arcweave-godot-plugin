@@ -163,17 +163,35 @@ func generate_current_options():
 	self.current_options = []
 	for output in self.state.get_current_element().outputs:
 		if output.targetType == 'elements':
+			var temp_state = self._clone_state(self.state)
+			if output.has("labelRef"):
+				var output_label = output.labelRef.call_func(temp_state)
+				output.label = output_label
 			self.current_options.append({"targetid": output.targetid, "connectionPath": [output]})
 		if output.targetType == 'jumpers':
+			var temp_state = self._clone_state(self.state)
+			if output.has("labelRef"):
+				var output_label = output.labelRef.call_func(temp_state)
+				output.label = output_label
 			self.current_options.append({
 				"targetid": self.jumpers[output.targetid].element.id,
 				"connectionPath": [output],
 			})
 		elif output.targetType == 'branches':
-			var connection = self._get_truthy_condition(output.targetid)
+			var temp_state = self._clone_state(self.state)
+			if output.has("labelRef"):
+				var output_label = output.labelRef.call_func(temp_state)
+				output.label = output_label
+			var connection = self._get_truthy_condition(output.targetid, temp_state)
+			if connection.has("labelRef"):
+				var output_label = connection.labelRef.call_func(temp_state)
+				connection.label = output_label
 			var branch_connection_path = [output, connection]
 			while (connection and connection.targetType == 'branches'):
-				connection = self._get_truthy_condition(connection.targetid)
+				connection = self._get_truthy_condition(connection.targetid, temp_state)
+				if connection.has("labelRef"):
+					var output_label = connection.labelRef.call_func(temp_state)
+					connection.label = output_label
 				branch_connection_path.append(connection)
 			if connection:
 				if connection.targetType == 'elements':
@@ -187,24 +205,33 @@ func generate_current_options():
 						"connectionPath": branch_connection_path,
 					})
 
-func _get_truthy_condition(branchId):
+func _clone_state(state) -> StateExport:
+	var new_state: StateExport = StateExport.new()
+	new_state.set_state(state.get_current_state())
+	new_state.set_current_element(state.get_current_element())
+	return new_state
+
+func _get_truthy_condition(branchId, state):
 	var branch = self.branches[branchId]
 	if branch.conditions.if_condition.script:
 		var cond = branch.conditions.if_condition
-		if evaluate(cond.script):
+		if evaluate(cond.script, ["state"], [state]):
 			return self.connections[cond.output]
 	if "else_if_conditions" in branch.conditions:
 		for cond in branch.conditions.else_if_conditions:
-			if evaluate(cond.script):
+			if evaluate(cond.script, ["state"], [state]):
 				return self.connections[cond.output]
 	if "else_condition" in branch.conditions:
 		var cond = branch.conditions.else_condition
 		return self.connections[cond.output]
 	return null
 	
-func select_option(optionId):
-	self.state.increment_visits(optionId)
-	self.state.set_current_element(self.elements[optionId])
+func select_option(option):
+	for connection in option.connectionPath:
+		if connection.has("labelRef"):
+			connection.labelRef.call_func(self.state)
+	self.state.increment_visits(option.targetid)
+	self.state.set_current_element(self.elements[option.targetid])
 	self.generate_current_options()
 
 func evaluate(command, variable_names = [], variable_values = []):
