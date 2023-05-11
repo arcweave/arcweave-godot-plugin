@@ -143,7 +143,7 @@ func addOptions(options):
             lastLabel = self.story.elements[option.targetid].title
         if lastLabel == null or lastLabel == "":
             lastLabel = self.story.elements[option.targetid].get_content(self.story.state)
-        self.createButton(lastLabel, option.targetid)
+        self.createButton(lastLabel, option)
 ```
 [TOC](#table-of-contents)
 
@@ -165,7 +165,7 @@ The story class provides the following functions
 | `get_element(element_id: String) -> Element`    | Returns an element                        |
 | `get_state() -> Dictionary`                     | Returns the current state of the project  |
 | `set_state(state: Dictionary)`                  | Sets the current state of the project     |
-| `select_option(optionId: String)`               | Select's an option                        |
+| `select_option(option)`                         | Select's an option                        |
 
 ### Component
 
