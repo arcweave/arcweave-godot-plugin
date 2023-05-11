@@ -33,16 +33,16 @@ func addOptions(options):
 			lastLabel = self.story.elements[option.targetid].title
 		if lastLabel == null or lastLabel == "":
 			lastLabel = self.story.elements[option.targetid].get_content(self.story.state)
-		self.createButton(lastLabel, option.targetid)
+		self.createButton(lastLabel, option)
 
-func createButton(text, id):
+func createButton(text, option):
 	var button = Button.new()
 	button.text = text
-	button.connect("pressed", self, "_on_option_selection", [id])
+	button.connect("pressed", self, "_on_option_selection", [option])
 	self.optionContainer.add_child(button)
 
-func _on_option_selection(id):
-	self.story.select_option(id)
+func _on_option_selection(option):
+	self.story.select_option(option)
 	self.redraw()
 
 func redraw():

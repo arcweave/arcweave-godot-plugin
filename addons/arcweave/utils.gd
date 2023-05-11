@@ -49,3 +49,8 @@ func aw_resetAll(state, except_vars: Array):
 #
 #static func aw_max():
 #	pass
+
+func aw_visits(state: StateExport, element_id = null):
+	if element_id == null:
+		element_id = state.get_current_element().id
+	return state.get_visits(element_id)
