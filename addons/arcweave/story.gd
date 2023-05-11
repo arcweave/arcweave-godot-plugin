@@ -183,7 +183,7 @@ func generate_current_options():
 				var output_label = output.labelRef.call_func(temp_state)
 				output.label = output_label
 			var connection = self._get_truthy_condition(output.targetid, temp_state)
-			if connection.has("labelRef"):
+			if connection and connection.has("labelRef"):
 				var output_label = connection.labelRef.call_func(temp_state)
 				connection.label = output_label
 			var branch_connection_path = [output, connection]
