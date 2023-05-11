@@ -6,7 +6,7 @@ var aw_current_element: Element
 var variables: Dictionary
 
 var defaults = {
-	"paintingExamined": false
+	"score": 0
 }
 
 func _init():
@@ -15,9 +15,9 @@ func _init():
 		self.variables[variable_name] = Variable.new(variable_name, self.defaults[variable_name])
 
 func reset_all_vars(except_vars: Array):
-	for variable in self.variables:
-		if not(variable.name in except_vars):
-			variable.reset_to_default()
+	for variable_name in self.variables:
+		if not(variable_name in except_vars):
+			self.variables[variable_name].reset_to_default()
 
 func reset_vars(vars: Array):
 	for variable_name in vars:

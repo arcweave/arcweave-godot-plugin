@@ -179,29 +179,33 @@ func generate_current_options():
 			})
 		elif output.targetType == 'branches':
 			var temp_state = self._clone_state(self.state)
+			var temp_output = output.duplicate()
 			if output.has("labelRef"):
-				var output_label = output.labelRef.call_func(temp_state)
-				output.label = output_label
-			var connection = self._get_truthy_condition(output.targetid, temp_state)
+				var output_label = temp_output.labelRef.call_func(temp_state)
+				temp_output.label = output_label
+			var connection = self._get_truthy_condition(temp_output.targetid, temp_state)
+			var temp_connection = null
 			if connection and connection.has("labelRef"):
-				var output_label = connection.labelRef.call_func(temp_state)
-				connection.label = output_label
-			var branch_connection_path = [output, connection]
-			while (connection and connection.targetType == 'branches'):
-				connection = self._get_truthy_condition(connection.targetid, temp_state)
-				if connection.has("labelRef"):
-					var output_label = connection.labelRef.call_func(temp_state)
-					connection.label = output_label
-				branch_connection_path.append(connection)
-			if connection:
-				if connection.targetType == 'elements':
+				temp_connection = connection.duplicate()
+				var output_label = temp_connection.labelRef.call_func(temp_state)
+				temp_connection.label = output_label
+			var branch_connection_path = [temp_output, temp_connection]
+			while (temp_connection and temp_connection.targetType == 'branches'):
+				connection = self._get_truthy_condition(temp_connection.targetid, temp_state)
+				temp_connection = connection.duplicate()
+				if temp_connection and temp_connection.has("labelRef"):
+					var output_label = temp_connection.labelRef.call_func(temp_state)
+					temp_connection.label = output_label
+				branch_connection_path.append(temp_connection)
+			if temp_connection:
+				if temp_connection.targetType == 'elements':
 					self.current_options.append({
-						"targetid": connection.targetid,
+						"targetid": temp_connection.targetid,
 						"connectionPath": branch_connection_path,
 					})
-				elif connection.targetType == 'jumpers':
+				elif temp_connection.targetType == 'jumpers':
 					self.current_options.append({
-						"targetid": self.jumpers[connection.targetid].element.id,
+						"targetid": self.jumpers[temp_connection.targetid].element.id,
 						"connectionPath": branch_connection_path,
 					})
 
