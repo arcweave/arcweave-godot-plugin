@@ -47,7 +47,7 @@ func get_cover():
 	return self.cover
 
 func _to_string():
-	return JSON.print({
+	return JSON.stringify({
 		"name": self.name,
 		"attributes": self.attributes,
 	})

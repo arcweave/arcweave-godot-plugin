@@ -17,7 +17,7 @@ func reset_to_default():
 		self.value = self._default_value as String
 	if self._type == TYPE_INT:
 		self.value = self._default_value as int
-	if self._type == TYPE_REAL:
+	if self._type == TYPE_FLOAT:
 		self.value = self._default_value as float
 	if self._type == TYPE_BOOL:
 		self.value = self._default_value as bool

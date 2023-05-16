@@ -1,10 +1,10 @@
 extends Object
 class_name Element
 
-var content_ref
+var content_ref: Callable
 var id: String = ""
-export var title: String = ""
-export var theme: String = "default"
+var title: String = ""
+var theme: String = "default"
 var outputs: Array = []
 var components: Array = []
 var attributes: Dictionary = {}
@@ -22,9 +22,9 @@ func _init(id, title = "", content_ref = null, theme = "default", components = [
 	self.attributes = attributes
 	self.cover = cover
 
-func get_content(state) -> String:
+func get_content(state: StateExport) -> String:
 	if self.content_ref:
-		return self.content_ref.call_func(state)
+		return self.content_ref.call(state)
 	return ""
 
 func get_cover() -> Dictionary:

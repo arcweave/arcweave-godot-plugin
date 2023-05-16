@@ -45,6 +45,7 @@ func aw_resetAll(state, except_vars: Array):
 
 # The following are for Godot v.4
 #static func aw_min():
+##	min()
 #	pass
 #
 #static func aw_max():

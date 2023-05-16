@@ -742,10 +742,10 @@ func _init(utils: Utils):
 
 	for element_id in self.data.elements:
 		if self.data.elements[element_id].content and self.data.elements[element_id].contentRef:
-			self.data.elements[element_id].content = funcref(self, self.data.elements[element_id].contentRef)
+			self.data.elements[element_id].content = Callable(self, self.data.elements[element_id].contentRef)
 	for connection_id in self.data.connections:
 		if self.data.connections[connection_id].label and self.data.connections[connection_id].labelRef:
-			self.data.connections[connection_id].labelRef = funcref(self, self.data.connections[connection_id].labelRef)
+			self.data.connections[connection_id].labelRef = Callable(self, self.data.connections[connection_id].labelRef)
 
 func element_0_content(state):
 	var content_result: String = ""
@@ -754,12 +754,12 @@ func element_0_content(state):
 
 func element_1_content(state):
 	var content_result: String = ""
-	content_result += "You have just arrived at Castle Monsignor, your uncle's home for the past 20 years. The tone of his letter was desperate, urgently asking for your help. Worried, you quickly packed your suitcase and took the first plane.\nFaint bird sounds break the eerie silence and a pale mist engulfs the castle hill.\n[b]To the north you can see the castle entrance.[/b]\n "
+	content_result += "You have just arrived at Castle Monsignor, your uncle's home for the past 20 years. The tone of his letter was desperate, urgently asking for your help. Worried, you quickly packed your suitcase and took the first plane.\nFaint bird sounds break the eerie silence and a pale mist engulfs the castle hill.\n[b]To the north you can see the castle entrance.[/b]\n\n "
 	return content_result.trim_suffix(" ")
 
 func element_2_content(state):
 	var content_result: String = ""
-	content_result += "[i]\"Wrong!\"[/i][b] [/b]he shouts. Before you can utter another word he strikes you with the back of his sword hilt.\nEverything fades to black...\n "
+	content_result += "[i]\"Wrong!\"[/i][b] [/b]he shouts. Before you can utter another word he strikes you with the back of his sword hilt.\nEverything fades to black...\n\n "
 	return content_result.trim_suffix(" ")
 
 func element_3_content(state):
@@ -769,17 +769,17 @@ func element_3_content(state):
 
 func element_4_content(state):
 	var content_result: String = ""
-	content_result += "You stand inside a small courtyard. Everything is unusually silent here.\n[b]The path leads further to the north. An abandoned house lies to your left.[/b]\n "
+	content_result += "You stand inside a small courtyard. Everything is unusually silent here.\n[b]The path leads further to the north. An abandoned house lies to your left.[/b]\n\n "
 	return content_result.trim_suffix(" ")
 
 func element_5_content(state):
 	var content_result: String = ""
-	content_result += "The interior looks more like an artist's studio than a house. A few abstract paintings lie scattered around.\nOne of the paintings depicts a strange figure: a knight dressed in white, with a red cross on his chest.\n "
+	content_result += "The interior looks more like an artist's studio than a house. A few abstract paintings lie scattered around.\nOne of the paintings depicts a strange figure: a knight dressed in white, with a red cross on his chest.\n\n "
 	return content_result.trim_suffix(" ")
 
 func element_6_content(state):
 	var content_result: String = ""
-	content_result += "As you try to run past him, he swiftly grabs you by the neck. You fight for freedom but his grip is inhumanly strong. \nYou drift into unconsciousness...\n "
+	content_result += "As you try to run past him, he swiftly grabs you by the neck. You fight for freedom but his grip is inhumanly strong. \nYou drift into unconsciousness...\n\n "
 	return content_result.trim_suffix(" ")
 
 func element_7_content(state):
@@ -802,7 +802,7 @@ func element_8_content(state):
 
 func element_9_content(state):
 	var content_result: String = ""
-	content_result += "Congrats, you finished the example project! 🎉Now try and make your own interactive experience. If you need help check the [url=https://arcweave.com/docs/1.0]docs[/url], our [url=https://youtu.be/Dfm6dKQH3I0]Youtube tutorials[/url] or ping us on [url=https://discord.gg/atVXxAK]Discord[/url]!\nHappy creations! 😊\n "
+	content_result += "Congrats, you finished the example project! 🎉Now try and make your own interactive experience. If you need help check the [url=https://arcweave.com/docs/1.0]docs[/url], our [url=https://youtu.be/Dfm6dKQH3I0]Youtube tutorials[/url] or ping us on [url=https://discord.gg/atVXxAK]Discord[/url]!\nHappy creations! 😊\n\n "
 	return content_result.trim_suffix(" ")
 
 func element_10_content(state):
@@ -921,7 +921,7 @@ func get_data():
 	return self.data
 
 func _to_string():
-	return JSON.print({
+	return JSON.stringify({
 		"name": self.name,
 		"components": self.components,
 		"variables": self.variables

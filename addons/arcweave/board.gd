@@ -18,7 +18,7 @@ func _init(id: String, name: String, customId: String, nodes: Dictionary):
 		self[node] = nodes[node]
 
 func _to_string():
-	return JSON.print({
+	return JSON.stringify({
 		"id": self.id,
 		"name": self.name,
 	}, "\t")

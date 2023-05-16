@@ -165,13 +165,13 @@ func generate_current_options():
 		if output.targetType == 'elements':
 			var temp_state = self._clone_state(self.state)
 			if output.has("labelRef"):
-				var output_label = output.labelRef.call_func(temp_state)
+				var output_label = output.labelRef.call(temp_state)
 				output.label = output_label
 			self.current_options.append({"targetid": output.targetid, "connectionPath": [output]})
 		if output.targetType == 'jumpers':
 			var temp_state = self._clone_state(self.state)
 			if output.has("labelRef"):
-				var output_label = output.labelRef.call_func(temp_state)
+				var output_label = output.labelRef.call(temp_state)
 				output.label = output_label
 			self.current_options.append({
 				"targetid": self.jumpers[output.targetid].element.id,
@@ -181,20 +181,20 @@ func generate_current_options():
 			var temp_state = self._clone_state(self.state)
 			var temp_output = output.duplicate()
 			if output.has("labelRef"):
-				var output_label = temp_output.labelRef.call_func(temp_state)
+				var output_label = temp_output.labelRef.call(temp_state)
 				temp_output.label = output_label
 			var connection = self._get_truthy_condition(temp_output.targetid, temp_state)
 			var temp_connection = null
 			if connection and connection.has("labelRef"):
 				temp_connection = connection.duplicate()
-				var output_label = temp_connection.labelRef.call_func(temp_state)
+				var output_label = temp_connection.labelRef.call(temp_state)
 				temp_connection.label = output_label
 			var branch_connection_path = [temp_output, temp_connection]
 			while (temp_connection and temp_connection.targetType == 'branches'):
 				connection = self._get_truthy_condition(temp_connection.targetid, temp_state)
 				temp_connection = connection.duplicate()
 				if temp_connection and temp_connection.has("labelRef"):
-					var output_label = temp_connection.labelRef.call_func(temp_state)
+					var output_label = temp_connection.labelRef.call(temp_state)
 					temp_connection.label = output_label
 				branch_connection_path.append(temp_connection)
 			if temp_connection:
@@ -233,7 +233,7 @@ func _get_truthy_condition(branchId, state):
 func select_option(option):
 	for connection in option.connectionPath:
 		if connection.has("labelRef"):
-			connection.labelRef.call_func(self.state)
+			connection.labelRef.call(self.state)
 	self.state.increment_visits(option.targetid)
 	self.state.set_current_element(self.elements[option.targetid])
 	self.generate_current_options()
@@ -251,7 +251,7 @@ func evaluate(command, variable_names = [], variable_values = []):
 		return result
 
 func _to_string():
-	return JSON.print({
+	return JSON.stringify({
 		"name": self.name,
 		"boards": self.boards,
 		"elements": self.elements,

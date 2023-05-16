@@ -3,6 +3,7 @@ extends Node2D
 var textContainer: RichTextLabel
 var optionContainer: VBoxContainer
 var saveButton: Button
+var save_file_location := "user://dataSave.json"
 
 var story: Story
 func _ready():
@@ -13,10 +14,10 @@ func _ready():
 	self.textContainer = self.get_node("TextContainer")
 	self.optionContainer = self.get_node("OptionContainer")
 	self.saveButton = self.get_node("SaveButton")
-	self.saveButton.connect("pressed", self, "saveState")
+	self.saveButton.connect("pressed", Callable(self, "saveState"))
 	
 	textContainer.bbcode_enabled = true
-	textContainer.bbcode_text = story.get_current_content()
+	textContainer.text = story.get_current_content()
 	self.addOptions(story.get_current_options())
 	
 func addOptions(options):
@@ -38,7 +39,7 @@ func addOptions(options):
 func createButton(text, option):
 	var button = Button.new()
 	button.text = text
-	button.connect("pressed", self, "_on_option_selection", [option])
+	button.connect("pressed", Callable(self, "_on_option_selection").bind(option))
 	self.optionContainer.add_child(button)
 
 func _on_option_selection(option):
@@ -46,7 +47,7 @@ func _on_option_selection(option):
 	self.redraw()
 
 func redraw():
-	self.textContainer.bbcode_text = story.get_current_content()
+	self.textContainer.text = story.get_current_content()
 	self.addOptions(story.get_current_options())
 
 func saveState():
@@ -58,16 +59,14 @@ func saveState():
 		'element': currentElementId,
 	}
 	
-	var file = File.new()
-	file.open("res://dataSave.json", File.WRITE)
-	file.store_string(JSON.print(saveObject, '\t'))
+	var file = FileAccess.open(save_file_location, FileAccess.WRITE)
+	file.store_string(JSON.stringify(saveObject, '\t'))
 	file.close()
 
 func loadState():
-	var file = File.new()
-	if file.file_exists("res://dataSave.json"):
-		file.open("res://dataSave.json", File.READ)
-		var data = JSON.parse(file.get_as_text()).result
+	if FileAccess.file_exists(save_file_location):
+		var file = FileAccess.open(save_file_location, FileAccess.READ)
+		var data = JSON.parse_string(file.get_as_text())
 		file.close()
 		self.story.set_state(data['state'])
 		self.story.set_current_element(data['element'])

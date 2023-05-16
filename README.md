@@ -6,9 +6,14 @@ The Arcweave Godot Exports currently are offered to our Pro and Team Accounts.
 
 The exports consist from two `.gd` files, `data_export.gd` and `state_export.gd`. These contain the data from your project as well as helper functions in order to use [arcscript](https://arcweave.com/docs/1.0/arcscript), Arcweave's scripting language in your Godot Projects.
 
+## Versioning
+
+The current version of the plugin **v2.x** is built for Godot 4.0. For Godot 3.5 you will have to use **v1.x**.
+
 ## Table of Contents
 
 - [Arcweave Godot Plugin](#arcweave-godot-plugin)
+  - [Versioning](#versioning)
   - [Table of Contents](#table-of-contents)
   - [Installing the Plugin](#installing-the-plugin)
   - [Importing your project](#importing-your-project)
