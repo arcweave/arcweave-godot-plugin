@@ -191,7 +191,7 @@ func generate_current_options():
 			if connection and connection.has("labelRef"):
 				var output_label = temp_connection.labelRef.call(temp_state)
 				temp_connection.label = output_label
-			branch_connection_path.append(connection)
+			branch_connection_path.append(temp_connection)
 			while (temp_connection and temp_connection.targetType == 'branches'):
 				connection = self._get_truthy_condition(temp_connection.targetid, temp_state)
 				if connection == null:
