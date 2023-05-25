@@ -184,14 +184,19 @@ func generate_current_options():
 				var output_label = temp_output.labelRef.call_func(temp_state)
 				temp_output.label = output_label
 			var connection = self._get_truthy_condition(temp_output.targetid, temp_state)
-			var temp_connection = null
+			if connection == null:
+				continue
+			var temp_connection = connection.duplicate()
+			var branch_connection_path = [temp_output]
 			if connection and connection.has("labelRef"):
-				temp_connection = connection.duplicate()
 				var output_label = temp_connection.labelRef.call_func(temp_state)
 				temp_connection.label = output_label
-			var branch_connection_path = [temp_output, temp_connection]
+			branch_connection_path.append(temp_connection)
 			while (temp_connection and temp_connection.targetType == 'branches'):
 				connection = self._get_truthy_condition(temp_connection.targetid, temp_state)
+				if connection == null:
+					temp_connection = null
+					break
 				temp_connection = connection.duplicate()
 				if temp_connection and temp_connection.has("labelRef"):
 					var output_label = temp_connection.labelRef.call_func(temp_state)
