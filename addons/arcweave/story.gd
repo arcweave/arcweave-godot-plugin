@@ -185,7 +185,7 @@ func generate_current_options():
 				temp_output.label = output_label
 			var connection = self._get_truthy_condition(temp_output.targetid, temp_state)
 			if connection == null:
-				continue;
+				continue
 			var temp_connection = connection.duplicate()
 			var branch_connection_path = [temp_output]
 			if connection and connection.has("labelRef"):
