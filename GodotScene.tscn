@@ -1,0 +1,35 @@
+[gd_scene load_steps=4 format=3 uid="uid://c26ff5qcgmexf"]
+
+[ext_resource type="Script" path="res://GodotSceneScript.gd" id="1_jdwot"]
+[ext_resource type="Script" path="res://addons/Arcweave/Editor/ArcweaveNode.cs" id="2_3ys73"]
+[ext_resource type="Resource" uid="uid://cmnanlsystim6" path="res://testRes.tres" id="3_k0cgb"]
+
+[node name="GodotScene" type="Node2D"]
+script = ExtResource("1_jdwot")
+
+[node name="TextContainer" type="RichTextLabel" parent="."]
+offset_right = 1016.0
+offset_bottom = 238.0
+
+[node name="OptionContainer" type="VBoxContainer" parent="."]
+offset_top = 211.0
+offset_right = 1000.0
+offset_bottom = 529.0
+
+[node name="SaveButton" type="Button" parent="."]
+offset_left = 1033.0
+offset_top = 577.0
+offset_right = 1077.0
+offset_bottom = 608.0
+text = "Save"
+
+[node name="ArcweaveNode" type="Node" parent="."]
+script = ExtResource("2_3ys73")
+ArcweaveResource = ExtResource("3_k0cgb")
+
+[node name="RefreshButton" type="Button" parent="."]
+offset_left = 52.0
+offset_top = 577.0
+offset_right = 96.0
+offset_bottom = 608.0
+text = "Refresh Project"

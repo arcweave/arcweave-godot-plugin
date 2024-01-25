@@ -6,74 +6,19 @@
 ;   [section] ; section goes between []
 ;   param=value ; assign values to parameters
 
-config_version=4
-
-_global_script_classes=[ {
-"base": "Object",
-"class": "Board",
-"language": "GDScript",
-"path": "res://addons/arcweave/board.gd"
-}, {
-"base": "Object",
-"class": "Component",
-"language": "GDScript",
-"path": "res://addons/arcweave/component.gd"
-}, {
-"base": "Object",
-"class": "DataExport",
-"language": "GDScript",
-"path": "res://addons/arcweave/data_export.gd"
-}, {
-"base": "Object",
-"class": "Element",
-"language": "GDScript",
-"path": "res://addons/arcweave/element.gd"
-}, {
-"base": "Object",
-"class": "StateExport",
-"language": "GDScript",
-"path": "res://addons/arcweave/state_export.gd"
-}, {
-"base": "Object",
-"class": "Story",
-"language": "GDScript",
-"path": "res://addons/arcweave/story.gd"
-}, {
-"base": "Object",
-"class": "Utils",
-"language": "GDScript",
-"path": "res://addons/arcweave/utils.gd"
-}, {
-"base": "Object",
-"class": "Variable",
-"language": "GDScript",
-"path": "res://addons/arcweave/variable.gd"
-} ]
-_global_script_class_icons={
-"Board": "",
-"Component": "",
-"DataExport": "",
-"Element": "",
-"StateExport": "",
-"Story": "",
-"Utils": "",
-"Variable": ""
-}
+config_version=5
 
 [application]
 
-config/name="Arcweave_Plugin"
-run/main_scene="res://Node2D.tscn"
-config/icon="res://icon.png"
+config/name="CSharp_Plugin"
+run/main_scene="res://CSharpScene.tscn"
+config/features=PackedStringArray("4.2", "C#", "Forward Plus")
+config/icon="res://icon.svg"
+
+[dotnet]
+
+project/assembly_name="CSharp_Plugin"
 
 [editor_plugins]
 
-enabled=PoolStringArray( "res://addons/arcweave/plugin.cfg" )
-
-[physics]
-
-common/enable_pause_aware_picking=true
-
-[rendering]
-
-environment/default_environment="res://default_env.tres"
+enabled=PackedStringArray("res://addons/Arcweave/plugin.cfg")
