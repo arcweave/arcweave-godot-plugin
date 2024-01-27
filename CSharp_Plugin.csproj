@@ -10,6 +10,6 @@
     <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="addons\Arcweave\env.json" />
+    <Content Include="addons\arcweave\env.json" />
   </ItemGroup>
 </Project>

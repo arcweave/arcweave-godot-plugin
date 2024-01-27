@@ -12,7 +12,7 @@ public partial class ArcweaveNode : Node
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
-		var requestScript =  GD.Load<GDScript>("res://addons/Arcweave/Editor/APIRequest.gd");
+		var requestScript = GD.Load<GDScript>("res://addons/arcweave/Editor/APIRequest.gd");
 		ApiRequest = (Node)requestScript.New(ArcweaveResource);
 		Story = CreateStory();
 		AddChild(ApiRequest);
@@ -37,14 +37,14 @@ public partial class ArcweaveNode : Node
 		Story = Story.UpdateStory(projectSettings);
 		EmitSignal(SignalName.ProjectUpdated);
 	}
-	
+
 	/// <summary>
 	/// Creates a Story from the current ProjectSettings of the ArcweaveResource.
 	/// </summary>
 	/// <returns>The newly created Story</returns>
 	public Story CreateStory()
 	{
-		Dictionary projectSettings = (Dictionary) ArcweaveResource.Get("project_settings");
+		Dictionary projectSettings = (Dictionary)ArcweaveResource.Get("project_settings");
 		return new Story(projectSettings);
 	}
 }

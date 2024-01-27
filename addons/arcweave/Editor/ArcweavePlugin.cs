@@ -7,24 +7,24 @@ namespace Arcweave.Editor;
 [Tool]
 public partial class ArcweavePlugin : EditorPlugin
 {
-	private string _envFileLocation = "res://addons/Arcweave/env.json";
+	private string _envFileLocation = "res://addons/arcweave/env.json";
 	private string _defaultDomain = "https://www.arcweave.com/";
-	
-	private Resource _logoResource = GD.Load<Resource>("res://addons/Arcweave/Editor/icon.svg");
+
+	private Resource _logoResource = GD.Load<Resource>("res://addons/arcweave/Editor/icon.svg");
 	private CompressedTexture2D _logo;
 	private string _resourceName = "ArcweaveResource";
 	private GDScript _arcweaveResource;
 	private EditorInspectorPlugin _gdInspector;
-	
+
 	public override void _EnterTree()
 	{
 		// Initialization of the plugin goes here.
-		var inspectorScript = GD.Load<GDScript>("res://addons/Arcweave/Editor/Inspector/ArcweaveInspector.gd");
-		_gdInspector = (EditorInspectorPlugin) inspectorScript.New();
+		var inspectorScript = GD.Load<GDScript>("res://addons/arcweave/Editor/Inspector/ArcweaveInspector.gd");
+		_gdInspector = (EditorInspectorPlugin)inspectorScript.New();
 		AddInspectorPlugin(_gdInspector);
 
-		_logo = (CompressedTexture2D)GD.Load("res://addons/Arcweave/Editor/icon.svg");
-		
+		_logo = (CompressedTexture2D)GD.Load("res://addons/arcweave/Editor/icon.svg");
+
 		AddArcweaveNodes();
 		AddArcweaveResource();
 	}
@@ -41,8 +41,8 @@ public partial class ArcweavePlugin : EditorPlugin
 	/// </summary>
 	private void AddArcweaveNodes()
 	{
-		var script = GD.Load<Script>("res://addons/Arcweave/Editor/ArcweaveNode.cs");
-		
+		var script = GD.Load<Script>("res://addons/arcweave/Editor/ArcweaveNode.cs");
+
 		AddCustomType("ArcweaveNode", "Node", script, _logo);
 	}
 
@@ -59,7 +59,7 @@ public partial class ArcweavePlugin : EditorPlugin
 	/// </summary>
 	private void AddArcweaveResource()
 	{
-		_arcweaveResource = GD.Load<GDScript>("res://addons/Arcweave/Editor/ArcweaveResource.gd");
+		_arcweaveResource = GD.Load<GDScript>("res://addons/arcweave/Editor/ArcweaveResource.gd");
 		AddCustomType(_resourceName, "Resource", _arcweaveResource, _logo);
 	}
 

@@ -46,8 +46,8 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 	project_updated.emit(project_settings)
 
 func _update_env_vars():
-	if FileAccess.file_exists("res://addons/Arcweave/env.json"):
-		var file = FileAccess.open("res://addons/Arcweave/env.json", FileAccess.READ)
+	if FileAccess.file_exists("res://addons/arcweave/env.json"):
+		var file = FileAccess.open("res://addons/arcweave/env.json", FileAccess.READ)
 		env_vars = JSON.parse_string(file.get_as_text())
 		if "API_DOMAIN" in env_vars:
 			default_domain = env_vars["API_DOMAIN"]

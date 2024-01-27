@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="CSharp_Plugin"
+config/name="Arcweave Plugin"
 run/main_scene="res://CSharpScene.tscn"
 config/features=PackedStringArray("4.2", "C#", "Forward Plus")
 config/icon="res://icon.svg"
@@ -21,4 +21,4 @@ project/assembly_name="CSharp_Plugin"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/Arcweave/plugin.cfg")
+enabled=PackedStringArray("res://addons/arcweave/plugin.cfg")

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dko2yjj1eeqfp"
-path="res://.godot/imported/icon.svg-ce2e20563fe9ff2d708727f485f7e65d.ctex"
+path="res://.godot/imported/icon.svg-b5a8a98f0bf53bb5293d6ddcfc43bc48.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://addons/Arcweave/Editor/icon.svg"
-dest_files=["res://.godot/imported/icon.svg-ce2e20563fe9ff2d708727f485f7e65d.ctex"]
+source_file="res://addons/arcweave/Editor/icon.svg"
+dest_files=["res://.godot/imported/icon.svg-b5a8a98f0bf53bb5293d6ddcfc43bc48.ctex"]
 
 [params]
 
