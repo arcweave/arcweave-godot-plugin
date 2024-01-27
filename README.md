@@ -9,11 +9,15 @@ The exports consist from two `.gd` files, `data_export.gd` and `state_export.gd`
 ## Table of Contents
 
 - [Arcweave Godot Plugin](#arcweave-godot-plugin)
-  - [Table of Contents](#table-of-contents)
   - [Installing the Plugin](#installing-the-plugin)
-  - [Importing your project](#importing-your-project)
+  - [Getting data from Arcweave](#getting-data-from-arcweave)
     - [Folder Import](#folder-import)
     - [API Import](#api-import)
+  - [Creating an ArcweaveResource](#creating-an-arcweaveresource)
+    - [Loading the Project Data](#loading-the-project-data)
+    - [Using the ArcweaveResource](#using-the-arcweaveresource)
+      - [Use ArcweaveNode](#use-arcweavenode)
+      - [Create your own Node](#create-your-own-node)
   - [Using the Plugin](#using-the-plugin)
   - [API Documentation](#api-documentation)
     - [Story](#story)
@@ -27,17 +31,11 @@ The exports consist from two `.gd` files, `data_export.gd` and `state_export.gd`
 
 Download the plugin and add the `addons/arcweave` folder in your project's `addons` folder.
 
-Then refresh your project, go to `AssetLib` -> `Plugins` and enable it.
+Then refresh your project, go to `Project` -> `Project Settings` -> `Plugins` and enable it.
 
-![Enable Plugin](docs/images/enable_plugin.png)
+## Getting data from Arcweave
 
-Now the Godot Plugin should appear in the Right Dock of the Godot Engine
-
----
-
-## Importing your project
-
-You can import your project in two ways, using our API or by downloading the Godot Export, unzipping the contents and selecting the unzipped folder
+You can import your project in two ways, using our API or by downloading the Godot Export and selecting the exported file
 
 ### Folder Import
 
@@ -63,21 +61,41 @@ Then Select the folder containing the extracted files and **Refresh From Folder*
 
 ### API Import
 
-To use the API import functionality, you will have to be in a Team Plan in Arcweave.
+Feature available to Team account holders only. You can fetch your Arcweave project's data from within Godot, via Arcweave's web API.
 
-Using the instructions in the [Arcweave Documentation](https://arcweave.com/docs/1.0/api) to create and use an API Token.
+To do this, you will need:
 
-From the Arcweave Plugin select the source to be **API** and fill your **API Key** and your **Project Hash**. The **Project Hash**.
+* your **API key** as an Arcweave user.
+* your **project's hash**.
 
-![API Selection](docs/images/api.png)
+[This chapter](https://arcweave.com/docs/1.0/api) in the Arcweave Documentation explains where to find both of them.
 
-Then press **Refresh Project**
+## Creating an ArcweaveResource
 
-In the Godot Engine Output a **SUCCESS** message should appear.
+Either way, to import your data into Godot, you must create an **ArcweaveResource** in your Godot project. To do this, right-click on your Godot FileSystem tab, select **New Resource** and find the **ArcweaveResource** option and pick the file name of your choice. 
 
-[TOC](#table-of-contents)
+### Loading the Project Data
 
----
+Open the newly created resource's inspector. You will see two options for selecting either a file or use the Arcweave API to retrieve the data.
+
+- **Importing from JSON**: Click on **Select Project File**, find your downloaded export file and select it.
+- **Importing from API**: Fill the **API key** and **Project Hash** values.
+
+Then click on **Initialize Arcweave Asset** button. This will either load the project from the file, or fetch the data from the API and store it's info in the Resource.
+
+### Using the ArcweaveResource
+
+#### Use ArcweaveNode
+
+You can create your own nodes and use them to interract with the resource, but we are also providing a new Node Type, **ArcweaveNode** that you can use. 
+
+Add an **ArcweaveNode** as a child node in your scene and use the Inspector tab connect it to your resource that you created earlier.
+
+#### Create your own Node
+
+You can also create your own nodes and interract with the ArcweaveResource. 
+
+In order to update during runtime though, you would have to add the node `APIRequest.gd` inside your scene. This will insert an HTTPRequest node in your scene and you will be able
 
 ## Using the Plugin
 
@@ -145,9 +163,6 @@ func addOptions(options):
             lastLabel = self.story.elements[option.targetid].get_content(self.story.state)
         self.createButton(lastLabel, option)
 ```
-[TOC](#table-of-contents)
-
----
 
 ## API Documentation
 
@@ -217,5 +232,3 @@ Variables
 * `var notes: Dictionary`
 * `var jumpers: Dictionary`
 * `var branches: Dictionary`
-
-[TOC](#table-of-contents)
