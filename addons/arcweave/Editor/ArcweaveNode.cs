@@ -14,6 +14,7 @@ public partial class ArcweaveNode : Node
 	{
 		var requestScript = GD.Load<GDScript>("res://addons/arcweave/Editor/APIRequestScript.gd");
 		ApiRequest = (Node)requestScript.New(ArcweaveAsset);
+		ArcweaveAsset.Connect("project_updated", Callable.From((Dictionary projectSettings) => OnProjectUpdate(projectSettings)));
 		Story = CreateStory();
 		AddChild(ApiRequest);
 	}
@@ -24,7 +25,6 @@ public partial class ArcweaveNode : Node
 	/// </summary>
 	public void UpdateStory()
 	{
-		ArcweaveAsset.Connect("project_updated", Callable.From((Dictionary projectSettings) => OnProjectUpdate(projectSettings)));
 		ArcweaveAsset.Call("refresh_project", ApiRequest);
 	}
 
