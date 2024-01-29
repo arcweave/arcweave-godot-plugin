@@ -1,5 +1,6 @@
 @tool
-class_name ArcweaveResource extends Resource
+class_name ArcweaveAsset extends Resource
+
 signal project_updated()
 @export var use_api : bool = false
 @export var api_key : String

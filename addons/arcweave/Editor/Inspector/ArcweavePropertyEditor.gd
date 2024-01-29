@@ -1,4 +1,4 @@
-class_name ArcweavePropertyEditor extends EditorProperty
+extends EditorProperty
 
 # The main control for editing the properties.
 var source_control : CheckButton = CheckButton.new()
@@ -113,7 +113,7 @@ func _on_project_hash_changed(new_text):
 	emit_changed("project_hash", new_text)
 
 func _update_property():
-	var object : ArcweaveResource = get_edited_object()
+	var object : ArcweaveAsset = get_edited_object()
 	
 	updating = true
 	if current_value != object.use_api:

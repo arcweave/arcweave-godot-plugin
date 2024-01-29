@@ -1,9 +1,9 @@
-[gd_resource type="Resource" script_class="ArcweaveResource" load_steps=2 format=3 uid="uid://cmnanlsystim6"]
+[gd_resource type="Resource" script_class="ArcweaveAsset" load_steps=2 format=3 uid="uid://cmnanlsystim6"]
 
-[ext_resource type="Script" path="res://addons/arcweave/Editor/ArcweaveResource.gd" id="1_vcarp"]
+[ext_resource type="Script" path="res://addons/arcweave/Editor/ArcweaveAssetScript.gd" id="1_7gjtn"]
 
 [resource]
-script = ExtResource("1_vcarp")
+script = ExtResource("1_7gjtn")
 use_api = true
 api_key = "ZFSzbvZyRzZCtGBaVEp34XoeumTKJLTzCtQrkRHU8YdMDQihreeezDb5id4X"
 project_hash = "ra6Xp1r63G"

@@ -12,7 +12,7 @@ public partial class ArcweavePlugin : EditorPlugin
 
 	private Resource _logoResource = GD.Load<Resource>("res://addons/arcweave/Editor/icon.svg");
 	private CompressedTexture2D _logo;
-	private string _resourceName = "ArcweaveResource";
+	private string _resourceName = "ArcweaveAsset";
 	private GDScript _arcweaveResource;
 	private EditorInspectorPlugin _gdInspector;
 
@@ -59,7 +59,7 @@ public partial class ArcweavePlugin : EditorPlugin
 	/// </summary>
 	private void AddArcweaveResource()
 	{
-		_arcweaveResource = GD.Load<GDScript>("res://addons/arcweave/Editor/ArcweaveResource.gd");
+		_arcweaveResource = GD.Load<GDScript>("res://addons/arcweave/Editor/ArcweaveAssetScript.gd");
 		AddCustomType(_resourceName, "Resource", _arcweaveResource, _logo);
 	}
 

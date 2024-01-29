@@ -25,7 +25,7 @@ text = "Save"
 
 [node name="ArcweaveNode" type="Node" parent="."]
 script = ExtResource("2_3ys73")
-ArcweaveResource = ExtResource("3_k0cgb")
+ArcweaveAsset = ExtResource("3_k0cgb")
 
 [node name="RefreshButton" type="Button" parent="."]
 offset_left = 52.0

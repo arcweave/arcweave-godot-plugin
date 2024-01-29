@@ -8,7 +8,7 @@ var project_hash : String
 var env_vars : Dictionary
 var default_domain = "https://arcweave.com/"
 
-func _init(object : ArcweaveResource):
+func _init(object : ArcweaveAsset):
 	http_request = HTTPRequest.new()
 	add_child(http_request)
 	http_request.request_completed.connect(_on_request_completed)

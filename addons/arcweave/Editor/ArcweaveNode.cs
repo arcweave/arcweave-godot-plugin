@@ -5,15 +5,15 @@ namespace Arcweave.Editor;
 
 public partial class ArcweaveNode : Node
 {
-	[Export] public GodotObject ArcweaveResource { get; set; }
+	[Export] public GodotObject ArcweaveAsset { get; set; }
 	[Signal] public delegate void ProjectUpdatedEventHandler();
 	public Story Story { get; private set; }
 	private Node ApiRequest { get; set; }
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
-		var requestScript = GD.Load<GDScript>("res://addons/arcweave/Editor/APIRequest.gd");
-		ApiRequest = (Node)requestScript.New(ArcweaveResource);
+		var requestScript = GD.Load<GDScript>("res://addons/arcweave/Editor/APIRequestScript.gd");
+		ApiRequest = (Node)requestScript.New(ArcweaveAsset);
 		Story = CreateStory();
 		AddChild(ApiRequest);
 	}
@@ -24,12 +24,12 @@ public partial class ArcweaveNode : Node
 	/// </summary>
 	public void UpdateStory()
 	{
-		ArcweaveResource.Connect("project_updated", Callable.From((Dictionary projectSettings) => OnProjectUpdate(projectSettings)));
-		ArcweaveResource.Call("refresh_project", ApiRequest);
+		ArcweaveAsset.Connect("project_updated", Callable.From((Dictionary projectSettings) => OnProjectUpdate(projectSettings)));
+		ArcweaveAsset.Call("refresh_project", ApiRequest);
 	}
 
 	/// <summary>
-	/// Signal handler for "project_updated" signal from ArcweaveResource.
+	/// Signal handler for "project_updated" signal from ArcweaveAsset.
 	/// </summary>
 	/// <param name="projectSettings"></param>
 	private void OnProjectUpdate(Dictionary projectSettings)
@@ -39,12 +39,12 @@ public partial class ArcweaveNode : Node
 	}
 
 	/// <summary>
-	/// Creates a Story from the current ProjectSettings of the ArcweaveResource.
+	/// Creates a Story from the current ProjectSettings of the ArcweaveAsset.
 	/// </summary>
 	/// <returns>The newly created Story</returns>
 	public Story CreateStory()
 	{
-		Dictionary projectSettings = (Dictionary)ArcweaveResource.Get("project_settings");
+		Dictionary projectSettings = (Dictionary)ArcweaveAsset.Get("project_settings");
 		return new Story(projectSettings);
 	}
 }
