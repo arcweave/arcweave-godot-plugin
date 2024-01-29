@@ -18,6 +18,7 @@ The exports consist from two `.gd` files, `data_export.gd` and `state_export.gd`
     - [Using the ArcweaveResource](#using-the-arcweaveresource)
       - [Use ArcweaveNode](#use-arcweavenode)
       - [Create your own Node](#create-your-own-node)
+  - [Our Implementation](#our-implementation)
   - [Using the Plugin](#using-the-plugin)
   - [API Documentation](#api-documentation)
     - [Story](#story)
@@ -95,7 +96,15 @@ Add an **ArcweaveNode** as a child node in your scene and use the Inspector tab 
 
 You can also create your own nodes and interract with the ArcweaveResource. 
 
-In order to update during runtime though, you would have to add the node `APIRequest.gd` inside your scene. This will insert an HTTPRequest node in your scene and you will be able
+In order to update during runtime though, you would have to add the node `APIRequest.gd` inside your scene. This will insert an HTTPRequest node in your scene and you will be able to make requests
+
+## Our Implementation
+
+Most of our implementation, except ArcweaveResource and some editor GDScript classes, are written in C#. This means that not all of the API is available in GDScript, because of type compatibility issues. The reason is that the interpreter we are using is written in C# with built in types. 
+
+Using functions with the name pattern `GetGodot*` will retreive the appropriate instance properties in Godot types but doing this will require copying and typecasting, so the experience might be slower.
+
+We are planning to integrate Godot types in our interpreter in the near future that will speed up this process.
 
 ## Using the Plugin
 
