@@ -1,11 +1,11 @@
 [gd_scene load_steps=4 format=3 uid="uid://c26ff5qcgmexf"]
 
-[ext_resource type="Script" path="res://GodotSceneScript.gd" id="1_jdwot"]
+[ext_resource type="Script" path="res://GodotSceneWithoutArcweaveNode.gd" id="1_h1l05"]
 [ext_resource type="Script" path="res://addons/arcweave/Editor/ArcweaveNode.cs" id="2_3ys73"]
 [ext_resource type="Resource" uid="uid://cmnanlsystim6" path="res://testRes.tres" id="3_k0cgb"]
 
 [node name="GodotScene" type="Node2D"]
-script = ExtResource("1_jdwot")
+script = ExtResource("1_h1l05")
 
 [node name="TextContainer" type="RichTextLabel" parent="."]
 offset_right = 1016.0
