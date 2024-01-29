@@ -5,22 +5,20 @@ var option_container: VBoxContainer
 var save_button: Button
 var refresh_button: Button
 
-var arcweave_asset: ArcweaveAsset = preload("res://testRes.tres")
+var arcweave_asset: ArcweaveAsset = preload("res://ArcweaveAsset.tres")
 var api_request: APIRequest
 var Story = load("res://addons/arcweave/Story.cs")
 var story
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	print("Using Godot Script ./GodotSceneScript.gd")
+	print("Using Godot Script ./GodotSceneScriptWithoutArcweaveNode.gd")
 
 	api_request = APIRequest.new(arcweave_asset)
 	arcweave_asset.project_updated.connect(_on_project_updated)
 	add_child(api_request)
 
 	story = Story.new(arcweave_asset.project_settings)
-	
-	print("Using Godot Script ./GodotSceneScriptWithoutArcweaveNode.gd")
 	
 	text_container = get_node("TextContainer")
 	option_container = get_node("OptionContainer")
