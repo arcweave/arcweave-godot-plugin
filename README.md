@@ -4,8 +4,6 @@ Arcweave Godot Plugin is a plugin for importing Arcweave Projects from [arcweave
 
 The Arcweave Godot Exports currently are offered to our Pro and Team Accounts.
 
-The exports consist from two `.gd` files, `data_export.gd` and `state_export.gd`. These contain the data from your project as well as helper functions in order to use [arcscript](https://arcweave.com/docs/1.0/arcscript), Arcweave's scripting language in your Godot Projects.
-
 ## Table of Contents
 
 - [Arcweave Godot Plugin](#arcweave-godot-plugin)
@@ -23,16 +21,48 @@ The exports consist from two `.gd` files, `data_export.gd` and `state_export.gd`
     - [C#](#c)
     - [GDScript](#gdscript)
   - [API Documentation](#api-documentation)
-    - [Story](#story)
-    - [Component](#component)
-    - [Element](#element)
-    - [Board](#board)
+    - [Story class](#story-class)
+      - [Properties](#properties)
+      - [Methods](#methods)
+    - [Project class](#project-class)
+      - [Properties](#properties-1)
+      - [Methods](#methods-1)
 
 ---
 
 ## Installing the Plugin
 
+In order to use the plugin, you will need the **.NET** version of **Godot Engine** which you can find [here](https://godotengine.org/).
+
 Download the plugin and add the `addons/arcweave` folder in your project's `addons` folder.
+
+If you haven't already, create a C# solution for your project, through `Project` -> `Tools` -> `C#` -> `Create C# Solution`. This will create two files in your root folder with the name of your project and with extensions `.csproj` and `.sln`.
+
+Open the `.csproj` file, and after the `PropertyGroup` part, add the following:
+
+```xml
+<ItemGroup>
+    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
+</ItemGroup>
+```
+
+So the file will now look similar to this:
+
+```xml
+<Project Sdk="Godot.NET.Sdk/4.2.1">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net7.0</TargetFramework>
+    <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'ios' ">net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
+  </ItemGroup>
+</Project>
+```
+
+This will add a required library for the plugin which handles the interpretation of **Arcscript**.
 
 Then refresh your project, go to `Project` -> `Project Settings` -> `Plugins` and enable it.
 
@@ -80,7 +110,7 @@ Then click on **Initialize Arcweave Asset** button. This will either load the pr
 
 ### Using the ArcweaveAsset
 
-You can use ArcweaveAsset in your own way. Use a separate node for the Arcweave Project, integrate it in your own,
+You can use ArcweaveAsset in your own way. Use a separate node for the Arcweave Project, integrate it on your own,
 or you can use the **ArcweaveNode** we are providing.
 
 #### Use ArcweaveNode
@@ -106,7 +136,7 @@ the Arcweave API for requesting and retrieving the updated Arcweave Project.
 
 You can also create your own nodes and interact with the ArcweaveAsset. 
 
-In order to update during runtime though, you would have to add the node `APIRequest.gd` inside your scene. This will insert an HTTPRequest node in your scene and you will be able to make requests. You can see how we implemented owr own [`ArcweaveNode.cs`](./addons/arcweave/Editor/ArcweaveNode.cs) and follow a similar pattern.
+In order to update during runtime though, you would have to add the node `APIRequest.gd` inside your scene. This will insert an HTTPRequest node in your scene and you will be able to make requests. You can see how we implemented owr own [`ArcweaveNode.cs`](./addons/arcweave/Editor/ArcweaveNode.cs) for C# or [`GodotSceneWithoutArcweaveNode.gd`](./GodotSceneWithoutArcweaveNode.gd) for GDScript and follow a similar pattern.
 
 ## Our Implementation
 
@@ -284,68 +314,44 @@ func option_button_pressed(path):
 ## API Documentation
 
 
-### Story
+### Story class
 
-The story class provides the following functions
+#### Properties
 
-| Function Name                                   | Description                               |
-| :---                                            | :---                                      |
-| `get_current_element() -> Element`              | Returns the current Element               |
-| `set_current_element(id: String)`               | Sets the current element                  |
-| `get_current_content() -> String`               | Returns the current element's content     |
-| `get_current_options() -> Array`                | Returns the current element's options     |
-| `get_element(element_id: String) -> Element`    | Returns an element                        |
-| `get_state() -> Dictionary`                     | Returns the current state of the project  |
-| `set_state(state: Dictionary)`                  | Sets the current state of the project     |
-| `select_option(option)`                         | Select's an option                        |
+| Property                  | Description                       |
+| :------------------------ | :-------------------------------- |
+| `Project project`         | The Project instance of the story |
+| `Dictionary ProjectData`  | The starting ProjectData          |
+| `IElement CurrentElement` | The current element of the story  |
 
-### Component
+#### Methods
 
-Variables
+| Method Name                                | Description                                 |
+| :----------------------------------------- | :------------------------------------------ |
+| `Story(Dictionary projectData)`            | Initializes a Story with the project data   |
+| `void UpdateStory(Dictionary projectData)` | Updates the story with the new project data |
+| `void SetCurrentElement(string id)`        | Sets the current element                    |
+| `void SetCurrentElement(IElement element)` | Sets the current element                    |
+| `string GenerateCurrentRuntimeContent()`   | Returns the current element's content       |
+| `Options GenerateCurrentOptions()`         | Returns the current element's options       |
+| `Element GetCurrentElement()`              | Returns the current element                 |
+| `void SelectPath(Path path)`               | Selects a path/option                       |
 
-* `var id: String`
-* `var name: String`
-* `var cover: Dictionary`
-* `var attributes: Dictionary`
+### Project class
 
-Functions
+#### Properties
 
-| Function Name                                       | Description                                       |
-| :---                                                | :---                                              |
-| `get_name()`                                        | Returns the name of the Component                 |
-| `get_attribute_by_name(name: String) -> Dictionary` | Returns the first attribute with this name        |
-| `search_attributes_by_name(name: String) -> Array`  | Returns an array with attributes with this name   |
-| `get_cover() -> Dictionary`                         | Returns the cover information for the component   |
+| Property                                    | Description                         |
+| :------------------------------------------ | :---------------------------------- |
+| `string Name`                               | The Project's name                  |
+| `Dictionary<string, IBoard> Boards`         | The Boards of the Project           |
+| `Dictionary<string, IComponent> Components` | The Components of the Project       |
+| `Dictionary<string, IVariable> Variables`   | The Variables of the Project        |
+| `Dictionary<string, IElement> Elements`     | The Elements of the Project         |
+| `IElement StartingElement`                  | The starting element of the Project |
 
-### Element
+#### Methods
 
-Variables
-
-* `var id: String`
-* `var title: String`
-* `var theme: String`
-* `var outputs: Array`
-* `var components: Array`
-* `var attributes: Dictionary`
-* `var cover: Dictionary`
-* `var content_ref`
-
-Functions
-
-| Function Name                                       | Description                                           |
-| :---                                                | :---                                                  |
-| `get_content(state: Dictionary) -> String`          | Returns the content of the element based on the state |
-| `get_cover() -> Dictionary`                         | Returns the cover information for the element         |
-
-### Board
-
-Variables 
-
-* `var id: String`
-* `var customId: String`
-* `var name: String`
-* `var elements: Dictionary`
-* `var connections: Dictionary`
-* `var notes: Dictionary`
-* `var jumpers: Dictionary`
-* `var branches: Dictionary`
+| Method Name | Description |
+| :---------- | :---------- |
+|             |             |
