@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using Arcweave.Interpreter.INodes;
-using Godot;
 using Godot.Collections;
 
 namespace Arcweave.Project
@@ -10,13 +7,13 @@ namespace Arcweave.Project
 		public string Id { get; private set; }
 		public string CustomId { get; private set; }
 		public string Name { get; private set; }
-		public List<Element> Elements { get; private set; }
-		public List<Connection> Connections { get; private set; }
-		public List<Note> Notes { get; private set; }
-		public List<Jumper> Jumpers { get; private set; }
-		public List<Branch> Branches { get; private set; }
+		public Array<Element> Elements { get; private set; }
+		public Array<Connection> Connections { get; private set; }
+		public Array<Note> Notes { get; private set; }
+		public Array<Jumper> Jumpers { get; private set; }
+		public Array<Branch> Branches { get; private set; }
 
-		public Board(string id, string name, List<Element> elements, List<Connection> connections, List<Jumper> jumpers, List<Branch> branches)
+		public Board(string id, string name, Array<Element> elements, Array<Connection> connections, Array<Jumper> jumpers, Array<Branch> branches)
 		{
 			Id = id;
 			Name = name;

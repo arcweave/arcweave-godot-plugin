@@ -1,6 +1,5 @@
-﻿using System.Collections.Generic;
-using Arcweave.Interpreter.INodes;
-using Godot;
+﻿using Godot;
+using Godot.Collections;
 
 namespace Arcweave.Project
 {
@@ -10,13 +9,13 @@ namespace Arcweave.Project
         public string Name { get; private set; }
         public Variant Cover { get; private set; }
 
-        public List<Attribute> Attributes { get; private set; }
+        public Array<Attribute> Attributes { get; private set; }
 
         public Component(string id, string name)
         {
             Id = id;
             Name = name;
-            Attributes = new List<Attribute>();
+            Attributes = new Array<Attribute>();
         }
 
         public Component(string id, string name, Variant cover)
@@ -24,7 +23,7 @@ namespace Arcweave.Project
             Id = id;
             Name = name;
             Cover = cover;
-            Attributes = new List<Attribute>();
+            Attributes = new Array<Attribute>();
         }
 
         public void AddAttribute(Attribute attribute)

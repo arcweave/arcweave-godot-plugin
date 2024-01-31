@@ -1,4 +1,8 @@
-﻿using System.Collections.Generic;
+﻿#if GODOT
+using Godot.Collections;
+#else
+using System.Collections.Generic;
+#endif
 
 namespace Arcweave.Interpreter.INodes
 {

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Arcweave.Interpreter.INodes;
 using Godot;
 using Godot.Collections;
@@ -19,15 +18,15 @@ namespace Arcweave.Project
 		private readonly Dictionary _branchesDict;
 		private readonly Dictionary _variablesDict;
 
-		private readonly System.Collections.Generic.Dictionary<string, Board> _boards;
-		private readonly System.Collections.Generic.Dictionary<string, Attribute> _attributes;
-		private readonly System.Collections.Generic.Dictionary<string, Component> _components;
-		private readonly System.Collections.Generic.Dictionary<string, Condition> _conditions;
-		private readonly System.Collections.Generic.Dictionary<string, Connection> _connections;
-		private readonly System.Collections.Generic.Dictionary<string, Element> _elements;
-		private readonly System.Collections.Generic.Dictionary<string, Jumper> _jumpers;
-		private readonly System.Collections.Generic.Dictionary<string, Branch> _branches;
-		private readonly System.Collections.Generic.Dictionary<string, Variable> _variables;
+		private readonly Dictionary<string, Board> _boards;
+		private readonly Dictionary<string, Attribute> _attributes;
+		private readonly Dictionary<string, Component> _components;
+		private readonly Dictionary<string, Condition> _conditions;
+		private readonly Dictionary<string, Connection> _connections;
+		private readonly Dictionary<string, Element> _elements;
+		private readonly Dictionary<string, Jumper> _jumpers;
+		private readonly Dictionary<string, Branch> _branches;
+		private readonly Dictionary<string, Variable> _variables;
 
 
 		public ProjectMaker(Dictionary projectData)
@@ -43,15 +42,15 @@ namespace Arcweave.Project
 			_branchesDict = _projectData["branches"].AsGodotDictionary();
 			_variablesDict = _projectData["variables"].AsGodotDictionary();
 
-			_boards = new System.Collections.Generic.Dictionary<string, Board>();
-			_attributes = new System.Collections.Generic.Dictionary<string, Attribute>();
-			_components = new System.Collections.Generic.Dictionary<string, Component>();
-			_conditions = new System.Collections.Generic.Dictionary<string, Condition>();
-			_connections = new System.Collections.Generic.Dictionary<string, Connection>();
-			_elements = new System.Collections.Generic.Dictionary<string, Element>();
-			_jumpers = new System.Collections.Generic.Dictionary<string, Jumper>();
-			_branches = new System.Collections.Generic.Dictionary<string, Branch>();
-			_variables = new System.Collections.Generic.Dictionary<string, Variable>();
+			_boards = new Dictionary<string, Board>();
+			_attributes = new Dictionary<string, Attribute>();
+			_components = new Dictionary<string, Component>();
+			_conditions = new Dictionary<string, Condition>();
+			_connections = new Dictionary<string, Connection>();
+			_elements = new Dictionary<string, Element>();
+			_jumpers = new Dictionary<string, Jumper>();
+			_branches = new Dictionary<string, Branch>();
+			_variables = new Dictionary<string, Variable>();
 		}
 
 		public Project MakeProject()
@@ -99,7 +98,7 @@ namespace Arcweave.Project
 				else
 				{
 					attrType = IAttribute.DataType.ComponentList;
-					List<Component> attrComps = new();
+					Array<Component> attrComps = new();
 					foreach (string compId in attrValue["data"].AsStringArray())
 					{
 						attrComps.Add(_components[compId]);
@@ -120,13 +119,13 @@ namespace Arcweave.Project
 			foreach (string key in _elementsDict.Keys)
 			{
 				Dictionary el = _elementsDict[key].AsGodotDictionary();
-				List<Connection> elConnections = new();
+				Array<Connection> elConnections = new();
 				foreach (string output in el["outputs"].AsStringArray())
 				{
 					elConnections.Add(_connections[output]);
 				}
 
-				List<Attribute> elAttributes = new();
+				Array<Attribute> elAttributes = new();
 				if (el.ContainsKey("attributes"))
 				{
 					foreach (string attrId in el["attributes"].AsStringArray())
@@ -170,7 +169,7 @@ namespace Arcweave.Project
 			{
 				Dictionary branch = _branchesDict[key].AsGodotDictionary();
 				Dictionary branchConditions = branch["conditions"].AsGodotDictionary();
-				List<Condition> branchConditionList = new();
+				Array<Condition> branchConditionList = new();
 				if (branchConditions.ContainsKey("ifCondition"))
 				{
 					branchConditionList.Add(_conditions[branchConditions["ifCondition"].AsString()]);
@@ -241,25 +240,25 @@ namespace Arcweave.Project
 				{
 					continue;
 				}
-				List<Element> boardElements = new List<Element>();
+				Array<Element> boardElements = new();
 				foreach (string elementKey in board["elements"].AsStringArray())
 				{
 					boardElements.Add(_elements[elementKey]);
 				}
 
-				List<Jumper> boardJumpers = new List<Jumper>();
+				Array<Jumper> boardJumpers = new();
 				foreach (string jumperKey in board["jumpers"].AsStringArray())
 				{
 					boardJumpers.Add(_jumpers[jumperKey]);
 				}
 
-				List<Branch> boardBranches = new List<Branch>();
+				Array<Branch> boardBranches = new();
 				foreach (string branchKey in board["branches"].AsStringArray())
 				{
 					boardBranches.Add(_branches[branchKey]);
 				}
 
-				List<Connection> boardConnections = new List<Connection>();
+				Array<Connection> boardConnections = new();
 				foreach (string connectionKey in board["connections"].AsStringArray())
 				{
 					boardConnections.Add(_connections[connectionKey]);
@@ -272,7 +271,7 @@ namespace Arcweave.Project
 			{
 				Dictionary variable = _variablesDict[key].AsGodotDictionary();
 				if (variable.ContainsKey("children")) continue;
-				object value = null;
+				Variant value = default;
 				string type = variable["type"].AsString();
 				switch (type)
 				{

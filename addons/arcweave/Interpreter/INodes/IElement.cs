@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
-
+﻿#if GODOT
+using Godot.Collections;
+#else
+using System.Collections.Generic;
+#endif
 namespace Arcweave.Interpreter.INodes
 {
     public interface IElement : INode, IHasAttributes
@@ -9,8 +12,11 @@ namespace Arcweave.Interpreter.INodes
         public string Title { get; }
         public string Content { get; }
 
+#if GODOT
+        public Array<Arcweave.Project.Connection> Outputs { get; }
+#else
         public List<Arcweave.Project.Connection> Outputs { get; }
-
+#endif
         public string GetRuntimeContent();
 
         public IOptions GetOptions();

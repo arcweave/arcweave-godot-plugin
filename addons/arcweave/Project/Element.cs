@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using Godot.Collections;
 using Arcweave.Interpreter;
 using Arcweave.Interpreter.INodes;
 using Godot;
@@ -13,14 +13,14 @@ namespace Arcweave.Project
 
         public Project Project { get; private set; }
         
-        public List<Connection> Outputs { get; private set; }
+        public Array<Connection> Outputs { get; private set; }
 
-        public List<Attribute> Attributes { get; private set; }
+        public Array<Attribute> Attributes { get; private set; }
 
         public string Title { get; private set; }
         public string Content { get; private set; }
 
-        public Element(string id, string title, string content, Project project, List<Connection> outputs, List<Attribute> attributes)
+        public Element(string id, string title, string content, Project project, Array<Connection> outputs, Array<Attribute> attributes)
         {
             Visits = 0;
             Id = id;

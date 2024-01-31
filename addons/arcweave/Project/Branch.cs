@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
-using Arcweave.Interpreter.INodes;
+﻿using Arcweave.Interpreter.INodes;
 using Godot;
+using Godot.Collections;
 
 namespace Arcweave.Project
 {
@@ -10,9 +10,9 @@ namespace Arcweave.Project
 
         public Project Project { get; private set; }
 
-        public List<Condition> Conditions { get; private set; }
+        public Array<Condition> Conditions { get; private set; }
 
-        public Branch(string id, Project project, List<Condition> conditions)
+        public Branch(string id, Project project, Array<Condition> conditions)
         {
             Id = id;
             Project = project;

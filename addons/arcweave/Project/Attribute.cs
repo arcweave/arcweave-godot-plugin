@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
-using Arcweave.Interpreter.INodes;
-using Godot;
+﻿using Arcweave.Interpreter.INodes;
+
+using Godot.Collections;
 
 namespace Arcweave.Project
 {
@@ -12,7 +12,7 @@ namespace Arcweave.Project
         public string containerId { get; private set; }
 
         private string _dataString;
-        private List<Component> _dataComponentList;
+        private Array<Component> _dataComponentList;
 
         public IAttribute.ContainerType containerType { get; private set; }
 
@@ -32,7 +32,7 @@ namespace Arcweave.Project
         {
             Id = id; Name = name; Type = type;
             if ( type == IAttribute.DataType.StringPlainText || type == IAttribute.DataType.StringRichText ) { _dataString = (string) dataObject; }
-            if ( type == IAttribute.DataType.ComponentList) {  _dataComponentList = (List<Component>) dataObject; }
+            if ( type == IAttribute.DataType.ComponentList) {  _dataComponentList = (Array<Component>) dataObject; }
             this.containerType = containerType;
             this.containerId = containerId;
         }
