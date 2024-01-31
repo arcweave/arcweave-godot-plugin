@@ -4,8 +4,8 @@ namespace Arcweave.Interpreter.INodes
 {
     public interface IHasAttributes
     {
-        List<IAttribute> Attributes { get; }
+        List<Arcweave.Project.Attribute> Attributes { get; }
 
-        public void AddAttribute(IAttribute attribute);
+        public void AddAttribute(Arcweave.Project.Attribute attribute);
     }
 }

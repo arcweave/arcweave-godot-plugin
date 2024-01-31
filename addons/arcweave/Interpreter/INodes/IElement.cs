@@ -9,7 +9,7 @@ namespace Arcweave.Interpreter.INodes
         public string Title { get; }
         public string Content { get; }
 
-        public List<IConnection> Outputs { get; }
+        public List<Arcweave.Project.Connection> Outputs { get; }
 
         public string GetRuntimeContent();
 
