@@ -11,7 +11,7 @@ namespace Arcweave.Project
 
         private IElement Target { get; }
 
-        public Jumper(string id, Project project, IElement target)
+        public Jumper(string id, Project project, Element target)
         {
             Id = id;
             Project = project;

@@ -5,7 +5,7 @@ using Godot;
 
 namespace Arcweave.Project
 {
-    public partial class Connection : GodotObject, IConnection
+    public partial class Connection
     {
         public string Id { get; private set; }
         public string Label { get; private set; }

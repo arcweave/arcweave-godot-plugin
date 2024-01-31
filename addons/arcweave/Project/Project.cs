@@ -5,15 +5,15 @@ using Godot;
 
 namespace Arcweave.Project
 {
-    public partial class Project : GodotObject, IProject
+    public partial class Project
     {
         public string Name {  get; private set; }
-        public Dictionary<string, IBoard> Boards { get; private set; }
-        public Dictionary<string, IComponent> Components { get; private set; }
-        public Dictionary<string, IVariable> Variables { get; private set; }
-        public Dictionary<string, IElement> Elements { get; private set; }
-        public IElement StartingElement { get; private set; }
-        public IElement ElementWithId(string id)
+        public Dictionary<string, Board> Boards { get; private set; }
+        public Dictionary<string, Component> Components { get; private set; }
+        public Dictionary<string, Variable> Variables { get; private set; }
+        public Dictionary<string, Element> Elements { get; private set; }
+        public Element StartingElement { get; private set; }
+        public Element ElementWithId(string id)
         {
             return Elements?[id];
         }
@@ -30,7 +30,7 @@ namespace Arcweave.Project
             Name = name;
         }
 
-        public Project(string name, IElement startingElement, Dictionary<string, IBoard> boards, Dictionary<string, IComponent> components, Dictionary<string, IVariable> variables, Dictionary<string, IElement> elements)
+        public Project(string name, Element startingElement, Dictionary<string, Board> boards, Dictionary<string, Component> components, Dictionary<string, Variable> variables, Dictionary<string, Element> elements)
         {
             Name = name;
             Boards = boards;
@@ -40,7 +40,7 @@ namespace Arcweave.Project
             StartingElement = startingElement;
         }
 
-        public void Set(IElement startingElement, Dictionary<string, IBoard> boards, Dictionary<string, IComponent> components, Dictionary<string, IVariable> variables, Dictionary<string, IElement> elements)
+        public void Set(Element startingElement, Dictionary<string, Board> boards, Dictionary<string, Component> components, Dictionary<string, Variable> variables, Dictionary<string, Element> elements)
         {
             Boards = boards;
             Components = components;

@@ -5,18 +5,18 @@ using Godot.Collections;
 
 namespace Arcweave.Project
 {
-	public partial class Board : GodotObject, IBoard
+	public partial class Board
 	{
 		public string Id { get; private set; }
 		public string CustomId { get; private set; }
 		public string Name { get; private set; }
-		public List<IElement> Elements { get; private set; }
+		public List<Element> Elements { get; private set; }
 		public List<Connection> Connections { get; private set; }
 		public List<Note> Notes { get; private set; }
 		public List<Jumper> Jumpers { get; private set; }
 		public List<Branch> Branches { get; private set; }
 
-		public Board(string id, string name, List<IElement> elements, List<Connection> connections, List<Jumper> jumpers, List<Branch> branches)
+		public Board(string id, string name, List<Element> elements, List<Connection> connections, List<Jumper> jumpers, List<Branch> branches)
 		{
 			Id = id;
 			Name = name;

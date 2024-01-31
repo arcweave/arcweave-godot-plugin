@@ -3,7 +3,7 @@ using Godot;
 
 namespace Arcweave.Project
 {
-    public partial class Variable : GodotObject, IVariable
+    public partial class Variable
     {
         public string Name { get; set; }
         public object Value { get; set; }

@@ -7,7 +7,7 @@ namespace Arcweave.Project
 {
 	internal class ProjectMaker
 	{
-		private IElement _startingElement;
+		private Element _startingElement;
 		private readonly Dictionary _projectData;
 		private readonly Dictionary _boardsDict;
 		private readonly Dictionary _attributesDict;
@@ -19,15 +19,15 @@ namespace Arcweave.Project
 		private readonly Dictionary _branchesDict;
 		private readonly Dictionary _variablesDict;
 
-		private readonly System.Collections.Generic.Dictionary<string, IBoard> _boards;
+		private readonly System.Collections.Generic.Dictionary<string, Board> _boards;
 		private readonly System.Collections.Generic.Dictionary<string, Attribute> _attributes;
-		private readonly System.Collections.Generic.Dictionary<string, IComponent> _components;
+		private readonly System.Collections.Generic.Dictionary<string, Component> _components;
 		private readonly System.Collections.Generic.Dictionary<string, Condition> _conditions;
 		private readonly System.Collections.Generic.Dictionary<string, Connection> _connections;
-		private readonly System.Collections.Generic.Dictionary<string, IElement> _elements;
+		private readonly System.Collections.Generic.Dictionary<string, Element> _elements;
 		private readonly System.Collections.Generic.Dictionary<string, Jumper> _jumpers;
 		private readonly System.Collections.Generic.Dictionary<string, Branch> _branches;
-		private readonly System.Collections.Generic.Dictionary<string, IVariable> _variables;
+		private readonly System.Collections.Generic.Dictionary<string, Variable> _variables;
 
 
 		public ProjectMaker(Dictionary projectData)
@@ -43,15 +43,15 @@ namespace Arcweave.Project
 			_branchesDict = _projectData["branches"].AsGodotDictionary();
 			_variablesDict = _projectData["variables"].AsGodotDictionary();
 
-			_boards = new System.Collections.Generic.Dictionary<string, IBoard>();
+			_boards = new System.Collections.Generic.Dictionary<string, Board>();
 			_attributes = new System.Collections.Generic.Dictionary<string, Attribute>();
-			_components = new System.Collections.Generic.Dictionary<string, IComponent>();
+			_components = new System.Collections.Generic.Dictionary<string, Component>();
 			_conditions = new System.Collections.Generic.Dictionary<string, Condition>();
 			_connections = new System.Collections.Generic.Dictionary<string, Connection>();
-			_elements = new System.Collections.Generic.Dictionary<string, IElement>();
+			_elements = new System.Collections.Generic.Dictionary<string, Element>();
 			_jumpers = new System.Collections.Generic.Dictionary<string, Jumper>();
 			_branches = new System.Collections.Generic.Dictionary<string, Branch>();
-			_variables = new System.Collections.Generic.Dictionary<string, IVariable>();
+			_variables = new System.Collections.Generic.Dictionary<string, Variable>();
 		}
 
 		public Project MakeProject()
@@ -99,7 +99,7 @@ namespace Arcweave.Project
 				else
 				{
 					attrType = IAttribute.DataType.ComponentList;
-					List<IComponent> attrComps = new();
+					List<Component> attrComps = new();
 					foreach (string compId in attrValue["data"].AsStringArray())
 					{
 						attrComps.Add(_components[compId]);
@@ -120,13 +120,13 @@ namespace Arcweave.Project
 			foreach (string key in _elementsDict.Keys)
 			{
 				Dictionary el = _elementsDict[key].AsGodotDictionary();
-				List<IConnection> elConnections = new();
+				List<Connection> elConnections = new();
 				foreach (string output in el["outputs"].AsStringArray())
 				{
 					elConnections.Add(_connections[output]);
 				}
 
-				List<IAttribute> elAttributes = new();
+				List<Attribute> elAttributes = new();
 				if (el.ContainsKey("attributes"))
 				{
 					foreach (string attrId in el["attributes"].AsStringArray())
@@ -142,7 +142,7 @@ namespace Arcweave.Project
 			foreach (string key in _jumpersDict.Keys)
 			{
 				Dictionary jumper = _jumpersDict[key].AsGodotDictionary();
-				IElement target = null;
+				Element target = null;
 				if (jumper.ContainsKey("elementId") && jumper["elementId"].AsString().Length > 0)
 				{
 					target = _elements[jumper["elementId"].AsString()];
@@ -241,7 +241,7 @@ namespace Arcweave.Project
 				{
 					continue;
 				}
-				List<IElement> boardElements = new List<IElement>();
+				List<Element> boardElements = new List<Element>();
 				foreach (string elementKey in board["elements"].AsStringArray())
 				{
 					boardElements.Add(_elements[elementKey]);

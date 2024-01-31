@@ -5,7 +5,7 @@ using Godot;
 
 namespace Arcweave.Project
 {
-    public partial class Element : GodotObject, IElement
+    public partial class Element
     {
         public int Visits { get; set; }
 
@@ -13,14 +13,14 @@ namespace Arcweave.Project
 
         public Project Project { get; private set; }
         
-        public List<IConnection> Outputs { get; private set; }
+        public List<Connection> Outputs { get; private set; }
 
-        public List<IAttribute> Attributes { get; private set; }
+        public List<Attribute> Attributes { get; private set; }
 
         public string Title { get; private set; }
         public string Content { get; private set; }
 
-        public Element(string id, string title, string content, Project project, List<IConnection> outputs, List<IAttribute> attributes)
+        public Element(string id, string title, string content, Project project, List<Connection> outputs, List<Attribute> attributes)
         {
             Visits = 0;
             Id = id;
@@ -36,7 +36,7 @@ namespace Arcweave.Project
             Outputs.Add(connection);
         }
 
-        public void AddAttribute(IAttribute attribute) {  Attributes.Add(attribute); }
+        public void AddAttribute(Attribute attribute) {  Attributes.Add(attribute); }
 
         public string GetRuntimeContent()
         {
