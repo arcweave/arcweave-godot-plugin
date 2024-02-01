@@ -5,11 +5,11 @@ namespace Arcweave.Project
 {
     public partial class Component
     {
-        public string Id { get; private set; }
-        public string Name { get; private set; }
-        public Variant Cover { get; private set; }
+        [Export] public string Id { get; private set; }
+        [Export] public string Name { get; private set; }
+        [Export] public Variant Cover { get; private set; }
 
-        public Array<Attribute> Attributes { get; private set; }
+        [Export] public Array<Attribute> Attributes { get; private set; }
 
         public Component(string id, string name)
         {

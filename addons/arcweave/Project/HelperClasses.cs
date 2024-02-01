@@ -1,28 +1,28 @@
 ﻿using Godot;
-using System.Collections.Generic;
+using Godot.Collections;
 using Arcweave.Interpreter.INodes;
 
 namespace Arcweave.Project
 {
-    public partial class Options : GodotObject, IOptions
+    public partial class Options
     {
-        public IElement Element { get; set; }
-        public IPath[] Paths { get; set; }
-        public bool HasPaths => Paths != null;
-        public bool HasOptions => HasPaths && ( Paths.Length > 1 || !string.IsNullOrEmpty(Paths[0].label) );
+        [Export] public Element Element { get; set; }
+        [Export] public Array<Path> Paths { get; set; }
+        [Export] public bool HasPaths => Paths != null;
+        [Export] public bool HasOptions => HasPaths && ( Paths.Count > 1 || !string.IsNullOrEmpty(Paths[0].label) );
 
-        public Options(IElement element)
+        public Options(Element element)
         {
             Element = element;
-            var validPaths = new List<IPath>();
+            var validPaths = new Array<Path>();
             foreach (var output in element.Outputs)
             {
                 var path = output.ResolvePath(new Path());
                 if (path.IsValid) { validPaths.Add(path); }
             }
-            Paths = validPaths.Count > 0 ? validPaths.ToArray() : null;
+            Paths = validPaths.Count > 0 ? validPaths : null;
 
-            if (Paths == null || Paths.Length != 1) return;
+            if (Paths == null || Paths.Count != 1) return;
             if (Paths[0].label == Paths[0].TargetElement.Title)
             {
                 Paths[0].label = null;
@@ -44,23 +44,23 @@ namespace Arcweave.Project
         }
     }
 
-    public partial class Path : GodotObject, IPath
+    public partial class Path
     {
-        public string label { get; set; }
-        public IElement TargetElement { get; set; }
-        public List<IConnection> _connections { get; set; }
+        [Export] public string label { get; set; }
+        [Export] public Element TargetElement { get; set; }
+        [Export] public Array<Connection> _connections { get; set; }
 
-        internal bool IsValid => TargetElement != null;
+        [Export] internal bool IsValid => TargetElement != null;
 
         internal static Path Invalid => default(Path);
 
-        public void AppendConnection(IConnection connection)
+        public void AppendConnection(Connection connection)
         {
-            if (_connections == null) { _connections = new List<IConnection>(); }
+            if (_connections == null) { _connections = new Array<Connection>(); }
             _connections.Add(connection);
         }
 
-        public void  ExecuteAppendedConnectionLabels()
+        public void ExecuteAppendedConnectionLabels()
         {
             foreach  ( var connection in _connections)
             {

@@ -9,18 +9,18 @@ namespace Arcweave
 {
 	public partial class Story : Node
 	{
-		private Project.Project project { get; set; }
+		[Export] private Project.Project Project { get; set; }
 		private Dictionary ProjectData { get; set; }
-		private IElement CurrentElement { get; set; }
+		[Export] private Element CurrentElement { get; set; }
 
 		public Story() {}
 		public Story(Dictionary projectData)
 		{
 			ProjectData = projectData;
 			ProjectMaker projectMaker = new ProjectMaker(projectData);
-			project = projectMaker.MakeProject();
+			Project = projectMaker.MakeProject();
 
-			CurrentElement = project.StartingElement as Element;
+			CurrentElement = Project.StartingElement as Element;
 		}
 
 		/// <summary>
@@ -39,15 +39,15 @@ namespace Arcweave
 			ProjectMaker projectMaker = new ProjectMaker(projectData);
 			var newProject = projectMaker.MakeProject();
 
-			project = project.Merge(newProject);
-			var currentElement = project.ElementWithId(CurrentElement.Id);
+			Project = Project.Merge(newProject);
+			var currentElement = Project.ElementWithId(CurrentElement.Id);
 			if (currentElement != null)
 			{
 				CurrentElement = currentElement;
 			}
 			else
 			{
-				CurrentElement = project.StartingElement;
+				CurrentElement = Project.StartingElement;
 			}
 			return this;
 		}
@@ -58,14 +58,14 @@ namespace Arcweave
 		/// <param name="id">The element's ID</param>
 		public void SetCurrentElement(string id)
 		{
-			CurrentElement = project.ElementWithId(id);
+			CurrentElement = Project.ElementWithId(id);
 		}
 
 		/// <summary>
 		/// Sets the current element to the provided element
 		/// </summary>
 		/// <param name="element">The element</param>
-		public void SetCurrentElement(IElement element)
+		public void SetCurrentElement(Element element)
 		{
 			CurrentElement = element;
 		}
@@ -92,7 +92,7 @@ namespace Arcweave
 
 		public Project.Project GetProject()
 		{
-			return project;
+			return Project;
 		}
 
 		public Element GetCurrentElement()

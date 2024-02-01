@@ -6,11 +6,11 @@ namespace Arcweave.Project
 {
     public partial class Condition : GodotObject, INode
     {
-        public string Id { get; set; }
+        [Export] public string Id { get; set; }
         // If null or empty, it's an "else" condition
-        public string Script { get; private set; }
-        public Project Project { get; private set; }
-        public Connection Output { get; private set; }
+        [Export] public string Script { get; private set; }
+        [Export] public Project Project { get; private set; }
+        [Export] public Connection Output { get; private set; }
 
         public Condition(string id, Project project, string script, Connection output)
         {
@@ -37,9 +37,9 @@ namespace Arcweave.Project
             return (bool)output.Result;
         }
 
-        public IPath ResolvePath(IPath path)
+        public Path ResolvePath(Path path)
         {
-            return Output != null && !string.IsNullOrEmpty(Output.Id) ? Output.ResolvePath(path) : IPath.Invalid;
+            return Output != null && !string.IsNullOrEmpty(Output.Id) ? Output.ResolvePath(path) : Path.Invalid;
         }
     }
 }

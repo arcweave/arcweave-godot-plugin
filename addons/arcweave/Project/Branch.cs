@@ -6,11 +6,11 @@ namespace Arcweave.Project
 {
     public partial class Branch : GodotObject, INode
     {
-        public string Id { get; private set; }
+        [Export] public string Id { get; private set; }
 
-        public Project Project { get; private set; }
+        [Export] public Project Project { get; private set; }
 
-        public Array<Condition> Conditions { get; private set; }
+        [Export] public Array<Condition> Conditions { get; private set; }
 
         public Branch(string id, Project project, Array<Condition> conditions)
         {
@@ -28,10 +28,10 @@ namespace Arcweave.Project
             return null;
         }
 
-        IPath INode.ResolvePath(IPath path)
+        Path INode.ResolvePath(Path path)
         {
             Condition condition = GetTrueCondition();
-            return condition != null ? (condition as INode).ResolvePath(path) : IPath.Invalid;
+            return condition != null ? (condition as INode).ResolvePath(path) : Path.Invalid;
         }
     }
 }

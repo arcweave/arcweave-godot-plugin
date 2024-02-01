@@ -7,12 +7,12 @@ namespace Arcweave.Project
 {
     public partial class Connection
     {
-        public string Id { get; private set; }
-        public string Label { get; private set; }
+        [Export] public string Id { get; private set; }
+        [Export] public string Label { get; private set; }
         public INode Source { get; private set; }
         public INode Target { get; private set; }
 
-        public Project Project => Source.Project;
+        [Export] public Project Project => Source.Project;
 
         public Connection(string id)
         {
@@ -38,7 +38,7 @@ namespace Arcweave.Project
             return output.Output;
         }
 
-        public IPath ResolvePath(IPath p)
+        public Path ResolvePath(Path p)
         {
             p.AppendConnection(this);
             p.label = GetRuntimeLabel();

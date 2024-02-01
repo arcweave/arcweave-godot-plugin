@@ -14,6 +14,6 @@
 
         public string GetRuntimeLabel();
 
-        public IPath ResolvePath(IPath p);
+        public Arcweave.Project.Path ResolvePath(Arcweave.Project.Path p);
     }
 }

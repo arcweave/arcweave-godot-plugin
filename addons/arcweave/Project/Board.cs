@@ -1,17 +1,18 @@
+using Godot;
 using Godot.Collections;
 
 namespace Arcweave.Project
 {
 	public partial class Board
 	{
-		public string Id { get; private set; }
-		public string CustomId { get; private set; }
-		public string Name { get; private set; }
-		public Array<Element> Elements { get; private set; }
-		public Array<Connection> Connections { get; private set; }
-		public Array<Note> Notes { get; private set; }
-		public Array<Jumper> Jumpers { get; private set; }
-		public Array<Branch> Branches { get; private set; }
+		[Export] public string Id { get; private set; }
+		[Export] public string CustomId { get; private set; }
+		[Export] public string Name { get; private set; }
+		[Export] public Array<Element> Elements { get; private set; }
+		[Export] public Array<Connection> Connections { get; private set; }
+		[Export] public Array<Note> Notes { get; private set; }
+		[Export] public Array<Jumper> Jumpers { get; private set; }
+		[Export] public Array<Branch> Branches { get; private set; }
 
 		public Board(string id, string name, Array<Element> elements, Array<Connection> connections, Array<Jumper> jumpers, Array<Branch> branches)
 		{

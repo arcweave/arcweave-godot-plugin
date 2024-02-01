@@ -14,6 +14,8 @@ namespace Arcweave.Project
         public partial class Element : GodotObject, IElement { }
         public partial class Project : GodotObject, IProject { }
         public partial class Variable : GodotObject, IVariable { }
+        public partial class Options : GodotObject, IOptions { }
+        public partial class Path : GodotObject, IPath { }
 #else
         public partial class Attribute : IAttribute { }
         public partial class Board : IBoard { }
@@ -22,6 +24,8 @@ namespace Arcweave.Project
         public partial class Element : IElement { }
         public partial class Project : IProject { }
         public partial class Variable : IVariable { }
+        public partial class Options : IOptions { }
+        public partial class Path : IPath { }
 #endif
 }
 

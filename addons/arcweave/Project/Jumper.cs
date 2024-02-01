@@ -5,11 +5,11 @@ namespace Arcweave.Project
 {
     public partial class Jumper : GodotObject, INode
     {
-        public string Id { get; private set; }
+        [Export] public string Id { get; private set; }
 
-        public Project Project { get; private set; }
+        [Export] public Project Project { get; private set; }
 
-        private IElement Target { get; }
+        [Export] private IElement Target { get; }
 
         public Jumper(string id, Project project, Element target)
         {
@@ -18,9 +18,9 @@ namespace Arcweave.Project
             Target = target;
         }
 
-        IPath INode.ResolvePath(IPath path)
+        Path INode.ResolvePath(Path path)
         {
-            return Target?.ResolvePath(path) ?? IPath.Invalid;
+            return Target?.ResolvePath(path) ?? Path.Invalid;
         }
     }
 }

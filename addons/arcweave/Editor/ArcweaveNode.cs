@@ -7,7 +7,7 @@ public partial class ArcweaveNode : Node
 {
 	[Export] public GodotObject ArcweaveAsset { get; set; }
 	[Signal] public delegate void ProjectUpdatedEventHandler();
-	public Story Story { get; private set; }
+	[Export] public Story Story { get; private set; }
 	private Node ApiRequest { get; set; }
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()

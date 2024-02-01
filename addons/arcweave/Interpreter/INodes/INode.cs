@@ -5,6 +5,6 @@
         string Id { get; }
         Arcweave.Project.Project Project { get; }
 
-        IPath ResolvePath(IPath path);
+        Arcweave.Project.Path ResolvePath(Arcweave.Project.Path path);
     }
 }

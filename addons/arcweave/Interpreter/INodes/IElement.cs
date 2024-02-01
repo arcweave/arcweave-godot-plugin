@@ -19,6 +19,6 @@ namespace Arcweave.Interpreter.INodes
 #endif
         public string GetRuntimeContent();
 
-        public IOptions GetOptions();
+        public Arcweave.Project.Options GetOptions();
     }
 }

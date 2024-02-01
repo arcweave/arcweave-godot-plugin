@@ -7,18 +7,18 @@ namespace Arcweave.Project
 {
     public partial class Element
     {
-        public int Visits { get; set; }
+        [Export] public int Visits { get; set; }
 
-        public string Id { get; private set; }
+        [Export] public string Id { get; private set; }
 
-        public Project Project { get; private set; }
+        [Export] public Project Project { get; private set; }
         
-        public Array<Connection> Outputs { get; private set; }
+        [Export] public Array<Connection> Outputs { get; private set; }
 
-        public Array<Attribute> Attributes { get; private set; }
+        [Export] public Array<Attribute> Attributes { get; private set; }
 
-        public string Title { get; private set; }
-        public string Content { get; private set; }
+        [Export] public string Title { get; private set; }
+        [Export] public string Content { get; private set; }
 
         public Element(string id, string title, string content, Project project, Array<Connection> outputs, Array<Attribute> attributes)
         {
@@ -46,14 +46,14 @@ namespace Arcweave.Project
             return output.Output;
         }
 
-        IPath INode.ResolvePath(IPath path)
+        Path INode.ResolvePath(Path path)
         {
             if (string.IsNullOrEmpty(path.label)) { path.label = Title; }
             path.TargetElement = this;
             return path;
         }
 
-        public IOptions GetOptions()
+        public Options GetOptions()
         {
             return new Options(this);
         }
