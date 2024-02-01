@@ -12,7 +12,11 @@ namespace Arcweave.Project
         public INode Source { get; private set; }
         public INode Target { get; private set; }
 
-        [Export] public Project Project => Source.Project;
+        [Export] public Project Project
+        {
+            get { return Source.Project; }
+            set {}
+        }
 
         public Connection(string id)
         {

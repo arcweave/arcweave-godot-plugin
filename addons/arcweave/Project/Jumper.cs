@@ -9,7 +9,7 @@ namespace Arcweave.Project
 
         [Export] public Project Project { get; private set; }
 
-        [Export] private IElement Target { get; }
+        [Export] private Element Target { get; set; }
 
         public Jumper(string id, Project project, Element target)
         {
@@ -20,7 +20,7 @@ namespace Arcweave.Project
 
         Path INode.ResolvePath(Path path)
         {
-            return Target?.ResolvePath(path) ?? Path.Invalid;
+            return (Target as INode)?.ResolvePath(path) ?? Path.Invalid;
         }
     }
 }

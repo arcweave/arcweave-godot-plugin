@@ -7,24 +7,18 @@ namespace Arcweave.Project
 {
     public partial class Project
     {
-        [Export]
-        public string Name {  get; private set; }
-        [Export]
-        public Dictionary<string, Board> Boards { get; private set; }
-        [Export]
-        public Dictionary<string, Component> Components { get; private set; }
-        [Export]
-        public Dictionary<string, Variable> Variables { get; private set; }
-        [Export]
-        public Dictionary<string, Element> Elements { get; private set; }
-        [Export]
-        public Element StartingElement { get; private set; }
+        [Export] public string Name {  get; private set; }
+        [Export] public Dictionary<string, Board> Boards { get; private set; }
+        [Export] public Dictionary<string, Component> Components { get; private set; }
+        [Export] public Dictionary<string, Variable> Variables { get; private set; }
+        [Export] public Dictionary<string, Element> Elements { get; private set; }
+        [Export] public Element StartingElement { get; private set; }
         public Element ElementWithId(string id)
         {
             return Elements?[id];
         }
 
-        public object GetVariable(string name)
+        public Variant GetVariable(string name)
         {
             return Variables.Values.First(x => x.Name == name).Value;
         }

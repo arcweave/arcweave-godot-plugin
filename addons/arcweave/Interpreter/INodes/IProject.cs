@@ -1,4 +1,5 @@
 ﻿#if GODOT
+using Godot;
 using Godot.Collections;
 #else
 using System.Collections.Generic;
@@ -6,12 +7,18 @@ using System.Collections.Generic;
 
 namespace Arcweave.Interpreter.INodes
 {
+#if GODOT
+    using VariableType = Variant;
+#else
+    using VariableType = object;
+#endif
+
     public interface IProject
     {
         public Dictionary<string, Arcweave.Project.Variable> Variables { get; }
 
         public Arcweave.Project.Element ElementWithId(string id);
 
-        public object GetVariable(string name);
+        public VariableType GetVariable(string name);
     }
 }

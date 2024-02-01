@@ -8,13 +8,15 @@ namespace Arcweave.Interpreter.INodes
     {
         public string Name { get; set; }
 #if GODOT
+        
         public Variant Value { get; set; }
         Variant _defaultValue { get; }
+        Variant.Type Type { get; }
 #else
         public object Value { get; set; }
         object _defaultValue { get; }
-#endif
         System.Type Type { get; }
+#endif
 
         string _typeName { get; }
 

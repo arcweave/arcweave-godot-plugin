@@ -8,8 +8,8 @@ namespace Arcweave.Project
     {
         [Export] public Element Element { get; set; }
         [Export] public Array<Path> Paths { get; set; }
-        [Export] public bool HasPaths => Paths != null;
-        [Export] public bool HasOptions => HasPaths && ( Paths.Count > 1 || !string.IsNullOrEmpty(Paths[0].label) );
+        public bool HasPaths => Paths != null;
+        public bool HasOptions => HasPaths && ( Paths.Count > 1 || !string.IsNullOrEmpty(Paths[0].label) );
 
         public Options(Element element)
         {
@@ -50,7 +50,7 @@ namespace Arcweave.Project
         [Export] public Element TargetElement { get; set; }
         [Export] public Array<Connection> _connections { get; set; }
 
-        [Export] internal bool IsValid => TargetElement != null;
+        internal bool IsValid => TargetElement != null;
 
         internal static Path Invalid => default(Path);
 
