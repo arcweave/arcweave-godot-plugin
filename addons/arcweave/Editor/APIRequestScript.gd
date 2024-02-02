@@ -7,15 +7,17 @@ var api_key : String
 var project_hash : String
 var env_vars : Dictionary
 var default_domain = "https://arcweave.com/"
+var arcweave_asset: ArcweaveAsset
 
 func _init(object : ArcweaveAsset):
+	arcweave_asset = object
 	http_request = HTTPRequest.new()
 	add_child(http_request)
 	http_request.request_completed.connect(_on_request_completed)
-	api_key = object.api_key
-	project_hash = object.project_hash
 
 func request():
+	api_key = arcweave_asset.api_key
+	project_hash = arcweave_asset.project_hash
 	_update_env_vars()
 	
 	var request_url = default_domain + "api/"+project_hash+"/json"
