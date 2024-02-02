@@ -14,7 +14,7 @@ namespace Arcweave.Project
 		[Export] public Array<Jumper> Jumpers { get; private set; }
 		[Export] public Array<Branch> Branches { get; private set; }
 
-		public Board(string id, string name, Array<Element> elements, Array<Connection> connections, Array<Jumper> jumpers, Array<Branch> branches)
+		public Board(string id, string name, Array<Element> elements, Array<Connection> connections, Array<Jumper> jumpers, Array<Branch> branches, Array<Note> notes)
 		{
 			Id = id;
 			Name = name;
@@ -22,6 +22,7 @@ namespace Arcweave.Project
 			Connections = connections;
 			Jumpers = jumpers;
 			Branches = branches;
+			Notes = notes;
 		}
 
 		public Array<Element> GetElements()

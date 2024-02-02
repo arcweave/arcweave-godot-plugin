@@ -17,6 +17,7 @@ namespace Arcweave.Project
 		private readonly Dictionary _jumpersDict;
 		private readonly Dictionary _branchesDict;
 		private readonly Dictionary _variablesDict;
+		private readonly Dictionary _notesDict;
 
 		private readonly Dictionary<string, Board> _boards;
 		private readonly Dictionary<string, Attribute> _attributes;
@@ -27,7 +28,7 @@ namespace Arcweave.Project
 		private readonly Dictionary<string, Jumper> _jumpers;
 		private readonly Dictionary<string, Branch> _branches;
 		private readonly Dictionary<string, Variable> _variables;
-
+		private readonly Dictionary<string, Note> _notes;
 
 		public ProjectMaker(Dictionary projectData)
 		{
@@ -41,7 +42,8 @@ namespace Arcweave.Project
 			_jumpersDict = _projectData["jumpers"].AsGodotDictionary();
 			_branchesDict = _projectData["branches"].AsGodotDictionary();
 			_variablesDict = _projectData["variables"].AsGodotDictionary();
-
+			_notesDict = _projectData["notes"].AsGodotDictionary();
+			
 			_boards = new Dictionary<string, Board>();
 			_attributes = new Dictionary<string, Attribute>();
 			_components = new Dictionary<string, Component>();
@@ -51,6 +53,7 @@ namespace Arcweave.Project
 			_jumpers = new Dictionary<string, Jumper>();
 			_branches = new Dictionary<string, Branch>();
 			_variables = new Dictionary<string, Variable>();
+			_notes = new Dictionary<string, Note>();
 		}
 
 		public Project MakeProject()
@@ -273,7 +276,15 @@ namespace Arcweave.Project
 					boardConnections.Add(_connections[connectionKey]);
 				}
 
-				_boards[key] = new Board(key, board["name"].AsString(), boardElements, boardConnections, boardJumpers, boardBranches);
+				Array<Note> boardNotes = new();
+				foreach (string noteKey in board["notes"].AsStringArray())
+				{
+					Dictionary note = _notesDict[noteKey].AsGodotDictionary();
+					_notes[noteKey] = new Note(note["content"].AsString(), note["theme"].AsString());
+					boardNotes.Add(_notes[noteKey]);
+				}
+
+				_boards[key] = new Board(key, board["name"].AsString(), boardElements, boardConnections, boardJumpers, boardBranches, boardNotes);
 			}
 
 			foreach (string key in _variablesDict.Keys)
