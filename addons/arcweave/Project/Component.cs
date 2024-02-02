@@ -1,4 +1,5 @@
-﻿using Godot;
+﻿using System.Linq;
+using Godot;
 using Godot.Collections;
 
 namespace Arcweave.Project
@@ -29,6 +30,11 @@ namespace Arcweave.Project
         public void AddAttribute(Attribute attribute)
         {
             Attributes.Add(attribute);
+        }
+
+        public Attribute GetAttribute(string attributeName)
+        {
+            return Attributes.First(attribute => attribute.Name == attributeName);
         }
     }
 }

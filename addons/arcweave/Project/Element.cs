@@ -1,4 +1,5 @@
-﻿using Godot.Collections;
+﻿using System.Linq;
+using Godot.Collections;
 using Arcweave.Interpreter;
 using Arcweave.Interpreter.INodes;
 using Godot;
@@ -57,6 +58,16 @@ namespace Arcweave.Project
         public Options GetOptions()
         {
             return new Options(this);
+        }
+
+        public Component GetComponent(string componentName)
+        {
+            return Components.First(component => component.Name == componentName);
+        }
+
+        public Attribute GetAttribute(string attributeName)
+        {
+            return Attributes.First(attribute => attribute.Name == attributeName);
         }
     }
 }
