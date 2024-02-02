@@ -16,11 +16,11 @@ namespace Arcweave.Project
         [Export] public Array<Connection> Outputs { get; private set; }
 
         [Export] public Array<Attribute> Attributes { get; private set; }
-
+        [Export] public Array<Component> Components { get; private set; }
         [Export] public string Title { get; private set; }
         [Export] public string Content { get; private set; }
 
-        public Element(string id, string title, string content, Project project, Array<Connection> outputs, Array<Attribute> attributes)
+        public Element(string id, string title, string content, Project project, Array<Connection> outputs, Array<Component> components, Array<Attribute> attributes)
         {
             Visits = 0;
             Id = id;
@@ -28,6 +28,7 @@ namespace Arcweave.Project
             Content = content;
             Project = project;
             Outputs = outputs;
+            Components = components;
             Attributes = attributes;
         }
 

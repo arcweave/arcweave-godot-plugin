@@ -133,7 +133,16 @@ namespace Arcweave.Project
 						elAttributes.Add(_attributes[attrId]);
 					}
 				}
-				_elements[key] = new Element(key, el["title"].AsString(), el["content"].AsString(), project, elConnections, elAttributes);
+
+				Array<Component> elComponents = new();
+				if (el.ContainsKey("components"))
+				{
+					foreach (string componentId in el["components"].AsStringArray())
+					{
+						elComponents.Add(_components[componentId]);
+					}
+				}
+				_elements[key] = new Element(key, el["title"].AsString(), el["content"].AsString(), project, elConnections, elComponents, elAttributes);
 			}
 
 			_startingElement = _elements[_projectData["startingElement"].AsString()];
