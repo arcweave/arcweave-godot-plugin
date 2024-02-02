@@ -29,11 +29,28 @@ namespace Arcweave.Project
 
             AwInterpreter interpreter = new AwInterpreter(Project);
             var output = interpreter.RunScript("<pre><code>"+Script+"</code></pre>");
-            var value = output.Result;
-            if (value is bool b) { return b; }
-            if (value is string s) { return s.Length > 0; }
-            if (value is int i) { return i > 0; }
-            if (value is float f) { return f > 0; }
+            if (output.Result is Variant result)
+            {
+                if (result.VariantType == Variant.Type.Bool) { return result.AsBool(); }
+                if (result.VariantType == Variant.Type.String) { return result.AsString().Length > 0; }
+                if (result.VariantType == Variant.Type.Int) { return result.AsInt64() > 0; }
+                if (result.VariantType == Variant.Type.Float) { return result.AsDouble() > 0; }    
+            }
+            else
+            {
+                var value = output.Result;
+                switch (value)
+                {
+                    case bool b:
+                        return b;
+                    case string s:
+                        return s.Length > 0;
+                    case int i:
+                        return i > 0;
+                    case float f:
+                        return f > 0;
+                }
+            }
             return (bool)output.Result;
         }
 
