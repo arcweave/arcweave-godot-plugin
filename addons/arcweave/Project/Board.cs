@@ -24,46 +24,5 @@ namespace Arcweave.Project
 			Branches = branches;
 			Notes = notes;
 		}
-
-		public Array<Element> GetElements()
-		{
-			var elements = new Array<Element>();
-			foreach (var element in Elements)
-			{
-				elements.Add(element as Element);
-			}
-			return elements;
-		}
-		
-		public Array<Connection> GetConnections()
-		{
-			var connections = new Array<Connection>();
-			foreach (var connection in Connections)
-			{
-				connections.Add(connection);
-			}
-			return connections;
-		}
-
-		public Array<Jumper> GetJumpers()
-		{
-			var jumpers = new Array<Jumper>();
-			foreach (var jumper in Jumpers)
-			{
-				jumpers.Add(jumper);
-			}
-			return jumpers;
-		}
-
-		public Array<Branch> GetBranches()
-		{
-			var branches = new Array<Branch>();
-			foreach (var branch in Branches)
-			{
-				branches.Add(branch);
-			}
-
-			return branches;
-		}
 	}
 }
