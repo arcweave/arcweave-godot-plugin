@@ -280,7 +280,7 @@ namespace Arcweave.Project
 				foreach (string noteKey in board["notes"].AsStringArray())
 				{
 					Dictionary note = _notesDict[noteKey].AsGodotDictionary();
-					_notes[noteKey] = new Note(note["content"].AsString(), note["theme"].AsString());
+					_notes[noteKey] = new Note(Interpreter.Utils.CleanString(note["content"].AsString()), note["theme"].AsString());
 					boardNotes.Add(_notes[noteKey]);
 				}
 
