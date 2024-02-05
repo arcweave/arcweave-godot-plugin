@@ -145,7 +145,7 @@ namespace Arcweave.Project
 						elComponents.Add(_components[componentId]);
 					}
 				}
-				_elements[key] = new Element(key, el["title"].AsString(), el["content"].AsString(), project, elConnections, elComponents, elAttributes);
+				_elements[key] = new Element(key, Interpreter.Utils.CleanString(el["title"].AsString()), el["content"].AsString(), project, elConnections, elComponents, elAttributes);
 			}
 
 			_startingElement = _elements[_projectData["startingElement"].AsString()];
