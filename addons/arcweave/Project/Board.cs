@@ -14,10 +14,11 @@ namespace Arcweave.Project
 		[Export] public Array<Jumper> Jumpers { get; private set; }
 		[Export] public Array<Branch> Branches { get; private set; }
 
-		public Board(string id, string name, Array<Element> elements, Array<Connection> connections, Array<Jumper> jumpers, Array<Branch> branches, Array<Note> notes)
+		public Board(string id, string name, string customId, Array<Element> elements, Array<Connection> connections, Array<Jumper> jumpers, Array<Branch> branches, Array<Note> notes)
 		{
 			Id = id;
 			Name = name;
+			CustomId = customId;
 			Elements = elements;
 			Connections = connections;
 			Jumpers = jumpers;

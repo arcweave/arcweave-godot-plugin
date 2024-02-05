@@ -284,7 +284,9 @@ namespace Arcweave.Project
 					boardNotes.Add(_notes[noteKey]);
 				}
 
-				_boards[key] = new Board(key, board["name"].AsString(), boardElements, boardConnections, boardJumpers, boardBranches, boardNotes);
+				string customId = board.ContainsKey("customId") ? board["customId"].AsString() : null;
+
+				_boards[key] = new Board(key, board["name"].AsString(), customId, boardElements, boardConnections, boardJumpers, boardBranches, boardNotes);
 			}
 
 			foreach (string key in _variablesDict.Keys)
