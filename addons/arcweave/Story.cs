@@ -56,7 +56,7 @@ namespace Arcweave
 		/// Sets the current element to the element with the provided ID
 		/// </summary>
 		/// <param name="id">The element's ID</param>
-		public void SetCurrentElement(string id)
+		public void SetCurrentElementById(string id)
 		{
 			CurrentElement = Project.ElementWithId(id);
 		}
