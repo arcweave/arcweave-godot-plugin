@@ -11,7 +11,17 @@ namespace Arcweave
 	{
 		[Export] private Project.Project Project { get; set; }
 		private Dictionary ProjectData { get; set; }
-		[Export] private Element CurrentElement { get; set; }
+		private Element _currentElement;
+		[Export] private Element CurrentElement
+		{
+			get => _currentElement;
+			set
+			{
+				_currentElement = value;
+				_currentElement.Visits++;
+				_currentElement.RunContentScript();
+			}
+		}
 
 		public Story() {}
 		public Story(Dictionary projectData)
@@ -87,7 +97,6 @@ namespace Arcweave
 		{
 			path.ExecuteAppendedConnectionLabels();
 			CurrentElement = path.TargetElement;
-			CurrentElement.Visits++;
 		}
 
 		public Project.Project GetProject()
@@ -102,7 +111,7 @@ namespace Arcweave
 
 		public string GetCurrentRuntimeContent()
 		{
-			return CurrentElement.GetRuntimeContent();
+			return CurrentElement.RuntimeContent;
 		}
 	}
 }

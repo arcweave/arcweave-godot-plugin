@@ -19,14 +19,14 @@ namespace Arcweave.Project
         [Export] public Array<Attribute> Attributes { get; private set; }
         [Export] public Array<Component> Components { get; private set; }
         [Export] public string Title { get; private set; }
-        [Export] public string Content { get; private set; }
-
-        public Element(string id, string title, string content, Project project, Array<Connection> outputs, Array<Component> components, Array<Attribute> attributes)
+        [Export] public string RawContent { get; private set; }
+        [Export] public string RuntimeContent { get; private set; }
+        public Element(string id, string title, string rawContent, Project project, Array<Connection> outputs, Array<Component> components, Array<Attribute> attributes)
         {
             Visits = 0;
             Id = id;
             Title = title;
-            Content = content;
+            RawContent = rawContent;
             Project = project;
             Outputs = outputs;
             Components = components;
@@ -40,16 +40,17 @@ namespace Arcweave.Project
 
         public void AddAttribute(Attribute attribute) {  Attributes.Add(attribute); }
 
-        public string GetRuntimeContent()
+        public void RunContentScript()
         {
             AwInterpreter i = new AwInterpreter(Project, Id);
-            var output = i.RunScript(Content);
+            var output = i.RunScript(RawContent);
             if ( output.Changes.Count > 0 ) {
                 foreach ( var change in output.Changes ) {
                     Project.SetVariable(change.Key, change.Value);
                 }
             }
-            return output.Output;
+
+            RuntimeContent = output.Output;
         }
 
         Path INode.ResolvePath(Path path)

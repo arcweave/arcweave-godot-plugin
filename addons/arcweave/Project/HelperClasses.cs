@@ -65,9 +65,7 @@ namespace Arcweave.Project
         {
             foreach  ( var connection in _connections)
             {
-                var runtimeLabel = connection.GetRuntimeLabel();
-                GD.Print(TargetElement.GetRuntimeContent());
-                GD.Print(runtimeLabel);
+                connection.RunLabelScript();
             }
         }
     }

@@ -3,7 +3,8 @@
     public interface IConnection
     {
         public string Id { get; }
-        public string Label { get; }
+        public string RawLabel { get; }
+        public string RuntimeLabel { get; }
 
         public INode Source { get; }
         public INode Target { get; }
@@ -12,7 +13,7 @@
 
         public void Set(string label, INode source, INode target);
 
-        public string GetRuntimeLabel();
+        public void RunLabelScript();
 
         public Arcweave.Project.Path ResolvePath(Arcweave.Project.Path p);
     }

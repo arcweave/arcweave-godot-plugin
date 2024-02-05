@@ -8,7 +8,8 @@ namespace Arcweave.Project
     public partial class Connection
     {
         [Export] public string Id { get; private set; }
-        [Export] public string Label { get; private set; }
+        [Export] public string RawLabel { get; private set; }
+        [Export] public string RuntimeLabel { get; private set; }
         public INode Source { get; private set; }
         public INode Target { get; private set; }
 
@@ -23,34 +24,37 @@ namespace Arcweave.Project
             Id = id;
         }
 
-        public void Set(string label, INode source, INode target)
+        public void Set(string rawLabel, INode source, INode target)
         {
-            Label = label;
+            RawLabel = rawLabel;
             Source = source;
             Target = target;
         }
 
-        public string GetRuntimeLabel()
+        public void RunLabelScript()
         {
-            if (string.IsNullOrEmpty(Label))
+            if (string.IsNullOrEmpty(RawLabel))
             {
-                return null;
+                RuntimeLabel = null;
+                return;
             }
 
             AwInterpreter i = new AwInterpreter(Project);
-            var output = i.RunScript(Label);
+            var output = i.RunScript(RawLabel);
             if ( output.Changes.Count > 0 ) {
                 foreach ( var change in output.Changes ) {
                     Project.SetVariable(change.Key, change.Value);
                 }
             }
-            return output.Output;
+
+            RuntimeLabel = output.Output;
         }
 
         public Path ResolvePath(Path p)
         {
             p.AppendConnection(this);
-            p.label = GetRuntimeLabel();
+            RunLabelScript();
+            p.label = RuntimeLabel;
             return Target.ResolvePath(p);
 
         }
