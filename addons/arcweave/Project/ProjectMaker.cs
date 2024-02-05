@@ -296,7 +296,7 @@ namespace Arcweave.Project
 				switch (type)
 				{
 					case "integer":
-						value = variable["value"].AsInt64();
+						value = variable["value"].AsInt32();
 						break;
 					case "float":
 						value = variable["value"].AsDouble();

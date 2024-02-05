@@ -23,7 +23,7 @@ namespace Arcweave.Interpreter
             if ( this.VariableChanges.ContainsKey(name) ) {
                 return VariableChanges[name];
             }
-            return this.project.GetVariable(name);
+            return this.project.GetVariable(name).ObjectValue;
         }
 
         public void SetVarValue(string name, object value) { VariableChanges[name] = value; }

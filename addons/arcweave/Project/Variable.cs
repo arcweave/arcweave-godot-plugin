@@ -1,12 +1,23 @@
-﻿using Arcweave.Interpreter.INodes;
-using Godot;
+﻿using Godot;
 
 namespace Arcweave.Project
 {
     public partial class Variable
     {
         public string Name { get; set; }
+
         public Variant Value { get; set; }
+        
+        public object ObjectValue {
+            get
+            {
+                if (Value.VariantType == Variant.Type.String) return Value.AsString();
+                if (Value.VariantType == Variant.Type.Bool) return Value.AsBool();
+                if (Value.VariantType == Variant.Type.Int) return Value.AsInt32();
+                if (Value.VariantType == Variant.Type.Float) return Value.AsDouble();
+                return null;
+            }
+        }
 
 
         public string _typeName { get; private set; }
@@ -14,7 +25,7 @@ namespace Arcweave.Project
             get
             {
                 if (Value.VariantType == Variant.Type.String) return typeof(string);
-                if (Value.VariantType == Variant.Type.Int) return typeof(long);
+                if (Value.VariantType == Variant.Type.Int) return typeof(int);
                 if (Value.VariantType == Variant.Type.Bool) return typeof(bool);
                 if (Value.VariantType == Variant.Type.Float) return typeof(double);
                 return null;

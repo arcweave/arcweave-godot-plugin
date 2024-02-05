@@ -33,7 +33,7 @@ namespace Arcweave.Project
             {
                 if (result.VariantType == Variant.Type.Bool) { return result.AsBool(); }
                 if (result.VariantType == Variant.Type.String) { return result.AsString().Length > 0; }
-                if (result.VariantType == Variant.Type.Int) { return result.AsInt64() > 0; }
+                if (result.VariantType == Variant.Type.Int) { return result.AsInt32() > 0; }
                 if (result.VariantType == Variant.Type.Float) { return result.AsDouble() > 0; }    
             }
             else

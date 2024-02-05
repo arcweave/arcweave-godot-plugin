@@ -1,4 +1,5 @@
-﻿using Godot.Collections;
+﻿using System;
+using Godot.Collections;
 using System.Linq;
 using Arcweave.Interpreter.INodes;
 using Godot;
@@ -18,9 +19,9 @@ namespace Arcweave.Project
             return Elements?[id];
         }
 
-        public Variant GetVariable(string name)
+        public Variable GetVariable(string name)
         {
-            return Variables.Values.First(x => x.Name == name).Value;
+            return Variables.Values.First(x => x.Name == name);
         }
         
         public Project() : this("") {}
@@ -73,6 +74,74 @@ namespace Arcweave.Project
                 boards[entry.Key] = Boards[entry.Key] as Board;
             }
             return boards;
+        }
+        
+        ///<summary>Sets the variable with name to a new value. Returns if variable exists in the first place.</summary>
+        public bool SetVariable(string name, object value)
+        {
+            try
+            {
+                Variable variable = Variables.Values.First(x => x.Name == name);
+                if (value is Variant)
+                {
+                    variable.Value = (Variant)value;
+                }
+                else
+                {
+                    switch (Type.GetTypeCode(value.GetType()))
+                    {
+                        case TypeCode.String:
+                            variable.Value = (string)value;
+                            break;
+                        case TypeCode.Boolean:
+                            variable.Value = (bool)value;
+                            break;
+                        case TypeCode.Int32:
+                            variable.Value = (int)value;
+                            break;
+                        case TypeCode.Double:
+                            variable.Value = (double)value;
+                            break;
+                        default:
+                            variable.Value = default;
+                            break;
+                    }
+                }
+                
+            }
+            catch (System.InvalidOperationException)
+            {
+                return false;
+            }
+            return true;
+        }
+        
+        ///<summary>Returns a string of the saved variables that can be loaded later.</summary>
+        public string SaveVariables() {
+            var list = new Array<string>();
+            foreach ( var variable in Variables.Values ) {
+                list.Add(string.Format("{0}-{1}-{2}", variable.Name, variable.Value.ToString(), variable.Type.FullName));
+            }
+            var save = string.Join("|", list);
+            return save;
+        }
+
+        ///<summary>Loads a previously saved string made with SaveVariables.</summary>
+        public void LoadVariables(string save) {
+            var list = save.Split('|');
+            foreach ( var s in list ) {
+                var split = s.Split('-');
+                var sName = split[0];
+                var sValue = split[1];
+                var sType = split[2];
+                var type = System.Type.GetType(sType);
+                Variant value = default;
+                if ( type == typeof(string) ) { value = sValue; }
+                if ( type == typeof(int) ) { value = int.Parse(sValue); }
+                if ( type == typeof(float) ) { value = float.Parse(sValue); }
+                if ( type == typeof(bool) ) { value = bool.Parse(sValue); }
+                SetVariable(sName, value);
+            }
         }
     }
 }

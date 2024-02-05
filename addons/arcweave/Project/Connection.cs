@@ -39,6 +39,11 @@ namespace Arcweave.Project
 
             AwInterpreter i = new AwInterpreter(Project);
             var output = i.RunScript(Label);
+            if ( output.Changes.Count > 0 ) {
+                foreach ( var change in output.Changes ) {
+                    Project.SetVariable(change.Key, change.Value);
+                }
+            }
             return output.Output;
         }
 

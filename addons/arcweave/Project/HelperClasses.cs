@@ -17,11 +17,12 @@ namespace Arcweave.Project
             var validPaths = new Array<Path>();
             foreach (var output in element.Outputs)
             {
+                string save = Element.Project.SaveVariables();
                 var path = output.ResolvePath(new Path());
-                if (path.IsValid) { validPaths.Add(path); }
+                if (path != null && path.IsValid) { validPaths.Add(path); }
+                Element.Project.LoadVariables(save);
             }
             Paths = validPaths.Count > 0 ? validPaths : null;
-
             if (Paths == null || Paths.Count != 1) return;
             if (Paths[0].label == Paths[0].TargetElement.Title)
             {

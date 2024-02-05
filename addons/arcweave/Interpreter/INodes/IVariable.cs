@@ -11,11 +11,11 @@ namespace Arcweave.Interpreter.INodes
         
         public Variant Value { get; set; }
         Variant _defaultValue { get; }
-
 #else
         public object Value { get; set; }
         object _defaultValue { get; }
 #endif
+        public object ObjectValue { get; }
 
         System.Type Type { get; }
         string _typeName { get; }
