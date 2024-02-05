@@ -22,12 +22,11 @@ func refresh_project(api_request: APIRequest):
 	_refresh_from_file()
 
 func _refresh_from_api(api_request: APIRequest):
-	api_request.project_updated.connect(_on_project_updated.bind(api_request))
+	api_request.project_updated.connect(_on_project_updated.bind(api_request), CONNECT_ONE_SHOT)
 	api_request.request()
 
 func _on_project_updated(new_project_settings, api_request : APIRequest):
 	project_settings = new_project_settings
-	api_request.project_updated.disconnect(_on_project_updated)
 	print("[Arcweave] Successfully refreshed from API!")
 	project_updated.emit(new_project_settings)
 

@@ -29,3 +29,10 @@ func _parse_property(object, type, name, hint_type, hint_string, usage_flags, wi
 
 func pressed(object: ArcweaveAsset):
 	object.refresh_project(api_request)
+	object.project_updated.connect(on_project_updated.bind(object), CONNECT_ONE_SHOT)
+
+func on_project_updated(new_project_settings, object: ArcweaveAsset):
+	var error = ResourceSaver.save(object, object.resource_path)
+	if error != OK:
+		printerr("[Arcweave] Error saving resource!")
+		printerr(error)
