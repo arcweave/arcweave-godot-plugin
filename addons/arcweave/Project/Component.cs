@@ -8,7 +8,7 @@ namespace Arcweave.Project
     {
         [Export] public string Id { get; private set; }
         [Export] public string Name { get; private set; }
-        [Export] public Variant Cover { get; private set; }
+        [Export] public Asset Cover { get; private set; }
 
         [Export] public Array<Attribute> Attributes { get; private set; }
 
@@ -19,7 +19,7 @@ namespace Arcweave.Project
             Attributes = new Array<Attribute>();
         }
 
-        public Component(string id, string name, Variant cover)
+        public Component(string id, string name, Asset cover)
         {
             Id = id;
             Name = name;

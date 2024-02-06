@@ -1,3 +1,4 @@
+using System.Linq;
 using Arcweave.Interpreter.INodes;
 using Godot;
 using Godot.Collections;
@@ -18,7 +19,8 @@ namespace Arcweave.Project
 		private readonly Dictionary _branchesDict;
 		private readonly Dictionary _variablesDict;
 		private readonly Dictionary _notesDict;
-
+		private readonly Dictionary _assetsDict;
+		
 		private readonly Dictionary<string, Board> _boards;
 		private readonly Dictionary<string, Attribute> _attributes;
 		private readonly Dictionary<string, Component> _components;
@@ -29,6 +31,7 @@ namespace Arcweave.Project
 		private readonly Dictionary<string, Branch> _branches;
 		private readonly Dictionary<string, Variable> _variables;
 		private readonly Dictionary<string, Note> _notes;
+		private readonly Dictionary<string, Asset> _assets;
 
 		public ProjectMaker(Dictionary projectData)
 		{
@@ -43,6 +46,7 @@ namespace Arcweave.Project
 			_branchesDict = _projectData["branches"].AsGodotDictionary();
 			_variablesDict = _projectData["variables"].AsGodotDictionary();
 			_notesDict = _projectData["notes"].AsGodotDictionary();
+			_assetsDict = _projectData["assets"].AsGodotDictionary();
 			
 			_boards = new Dictionary<string, Board>();
 			_attributes = new Dictionary<string, Attribute>();
@@ -54,12 +58,21 @@ namespace Arcweave.Project
 			_branches = new Dictionary<string, Branch>();
 			_variables = new Dictionary<string, Variable>();
 			_notes = new Dictionary<string, Note>();
+			_assets = new Dictionary<string, Asset>();
 		}
 
 		public Project MakeProject()
 		{
 			Project project = new Project(_projectData["name"].AsString());
 
+			Dictionary assetRoot = _assetsDict.Values.First(asset =>
+			{
+				Dictionary assetDict = asset.AsGodotDictionary();
+				return assetDict.ContainsKey("root") && assetDict["root"].AsBool();
+			}).AsGodotDictionary();
+
+			MakeAssets(assetRoot["children"].AsGodotArray<string>(), "");
+			
 			foreach (string key in _attributesDict.Keys)
 			{
 				_attributes[key] = new Attribute();
@@ -72,7 +85,25 @@ namespace Arcweave.Project
 				{
 					continue;
 				}
-				_components[key] = new Component(key, comp["name"].AsString());
+				Asset coverAsset = null;
+				if (comp.ContainsKey("assets"))
+				{
+					var compAssets = comp["assets"].AsGodotDictionary();
+					if (compAssets.ContainsKey("cover"))
+					{
+						var cover = compAssets["cover"].AsGodotDictionary();
+						if (cover.ContainsKey("type") && cover["type"].AsString() is "icon")
+						{
+							coverAsset = new Asset(cover["file"].AsString(), cover["file"].AsString(), "",
+								Asset.AssetType.Icon);
+						}
+						else
+						{
+							coverAsset = _assets[cover["id"].AsString()];
+						}
+					}
+				}
+				_components[key] = new Component(key, comp["name"].AsString(), coverAsset);
 				foreach (string attrId in comp["attributes"].AsStringArray())
 				{
 					_components[key].AddAttribute(_attributes[attrId]);
@@ -145,7 +176,21 @@ namespace Arcweave.Project
 						elComponents.Add(_components[componentId]);
 					}
 				}
-				_elements[key] = new Element(key, Interpreter.Utils.CleanString(el["title"].AsString()), el["content"].AsString(), project, elConnections, elComponents, elAttributes);
+
+				Asset coverAsset = null;
+				if (el.ContainsKey("assets"))
+				{
+					var elAssets = el["assets"].AsGodotDictionary();
+					if (elAssets.ContainsKey("cover"))
+					{
+						var cover = elAssets["cover"].AsGodotDictionary();
+						if (cover.ContainsKey("id"))
+						{
+							coverAsset = _assets[cover["id"].AsString()];
+						}
+					}
+				}
+				_elements[key] = new Element(key, Interpreter.Utils.CleanString(el["title"].AsString()), el["content"].AsString(), project, elConnections, elComponents, elAttributes, coverAsset);
 			}
 
 			_startingElement = _elements[_projectData["startingElement"].AsString()];
@@ -317,10 +362,35 @@ namespace Arcweave.Project
 				
 			}
 
-			project.Set(_startingElement, _boards, _components, _variables, _elements);
+			project.Set(_startingElement, _boards, _components, _variables, _elements, _assets);
 			return project;
 		}
 
-		
+		public void MakeAssets(Array<string> assetIds, string path)
+		{
+			foreach (var assetId in assetIds)
+			{
+				var asset = _assetsDict[assetId].AsGodotDictionary();
+				if (asset.ContainsKey("children") && asset["children"].VariantType != Variant.Type.Nil)
+				{
+					string assetName = asset.ContainsKey("root") && asset["root"].AsBool()
+						? ""
+						: asset["name"].AsString();
+					MakeAssets(asset["children"].AsGodotArray<string>(), path + "/" + assetName);
+				}
+				else
+				{
+					string assetType = asset["type"].AsString();
+					Asset.AssetType type = assetType switch
+					{
+						"image" or "template-image" => Asset.AssetType.Image,
+						"audio" or "template-audio" => Asset.AssetType.Audio,
+						_ => Asset.AssetType.Undefined
+					};
+					string assetName = asset["name"].AsString();
+					_assets[assetId] = new Asset(assetId, assetName, path + '/' + assetName, type);
+				}
+			}
+		}
 	}
 }

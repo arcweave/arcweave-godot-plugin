@@ -13,6 +13,7 @@ namespace Arcweave.Project
         [Export] public Dictionary<string, Component> Components { get; private set; }
         [Export] public Dictionary<string, Variable> Variables { get; private set; }
         [Export] public Dictionary<string, Element> Elements { get; private set; }
+        [Export] public Dictionary<string, Asset> Assets { get; private set; }
         [Export] public Element StartingElement { get; private set; }
         public Element ElementWithId(string id)
         {
@@ -41,12 +42,13 @@ namespace Arcweave.Project
             StartingElement = startingElement;
         }
 
-        public void Set(Element startingElement, Dictionary<string, Board> boards, Dictionary<string, Component> components, Dictionary<string, Variable> variables, Dictionary<string, Element> elements)
+        public void Set(Element startingElement, Dictionary<string, Board> boards, Dictionary<string, Component> components, Dictionary<string, Variable> variables, Dictionary<string, Element> elements, Dictionary<string, Asset> assets)
         {
             Boards = boards;
             Components = components;
             Variables = variables;
             Elements = elements;
+            Assets = assets;
             StartingElement = startingElement;
         }
 
