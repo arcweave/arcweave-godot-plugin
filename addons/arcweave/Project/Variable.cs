@@ -4,10 +4,21 @@ namespace Arcweave.Project
 {
     public partial class Variable
     {
+        [Signal] public delegate void VariableUpdatedEventHandler(Variant oldValue, Variant newValue);
         public string Name { get; set; }
+        public bool Changed;
+        private Variant _value;
 
-        public Variant Value { get; set; }
-        
+        public Variant Value
+        {
+            get => _value;
+            internal set
+            {
+                _value = value;
+                Changed = true;
+            }
+        }
+
         public object ObjectValue {
             get
             {
@@ -18,7 +29,6 @@ namespace Arcweave.Project
                 return null;
             }
         }
-
 
         public string _typeName { get; private set; }
         public System.Type Type {
@@ -39,6 +49,7 @@ namespace Arcweave.Project
             Value = value;
             _defaultValue = value;
             this._typeName = value.GetType().FullName;
+            Changed = false;
         }
 
         public void ResetToDefaultValue()

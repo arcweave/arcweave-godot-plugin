@@ -9,10 +9,10 @@ namespace Arcweave.Interpreter.INodes
         public string Name { get; set; }
 #if GODOT
         
-        public Variant Value { get; set; }
+        Variant Value { get; }
         Variant _defaultValue { get; }
 #else
-        public object Value { get; set; }
+        object Value { get; }
         object _defaultValue { get; }
 #endif
         public object ObjectValue { get; }

@@ -17,7 +17,7 @@ namespace Arcweave.Project
             var validPaths = new Array<Path>();
             foreach (var output in element.Outputs)
             {
-                string save = Element.Project.SaveVariables();
+                var save = Element.Project.SaveVariables();
                 var path = output.ResolvePath(new Path());
                 if (path != null && path.IsValid) { validPaths.Add(path); }
                 Element.Project.LoadVariables(save);
@@ -28,20 +28,6 @@ namespace Arcweave.Project
             {
                 Paths[0].label = null;
             }
-        }
-
-        public Godot.Collections.Array<Path> GetPaths()
-        {
-            if (Paths == null)
-            {
-                return null;
-            } 
-            var paths = new Godot.Collections.Array<Path>();
-            foreach (var path in Paths)
-            {
-                paths.Add(path as Path);
-            }
-            return paths;
         }
     }
 

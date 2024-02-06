@@ -119,30 +119,21 @@ namespace Arcweave.Project
         }
         
         ///<summary>Returns a string of the saved variables that can be loaded later.</summary>
-        public string SaveVariables() {
-            var list = new Array<string>();
-            foreach ( var variable in Variables.Values ) {
-                list.Add(string.Format("{0}-{1}-{2}", variable.Name, variable.Value.ToString(), variable.Type.FullName));
+        public Dictionary<string, Variant> SaveVariables() {
+            var save = new Dictionary<string, Variant>();
+            foreach ( var entry in Variables )
+            {
+                save[entry.Key] = entry.Value.Value;
             }
-            var save = string.Join("|", list);
             return save;
         }
 
         ///<summary>Loads a previously saved string made with SaveVariables.</summary>
-        public void LoadVariables(string save) {
-            var list = save.Split('|');
-            foreach ( var s in list ) {
-                var split = s.Split('-');
-                var sName = split[0];
-                var sValue = split[1];
-                var sType = split[2];
-                var type = System.Type.GetType(sType);
-                Variant value = default;
-                if ( type == typeof(string) ) { value = sValue; }
-                if ( type == typeof(int) ) { value = int.Parse(sValue); }
-                if ( type == typeof(float) ) { value = float.Parse(sValue); }
-                if ( type == typeof(bool) ) { value = bool.Parse(sValue); }
-                SetVariable(sName, value);
+        public void LoadVariables(Dictionary<string, Variant> save) {
+            foreach (var entry in save)
+            {
+                Variables[entry.Key].Value = entry.Value;
+                Variables[entry.Key].Changed = false;
             }
         }
     }

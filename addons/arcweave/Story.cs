@@ -2,7 +2,6 @@ using Arcweave.Interpreter.INodes;
 using Godot;
 using Godot.Collections;
 using System;
-using System.Collections.Generic;
 using Arcweave.Project;
 
 namespace Arcweave
@@ -20,8 +19,11 @@ namespace Arcweave
 				_currentElement = value;
 				_currentElement.Visits++;
 				_currentElement.RunContentScript();
+				VariableChanges.TrackChanges();
 			}
 		}
+
+		[Export] public VariableChanges VariableChanges;
 
 		public Story() {}
 		public Story(Dictionary projectData)
@@ -29,7 +31,12 @@ namespace Arcweave
 			ProjectData = projectData;
 			ProjectMaker projectMaker = new ProjectMaker(projectData);
 			Project = projectMaker.MakeProject();
-
+			VariableChanges = new VariableChanges();
+			foreach (var variable in Project.Variables.Values)
+			{
+				VariableChanges.AddVariable(variable);
+			}
+			
 			CurrentElement = Project.StartingElement as Element;
 		}
 
@@ -95,6 +102,7 @@ namespace Arcweave
 		/// <param name="path">The path to select</param>
 		public void SelectPath(Path path)
 		{
+			
 			path.ExecuteAppendedConnectionLabels();
 			CurrentElement = path.TargetElement;
 		}
@@ -112,6 +120,60 @@ namespace Arcweave
 		public string GetCurrentRuntimeContent()
 		{
 			return CurrentElement.RuntimeContent;
+		}
+
+		public Dictionary<string, Dictionary<string, Variant>> GetVariableChanges()
+		{
+			return VariableChanges.GetChanges();
+		}
+	}
+
+	public partial class VariableChanges : GodotObject
+	{
+		[Export] public Array<Variable> Variables = new();
+		[Export] public Dictionary<string, Variant> OldValues = new();
+		[Export] public Dictionary<string, Variant> NewValues = new();
+		[Export] public Dictionary<string, bool> Changed = new();
+
+		public void AddVariable(Variable variable)
+		{
+			Variables.Add(variable);
+			OldValues[variable.Name] = variable.Value;
+			NewValues[variable.Name] = variable.Value;
+			Changed[variable.Name] = false;
+		}
+
+		internal void TrackChanges()
+		{
+			foreach (var variable in Variables)
+			{
+				Changed[variable.Name] = variable.Changed;
+				if (variable.Changed)
+				{
+					OldValues[variable.Name] = NewValues[variable.Name];
+					NewValues[variable.Name] = variable.Value;
+					Changed[variable.Name] = true;
+					variable.Changed = false;
+				}
+			}
+		}
+
+		public Dictionary<string, Dictionary<string, Variant>> GetChanges()
+		{
+			var changes = new Dictionary<string, Dictionary<string, Variant>>();
+			foreach (var variable in Variables)
+			{
+				if (Changed[variable.Name])
+				{
+					changes[variable.Name] = new Dictionary<string, Variant>
+					{
+						{ "oldValue", OldValues[variable.Name] },
+						{ "newValue", NewValues[variable.Name] }
+					};
+				}
+			}
+
+			return changes;
 		}
 	}
 }
