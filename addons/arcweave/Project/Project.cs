@@ -61,6 +61,7 @@ namespace Arcweave.Project
 
         public Project Merge(Project project)
         {
+            // Set the old variable values to the new project
             foreach (var variableId in Variables.Keys)
             {
                 if (project.Variables.ContainsKey(variableId))
@@ -69,6 +70,15 @@ namespace Arcweave.Project
                     {
                         project.Variables[variableId].Value = Variables[variableId].Value;
                     }
+                }
+            }
+
+            // Set the old element visits in the new project
+            foreach (var elementId in Elements.Keys)
+            {
+                if (project.Elements.TryGetValue(elementId, out var element))
+                {
+                    element.Visits = Elements[elementId].Visits;
                 }
             }
             

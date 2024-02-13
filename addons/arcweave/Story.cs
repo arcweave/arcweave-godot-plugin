@@ -52,15 +52,31 @@ namespace Arcweave
 		/// <returns></returns>
 		public Story UpdateStory(Dictionary projectData)
 		{
+			// Create the new project
 			ProjectData = projectData;
 			ProjectMaker projectMaker = new ProjectMaker(projectData);
 			var newProject = projectMaker.MakeProject();
-
+			
+			// Merge the old project with the new one
 			Project = Project.Merge(newProject);
+			
+			// Reset the latest variable changes
+			VariableChanges.UndoChanges(Project, VariableChanges);
+			
+			// Start tracking the new variables
+			VariableChanges = new VariableChanges();
+			foreach (var variable in Project.Variables.Values)
+			{
+				VariableChanges.AddVariable(variable);
+			}
+
+			// Set the current element
 			var currentElement = Project.ElementWithId(CurrentElement.Id);
 			if (currentElement != null)
 			{
-				CurrentElement = currentElement;
+				_currentElement = currentElement;
+				_currentElement.RunContentScript();
+				VariableChanges.TrackChanges();
 			}
 			else
 			{
@@ -174,6 +190,15 @@ namespace Arcweave
 			}
 
 			return changes;
+		}
+
+		public static void UndoChanges(Project.Project project, VariableChanges changes)
+		{
+			var varChanges = changes.GetChanges();
+			foreach (var variableName in varChanges.Keys)
+			{
+				project.SetVariable(variableName, varChanges[variableName]["oldValue"]);
+			}
 		}
 	}
 }
