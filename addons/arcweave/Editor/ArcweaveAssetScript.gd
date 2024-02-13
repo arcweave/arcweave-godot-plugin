@@ -1,7 +1,7 @@
 @tool
 class_name ArcweaveAsset extends Resource
 
-signal project_updated()
+signal project_updated(project_settings)
 @export_group("File Settings")
 ## The JSON file exported from Arcweave
 @export_global_file() var project_file : String 

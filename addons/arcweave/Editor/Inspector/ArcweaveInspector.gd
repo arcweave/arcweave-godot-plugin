@@ -23,6 +23,8 @@ func pressed(object: ArcweaveAsset):
 	object.refresh_project(api_request)
 
 func on_project_updated(new_project_settings, object: ArcweaveAsset):
+	if new_project_settings == null:
+		return
 	var error = ResourceSaver.save(object, object.resource_path)
 	if error != OK:
 		printerr("[Arcweave] Error saving resource!")
