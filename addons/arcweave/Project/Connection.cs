@@ -54,7 +54,10 @@ namespace Arcweave.Project
         {
             p.AppendConnection(this);
             RunLabelScript();
-            p.label = RuntimeLabel;
+            if (RuntimeLabel != null)
+            {
+                p.label = RuntimeLabel;
+            }
             return Target.ResolvePath(p);
 
         }

@@ -16,7 +16,14 @@ namespace Arcweave.Interpreter
         }
 
         public IVariable GetVariable(string name) {
-            return this.project.Variables.Values.First(variable => variable.Name == name);
+            try
+            {
+                return this.project.Variables.Values.First(variable => variable.Name == name);
+            }
+            catch (System.InvalidOperationException)
+            {
+                return null;
+            }
         }
 
         public object GetVarValue(string name) {

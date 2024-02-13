@@ -22,7 +22,14 @@ namespace Arcweave.Project
 
         public Variable GetVariable(string name)
         {
-            return Variables.Values.First(x => x.Name == name);
+            try
+            {
+                return Variables.Values.First(x => x.Name == name);
+            }
+            catch (System.InvalidOperationException)
+            {
+                return null;
+            }
         }
         
         public Project() : this("") {}

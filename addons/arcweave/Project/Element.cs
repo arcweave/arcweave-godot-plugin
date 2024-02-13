@@ -68,12 +68,26 @@ namespace Arcweave.Project
 
         public Component GetComponent(string componentName)
         {
-            return Components.First(component => component.Name == componentName);
+            try
+            {
+                return Components.First(component => component.Name == componentName);
+            }
+            catch (System.InvalidOperationException)
+            {
+                return null;
+            }
         }
 
         public Attribute GetAttribute(string attributeName)
         {
-            return Attributes.First(attribute => attribute.Name == attributeName);
+            try
+            {
+                return Attributes.First(attribute => attribute.Name == attributeName);
+            }
+            catch (System.InvalidOperationException)
+            {
+                return null;
+            }
         }
     }
 }

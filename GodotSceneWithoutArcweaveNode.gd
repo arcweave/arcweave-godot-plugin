@@ -46,7 +46,7 @@ func add_options():
 		option.queue_free()
 	
 	var options = story.GenerateCurrentOptions()
-	var paths = options.GetPaths()
+	var paths = options.Paths
 	if paths != null:
 		for path in paths:
 			if path.IsValid:

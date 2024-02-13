@@ -34,7 +34,14 @@ namespace Arcweave.Project
 
         public Attribute GetAttribute(string attributeName)
         {
-            return Attributes.First(attribute => attribute.Name == attributeName);
+            try
+            {
+                return Attributes.First(attribute => attribute.Name == attributeName);
+            }
+            catch (System.InvalidOperationException)
+            {
+                return null;
+            }
         }
     }
 }
