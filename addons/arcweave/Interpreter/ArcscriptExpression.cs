@@ -242,7 +242,7 @@ namespace Arcweave.Interpreter
         }
         public static Expression operator !(Expression e)
         {
-            return new Expression(!GetBoolValue(e));
+            return new Expression(!GetBoolValue(e.Value));
         }
         public static bool operator true(Expression e)
         {
