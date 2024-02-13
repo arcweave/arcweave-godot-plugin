@@ -85,9 +85,9 @@ namespace Arcweave.Interpreter
                 string attrName = attrCtx.GetToken(ArcscriptParser.ATTR_NAME, 0)?.GetText();
                 string attrValue = attrCtx.GetToken(ArcscriptParser.ATTR_VALUE, 0)?.GetText() ?? "";
                 if ( attrValue.StartsWith("\"") && attrValue.EndsWith("\"") ) {
-                    attrValue = attrValue.Substring(1, attrValue.Length - 1);
+                    attrValue = attrValue.Substring(1, attrValue.Length - 2);
                 } else if ( attrValue.StartsWith("'") && attrValue.EndsWith("'") ) {
-                    attrValue = attrValue.Substring(1, attrValue.Length - 1);
+                    attrValue = attrValue.Substring(1, attrValue.Length - 2);
                 }
                 attrs.Add(attrName, attrValue);
             }
