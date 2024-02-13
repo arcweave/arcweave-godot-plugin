@@ -33,16 +33,26 @@ func request():
 				headers.append(header + ': ' + env_vars.headers[header])
 	if not auth_header:
 		headers.append("Authorization: Bearer " + api_key)
+	headers.append("Accept: application/json")
 	print("[Arcweave] Retrieving: " + request_url)
 	var error = http_request.request(request_url, headers)
 	if error != OK:
 		printerr(error)
 
 func _on_request_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray):
+	if response_code == 401:
+		printerr("[Arcweave] Your API key is invalid")
+		project_updated.emit(null)
+		return
+	if response_code == 403:
+		printerr("[Arcweave] You do not have access to this project")
+		project_updated.emit(null)
+		return
 	if response_code != 200:
 		printerr("[Arcweave] There was an error retrieving the Godot Export")
 		printerr("[Arcweave] Response Code: " + str(response_code))
 		printerr(body.get_string_from_utf8())
+		project_updated.emit(null)
 		return
 	var project_settings = JSON.parse_string(body.get_string_from_utf8())
 	project_updated.emit(project_settings)

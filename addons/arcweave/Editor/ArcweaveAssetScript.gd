@@ -38,6 +38,10 @@ func _refresh_from_api(api_request: APIRequest):
 	api_request.request()
 
 func _on_project_updated(new_project_settings, api_request : APIRequest):
+	if new_project_settings == null:
+		printerr("[Arcweave] Project Update Failed")
+		project_updated.emit(null)
+		return
 	project_settings = new_project_settings
 	print("[Arcweave] Successfully refreshed from API!")
 	project_updated.emit(new_project_settings)
