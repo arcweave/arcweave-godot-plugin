@@ -52,6 +52,9 @@ namespace Arcweave.Project
             Changed = false;
         }
 
+        /// <summary>
+        /// Resets the variable to the default value.
+        /// </summary>
         public void ResetToDefaultValue()
         {
             Value = _defaultValue;

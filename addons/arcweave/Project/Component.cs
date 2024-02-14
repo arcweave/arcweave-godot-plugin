@@ -27,11 +27,20 @@ namespace Arcweave.Project
             Attributes = new Array<Attribute>();
         }
 
+        /// <summary>
+        /// Adds an attribute to the component
+        /// </summary>
+        /// <param name="attribute">The attribute</param>
         public void AddAttribute(Attribute attribute)
         {
             Attributes.Add(attribute);
         }
 
+        /// <summary>
+        /// Returns the attribute based on the attribute name
+        /// </summary>
+        /// <param name="attributeName">The attribute name</param>
+        /// <returns>The attribute or null if not found</returns>
         public Attribute GetAttribute(string attributeName)
         {
             try

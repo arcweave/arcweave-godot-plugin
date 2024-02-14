@@ -20,6 +20,10 @@ namespace Arcweave.Project
             Output = output;
         }
 
+        /// <summary>
+        /// Evaluates the condition.
+        /// </summary>
+        /// <returns>The result of the evaluation</returns>
         public bool Evaluate()
         {
             if (string.IsNullOrEmpty(Script))

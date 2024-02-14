@@ -4,13 +4,30 @@ using Arcweave.Interpreter.INodes;
 
 namespace Arcweave.Project
 {
+    /// <summary>
+    /// This class contains the options of an element. An option is
+    /// a Path of multiple connections to a target element.
+    /// </summary>
     public partial class Options
     {
+        /// <summary>
+        /// The element for which the options are created
+        /// </summary>
         [Export] public Element Element { get; set; }
+        /// <summary>
+        /// The Paths of the element
+        /// </summary>
         [Export] public Array<Path> Paths { get; set; }
         public bool HasPaths => Paths != null;
         public bool HasOptions => HasPaths && ( Paths.Count > 1 || !string.IsNullOrEmpty(Paths[0].label) );
 
+        /// <summary>
+        /// Generates the options of the element provided. Before each option
+        /// the variables are being saved and restored to have the changes of
+        /// a connection script be taken into consideration from any consequent
+        /// connections.
+        /// </summary>
+        /// <param name="element">The element for which to create the options</param>
         public Options(Element element)
         {
             Element = element;
@@ -31,6 +48,9 @@ namespace Arcweave.Project
         }
     }
 
+    /// <summary>
+    /// A Path is a collection of multiple connections to a target element
+    /// </summary>
     public partial class Path
     {
         [Export] public string label { get; set; }
@@ -41,12 +61,19 @@ namespace Arcweave.Project
 
         internal static Path Invalid => default(Path);
 
+        /// <summary>
+        /// Appends a connection to the Path
+        /// </summary>
+        /// <param name="connection">The connection to add</param>
         public void AppendConnection(Connection connection)
         {
             if (_connections == null) { _connections = new Array<Connection>(); }
             _connections.Add(connection);
         }
 
+        /// <summary>
+        /// Executes the labels of all the connections in this Path
+        /// </summary>
         public void ExecuteAppendedConnectionLabels()
         {
             foreach  ( var connection in _connections)

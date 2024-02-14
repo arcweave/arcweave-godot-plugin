@@ -19,6 +19,10 @@ namespace Arcweave.Project
             Conditions = conditions;
         }
 
+        /// <summary>
+        /// Returns the first true condition of the branch
+        /// </summary>
+        /// <returns>The true condition</returns>
         Condition GetTrueCondition()
         {
             foreach (Condition condition in Conditions)

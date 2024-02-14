@@ -23,7 +23,7 @@ namespace Arcweave
 			}
 		}
 
-		[Export] public VariableChanges VariableChanges;
+		public VariableChanges VariableChanges;
 
 		public Story() {}
 		public Story(Dictionary projectData)
@@ -43,13 +43,18 @@ namespace Arcweave
 		/// <summary>
 		/// Updates the current story instance based on the retreived Project Settings.
 		/// All the Project Data except Variables are overwritten.
+		/// <br/>
 		/// Variables are being merged, holding just the new Variables from <paramref name="projectData"/> and their
-		/// values are overwritten to the current project values. 
+		/// values are overwritten to the current project values.
+		/// <br/>
+		/// The Element visits are transfered to the new elements and the current element script is being rerun with
+		/// the previous variable values.
+		/// <br/>
 		/// If the current element has been removed from <paramref name="projectData"/>, it references the project's
 		/// starting element.
 		/// </summary>
-		/// <param name="projectData"></param>
-		/// <returns></returns>
+		/// <param name="projectData">The dictionary containing the new project data</param>
+		/// <returns>The story instance</returns>
 		public Story UpdateStory(Dictionary projectData)
 		{
 			// Create the new project
@@ -83,6 +88,18 @@ namespace Arcweave
 				CurrentElement = Project.StartingElement;
 			}
 			return this;
+		}
+
+		/// <summary>
+		/// Resets the Story. This will reset the project variables to the
+		/// default values, the element visits to 0 and will set the current
+		/// element to the Project's starting element.
+		/// </summary>
+		public void ResetStory()
+		{
+			Project.ResetVariables();
+			Project.ResetVisits();
+			CurrentElement = Project.StartingElement;
 		}
 
 		/// <summary>
@@ -123,21 +140,41 @@ namespace Arcweave
 			CurrentElement = path.TargetElement;
 		}
 
+		/// <summary>
+		/// Returns the project
+		/// </summary>
+		/// <returns>The Project</returns>
 		public Project.Project GetProject()
 		{
 			return Project;
 		}
 
+		/// <summary>
+		/// Returns the current element of the story
+		/// </summary>
+		/// <returns>The current element</returns>
 		public Element GetCurrentElement()
 		{
 			return CurrentElement as Element;
 		}
 
+		/// <summary>
+		/// Returns the runtime content of the current element
+		/// </summary>
+		/// <returns>The runtime content</returns>
 		public string GetCurrentRuntimeContent()
 		{
 			return CurrentElement.RuntimeContent;
 		}
 
+		/// <summary>
+		/// Returns the variable changes that happened from the last path selection.
+		/// </summary>
+		/// <returns>
+		/// A Dictionary where the key is the variable
+		/// name and the value is another Dictionary with keys "oldValue" and "newValue"
+		/// containing the old and the new variable values respectively.
+		/// </returns>
 		public Dictionary<string, Dictionary<string, Variant>> GetVariableChanges()
 		{
 			return VariableChanges.GetChanges();

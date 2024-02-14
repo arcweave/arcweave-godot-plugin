@@ -15,22 +15,6 @@ namespace Arcweave.Project
         [Export] public Dictionary<string, Element> Elements { get; private set; }
         [Export] public Dictionary<string, Asset> Assets { get; private set; }
         [Export] public Element StartingElement { get; private set; }
-        public Element ElementWithId(string id)
-        {
-            return Elements?[id];
-        }
-
-        public Variable GetVariable(string name)
-        {
-            try
-            {
-                return Variables.Values.First(x => x.Name == name);
-            }
-            catch (System.InvalidOperationException)
-            {
-                return null;
-            }
-        }
         
         public Project() : this("") {}
 
@@ -48,7 +32,69 @@ namespace Arcweave.Project
             Elements = elements;
             StartingElement = startingElement;
         }
+        
+        /// <summary>
+        /// Returns an element based on it's ID
+        /// </summary>
+        /// <param name="id">The element ID</param>
+        /// <returns>The element or null if not found</returns>
+        public Element ElementWithId(string id)
+        {
+            if (Elements.TryGetValue(id, out var element))
+            {
+                return element;
+            }
+            return null;
+        }
 
+        /// <summary>
+        /// Resets the project's variables to their default values.
+        /// </summary>
+        public void ResetVariables()
+        {
+            foreach (var variable in Variables.Values)
+            {
+                variable.ResetToDefaultValue();
+            }
+        }
+
+        /// <summary>
+        /// Resets the project's element visits to 0.
+        /// </summary>
+        public void ResetVisits()
+        {
+            foreach (var element in Elements.Values)
+            {
+                element.Visits = 0;
+            }
+        }
+
+        /// <summary>
+        /// Returns a Variable based on it's name
+        /// </summary>
+        /// <param name="name">The variable name</param>
+        /// <returns>The variable of null if not found</returns>
+        public Variable GetVariable(string name)
+        {
+            try
+            {
+                return Variables.Values.First(x => x.Name == name);
+            }
+            catch (System.InvalidOperationException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Sets the Project's values.
+        /// </summary>
+        /// <param name="startingElement">The project starting element</param>
+        /// <param name="boards">The project's boards</param>
+        /// <param name="components">The project's components</param>
+        /// <param name="variables">The project's variables</param>
+        /// <param name="elements">The project's elements</param>
+        /// <param name="assets">The project's assets</param>
         public void Set(Element startingElement, Dictionary<string, Board> boards, Dictionary<string, Component> components, Dictionary<string, Variable> variables, Dictionary<string, Element> elements, Dictionary<string, Asset> assets)
         {
             Boards = boards;
@@ -59,6 +105,13 @@ namespace Arcweave.Project
             StartingElement = startingElement;
         }
 
+        /// <summary>
+        /// Merges the current project to the project provided.
+        /// Overwrites the values of the variables with the current values
+        /// and the element visits with the current visits.
+        /// </summary>
+        /// <param name="project">The project to merge</param>
+        /// <returns>The merged project</returns>
         public Project Merge(Project project)
         {
             // Set the old variable values to the new project
@@ -85,17 +138,22 @@ namespace Arcweave.Project
             return project;
         }
 
-        public Godot.Collections.Dictionary<string, Board> GetBoards()
+        /// <summary>
+        /// Returns the project Boards
+        /// </summary>
+        /// <returns>The project's Boards</returns>
+        public Dictionary<string, Board> GetBoards()
         {
-            var boards = new Godot.Collections.Dictionary<string, Board>();
-            foreach (var entry in Boards)
-            {
-                boards[entry.Key] = Boards[entry.Key] as Board;
-            }
-            return boards;
+            return Boards;
         }
         
-        ///<summary>Sets the variable with name to a new value. Returns if variable exists in the first place.</summary>
+        /// <summary>
+        /// Sets the variable with name to a new value.
+        /// Returns if variable exists in the first place.
+        /// </summary>
+        /// <param name="name">The variable name</param>
+        /// <param name="value">The new value</param>
+        /// <returns>True if the variable is set, False if the variable doesn't exist</returns>
         public bool SetVariable(string name, object value)
         {
             try
@@ -135,7 +193,10 @@ namespace Arcweave.Project
             return true;
         }
         
-        ///<summary>Returns a string of the saved variables that can be loaded later.</summary>
+        /// <summary>
+        /// Returns a dictionary of the saved variables that can be loaded later.
+        /// </summary>
+        /// <returns>A dictionary with key the variable name and value the variable value</returns>
         public Dictionary<string, Variant> SaveVariables() {
             var save = new Dictionary<string, Variant>();
             foreach ( var entry in Variables )
@@ -145,7 +206,10 @@ namespace Arcweave.Project
             return save;
         }
 
-        ///<summary>Loads a previously saved string made with SaveVariables.</summary>
+        /// <summary>
+        /// Loads a previously saved string made with SaveVariables.
+        /// </summary>
+        /// <param name="save">The previously saved variables</param>
         public void LoadVariables(Dictionary<string, Variant> save) {
             foreach (var entry in save)
             {
