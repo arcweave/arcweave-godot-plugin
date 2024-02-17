@@ -136,7 +136,7 @@ the Arcweave API for requesting and retrieving the updated Arcweave Project.
 
 You can also create your own nodes and interact with the ArcweaveAsset. 
 
-In order to update during runtime though, you would have to add the node `APIRequest.gd` inside your scene. This will insert an HTTPRequest node in your scene and you will be able to make requests. You can see how we implemented owr own [`ArcweaveNode.cs`](./addons/arcweave/Editor/ArcweaveNode.cs) for C# or [`GodotSceneWithoutArcweaveNode.gd`](./GodotSceneWithoutArcweaveNode.gd) for GDScript and follow a similar pattern.
+In order to update during runtime though, you would have to add the node `APIRequest.gd` inside your scene. This will insert an HTTPRequest node in your scene and you will be able to make requests. You can see how we implemented owr own [`ArcweaveNode.cs`](./addons/arcweave/Editor/ArcweaveNode.cs) for C# or [`gd_script_scene_no_arcweave_node.gd`](./scripts/gd_script_scene_no_arcweave_node.gd) for GDScript and follow a similar pattern.
 
 ## Our Implementation
 
@@ -248,7 +248,7 @@ private void OptionButtonPressed(IPath path)
 
 The main Class that the user should use is the [**Story**](#story) class of the plugin. This has most of the functionalities needed to traverse through a Project. Story is stored as a property inside our ArcweaveNode so our examples are based on that.
 
-To start a Project's Story you have to initialize a Story instance with it's project settings, as well as an instance of APIRequest to be able to update your project on runtime. ArcweaveNode handles that in it's `_ready` function, so if you are using this Node Type, you don't have to do it.
+To start a Project's Story you have to initialize a Story instance with it's project settings, as well as an instance of APIRequest to be able to update your project on runtime. ArcweaveNode handles that in its `_ready` function, so if you are using this Node Type, you don't have to do it.
 
 ```gdscript
 # Your ArcweaveAsset resource file
@@ -268,23 +268,23 @@ func _ready():
 
 During the initialization, the data is loaded, the starting_element is set and the Element Options are generated.
 
-If you have a text container you can use the `story.GetCurrentRuntimeContent()` function to get the text of the current element and set it. In our Demo project, we have a function called `repaint()` that updates our TextContainer with the new content.
+If you have a text container (here, a RichTextLabel node saved as `text_window`) you can use the `story.GetCurrentRuntimeContent()` function to get the text of the current element and set it. In our Demo project, we have a function called `repaint()` that updates our TextContainer with the new content.
 
 ```gdscript
 func repaint():
-	text_container.text = story.GetCurrentRuntimeContent()
+	text_window.text = story.GetCurrentRuntimeContent()
 ```
 
 You can also use `story.GenerateCurrentOptions()` function to get the options of the current element:
 
 ```gdscript
 func repaint():
-	text_container.text = story.GetCurrentRuntimeContent()
+	text_window.text = story.GetCurrentRuntimeContent()
 	add_options()
 
 func add_options():
-	for option in option_container.get_children():
-		option_container.remove_child(option)
+	for option in options_container.get_children():
+		options_container.remove_child(option)
 		option.queue_free()
 	
 	var options = story.GenerateCurrentOptions()
@@ -293,7 +293,7 @@ func add_options():
 		for path in paths:
 			if path.IsValid:
 				var button : Button = create_button(path)
-				option_container.add_child(button)
+				options_container.add_child(button)
 ```
 
 To select a certain option and continue the story path, we add a signal handler for the button in `create_button` that we used earlier, where we select the Path that we provided using `story.SelectPath()`. When the new path is selected, we call the repaint function to recreate our UI. 

@@ -1,13 +1,14 @@
 [gd_resource type="Resource" script_class="ArcweaveAsset" load_steps=2 format=3 uid="uid://cmnanlsystim6"]
 
-[ext_resource type="Script" path="res://addons/arcweave/Editor/ArcweaveAssetScript.gd" id="1_7gjtn"]
+[ext_resource type="Script" path="res://addons/arcweave/Editor/ArcweaveAssetScript.gd" id="1_rro12"]
 
 [resource]
-script = ExtResource("1_7gjtn")
-use_api = true
-api_key = "ZFSzbvZyRzZCtGBaVEp34XoeumTKJLTzCtQrkRHU8YdMDQihreeezDb5id4X"
-project_hash = "ra6Xp1r63G"
-project_file = "D:/Home/Downloads/untitled-project-2024-01-22-112240.json"
+script = ExtResource("1_rro12")
+project_file = ""
+api_key = ""
+project_hash = ""
+receive_method = "WebAPI"
+_placeholder = false
 project_settings = {
 "assets": {
 "206816c5-9c9a-4003-940c-5c5176caed18": {
@@ -494,7 +495,7 @@ project_settings = {
 },
 "autoHeight": true,
 "components": [],
-"content": "<p>You stand inside a small courtyard. Everything is unusually silent here with Manolis.</p><p><strong>The path leads further to the north. An abandoned house lies to your left.</strong></p>",
+"content": "<p>You stand inside a small courtyard. Everything is unusually silent here.</p><p><strong>The path leads further to the north. An abandoned house lies to your left.</strong></p>",
 "outputs": ["678e093e-537c-4161-b011-8d6763c4be14", "e8fbe6f8-7ce4-404d-b693-d108d7125a75", "337c4347-5b21-449c-b556-134e0acec12d"],
 "theme": "blue",
 "title": "<p><span class=\"mention mention-component\" data-id=\"11e527ff-9579-412c-ae5c-6ff548ebcfc0\" data-type=\"component\">Castle Courtyard</span> </p>"
@@ -657,7 +658,7 @@ project_settings = {
 "elementId": "d4823bca-643b-4d3a-a908-0056762a0476"
 }
 },
-"name": "Restored - The Castle",
+"name": "The Castle",
 "notes": {
 "045fcf7a-0e29-4f29-a6b3-f1be825832ed": {
 "autoHeight": true,

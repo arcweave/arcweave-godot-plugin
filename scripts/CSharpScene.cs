@@ -5,7 +5,7 @@ using Arcweave.Project;
 using Arcweave.Interpreter.INodes;
 using Godot.Collections;
 
-public partial class CSharpSceneScript : Node2D
+public partial class CSharpScene : Control
 {
 	public RichTextLabel TextContainer;
 	public VBoxContainer OptionContainer;
@@ -22,10 +22,10 @@ public partial class CSharpSceneScript : Node2D
 		ArcweaveNode.ProjectUpdated += OnProjectUpdated;
 		
 		// Create the UI
-		TextContainer = GetNode<RichTextLabel>("TextContainer");
-		OptionContainer = GetNode<VBoxContainer>("OptionContainer");
-		SaveButton = GetNode<Button>("SaveButton");
-		RefreshButton = GetNode<Button>("RefreshButton");
+		TextContainer = GetNode<RichTextLabel>("StoryContainer/TextWindow");
+		OptionContainer = GetNode<VBoxContainer>("StoryContainer/OptionsContainer");
+		SaveButton = GetNode<Button>("StoryContainer/UIButtonsContainer/SaveButton");
+		RefreshButton = GetNode<Button>("StoryContainer/UIButtonsContainer/RefreshButton");
 		RefreshButton.Pressed += RefreshProject;
 		TextContainer.BbcodeEnabled = true;
 

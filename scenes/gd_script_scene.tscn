@@ -1,0 +1,59 @@
+[gd_scene load_steps=4 format=3 uid="uid://cyflxl30netqr"]
+
+[ext_resource type="Script" path="res://scripts/gd_script_scene.gd" id="2_f0hnl"]
+[ext_resource type="Script" path="res://addons/arcweave/Editor/ArcweaveNode.cs" id="3_gdtfr"]
+[ext_resource type="Resource" uid="uid://cmnanlsystim6" path="res://resources/ArcweaveAsset.tres" id="4_4luil"]
+
+[node name="GDScriptScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_f0hnl")
+
+[node name="StoryContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextWindow" type="RichTextLabel" parent="StoryContainer"]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+bbcode_enabled = true
+
+[node name="OptionsContainer" type="VBoxContainer" parent="StoryContainer"]
+custom_minimum_size = Vector2(0, 300)
+layout_mode = 2
+
+[node name="UIButtonsContainer" type="HBoxContainer" parent="StoryContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="SaveButton" type="Button" parent="StoryContainer/UIButtonsContainer"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+text = "Save State"
+
+[node name="RefreshButton" type="Button" parent="StoryContainer/UIButtonsContainer"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+text = "Refresh Project"
+
+[node name="RestartButton" type="Button" parent="StoryContainer/UIButtonsContainer"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+text = "Restart Story
+"
+
+[node name="ArcweaveNode" type="Node" parent="."]
+script = ExtResource("3_gdtfr")
+ArcweaveAsset = ExtResource("4_4luil")
