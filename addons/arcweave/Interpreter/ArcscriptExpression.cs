@@ -317,7 +317,7 @@ namespace Arcweave.Interpreter
             return new FloatValues(flValue1, flValue2, hasFloat);
         }
 
-        private static bool GetBoolValue(object value)
+        internal static bool GetBoolValue(object value)
         {
             if (value.GetType() == typeof(bool)) { return (bool)value; }
             if (value.GetType() == typeof(string)) { return ((string)value).Length > 0; }

@@ -25,7 +25,7 @@ namespace Arcweave.Interpreter
             }
 
             Expression comp_cond = (Expression)this.VisitCompound_condition_or(context.compound_condition_or());
-            return comp_cond.Value;
+            return Expression.GetBoolValue(comp_cond.Value);
         }
 
         public override object VisitScript_section([NotNull] ArcscriptParser.Script_sectionContext context) {

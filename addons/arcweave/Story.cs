@@ -32,7 +32,7 @@ namespace Arcweave
 			ProjectMaker projectMaker = new ProjectMaker(projectData);
 			Project = projectMaker.MakeProject();
 			VariableChanges = new VariableChanges();
-			foreach (var variable in Project.Variables.Values)
+			foreach (var variable in Project.Variables)
 			{
 				VariableChanges.AddVariable(variable);
 			}
@@ -70,7 +70,7 @@ namespace Arcweave
 			
 			// Start tracking the new variables
 			VariableChanges = new VariableChanges();
-			foreach (var variable in Project.Variables.Values)
+			foreach (var variable in Project.Variables)
 			{
 				VariableChanges.AddVariable(variable);
 			}

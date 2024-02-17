@@ -11,7 +11,7 @@ namespace Arcweave.Project
         [Export] public string Name {  get; private set; }
         [Export] public Dictionary<string, Board> Boards { get; private set; }
         [Export] public Dictionary<string, Component> Components { get; private set; }
-        [Export] public Dictionary<string, Variable> Variables { get; private set; }
+        [Export] public Array<Variable> Variables { get; private set; }
         [Export] public Dictionary<string, Element> Elements { get; private set; }
         [Export] public Dictionary<string, Asset> Assets { get; private set; }
         [Export] public Element StartingElement { get; private set; }
@@ -23,7 +23,7 @@ namespace Arcweave.Project
             Name = name;
         }
 
-        public Project(string name, Element startingElement, Dictionary<string, Board> boards, Dictionary<string, Component> components, Dictionary<string, Variable> variables, Dictionary<string, Element> elements)
+        public Project(string name, Element startingElement, Dictionary<string, Board> boards, Dictionary<string, Component> components, Array<Variable> variables, Dictionary<string, Element> elements)
         {
             Name = name;
             Boards = boards;
@@ -52,7 +52,7 @@ namespace Arcweave.Project
         /// </summary>
         public void ResetVariables()
         {
-            foreach (var variable in Variables.Values)
+            foreach (var variable in Variables)
             {
                 variable.ResetToDefaultValue();
             }
@@ -78,7 +78,7 @@ namespace Arcweave.Project
         {
             try
             {
-                return Variables.Values.First(x => x.Name == name);
+                return Variables.First(x => x.Name == name);
             }
             catch (System.InvalidOperationException)
             {
@@ -95,7 +95,7 @@ namespace Arcweave.Project
         /// <param name="variables">The project's variables</param>
         /// <param name="elements">The project's elements</param>
         /// <param name="assets">The project's assets</param>
-        public void Set(Element startingElement, Dictionary<string, Board> boards, Dictionary<string, Component> components, Dictionary<string, Variable> variables, Dictionary<string, Element> elements, Dictionary<string, Asset> assets)
+        public void Set(Element startingElement, Dictionary<string, Board> boards, Dictionary<string, Component> components, Array<Variable> variables, Dictionary<string, Element> elements, Dictionary<string, Asset> assets)
         {
             Boards = boards;
             Components = components;
@@ -115,13 +115,14 @@ namespace Arcweave.Project
         public Project Merge(Project project)
         {
             // Set the old variable values to the new project
-            foreach (var variableId in Variables.Keys)
+            foreach (var variable in Variables)
             {
-                if (project.Variables.ContainsKey(variableId))
+                var projVariable = project.Variables.FirstOrDefault(variable1 => variable1.Name == variable.Name);
+                if (projVariable != null)
                 {
-                    if (project.Variables[variableId].Type == Variables[variableId].Type)
+                    if (projVariable.Type == variable.Type)
                     {
-                        project.Variables[variableId].Value = Variables[variableId].Value;
+                        projVariable.Value = variable.Value;
                     }
                 }
             }
@@ -158,7 +159,7 @@ namespace Arcweave.Project
         {
             try
             {
-                Variable variable = Variables.Values.First(x => x.Name == name);
+                Variable variable = Variables.First(x => x.Name == name);
                 if (value is Variant)
                 {
                     variable.Value = (Variant)value;
@@ -199,9 +200,9 @@ namespace Arcweave.Project
         /// <returns>A dictionary with key the variable name and value the variable value</returns>
         public Dictionary<string, Variant> SaveVariables() {
             var save = new Dictionary<string, Variant>();
-            foreach ( var entry in Variables )
+            foreach ( var variable in Variables )
             {
-                save[entry.Key] = entry.Value.Value;
+                save[variable.Name] = variable.Value;
             }
             return save;
         }
@@ -213,8 +214,12 @@ namespace Arcweave.Project
         public void LoadVariables(Dictionary<string, Variant> save) {
             foreach (var entry in save)
             {
-                Variables[entry.Key].Value = entry.Value;
-                Variables[entry.Key].Changed = false;
+                var variable = Variables.FirstOrDefault(_variable => _variable.Name == entry.Key);
+                if (variable != null)
+                {
+                    variable.Value = entry.Value;
+                    variable.Changed = false;
+                }
             }
         }
     }

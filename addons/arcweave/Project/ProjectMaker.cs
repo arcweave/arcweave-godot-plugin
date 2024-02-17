@@ -29,7 +29,7 @@ namespace Arcweave.Project
 		private readonly Dictionary<string, Element> _elements;
 		private readonly Dictionary<string, Jumper> _jumpers;
 		private readonly Dictionary<string, Branch> _branches;
-		private readonly Dictionary<string, Variable> _variables;
+		private readonly Array<Variable> _variables;
 		private readonly Dictionary<string, Note> _notes;
 		private readonly Dictionary<string, Asset> _assets;
 
@@ -56,7 +56,7 @@ namespace Arcweave.Project
 			_elements = new Dictionary<string, Element>();
 			_jumpers = new Dictionary<string, Jumper>();
 			_branches = new Dictionary<string, Branch>();
-			_variables = new Dictionary<string, Variable>();
+			_variables = new Array<Variable>();
 			_notes = new Dictionary<string, Note>();
 			_assets = new Dictionary<string, Asset>();
 		}
@@ -358,7 +358,7 @@ namespace Arcweave.Project
 						GD.Print("[Arcweave] Variable type \"" + variable["type"].AsString() + "\" not found");
 						break;
 				}
-				_variables[key] = new Variable(variable["name"].AsString(), value);
+				_variables.Add(new Variable(variable["name"].AsString(), value));
 				
 			}
 

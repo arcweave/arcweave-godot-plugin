@@ -111,7 +111,7 @@ namespace Arcweave.Interpreter
             foreach ( IVariable argument in args ) {
                 variableNames.Add(argument.Name);
             }
-            foreach ( IVariable variable in this._project.Variables.Values ) {
+            foreach ( IVariable variable in this._project.Variables ) {
                 if ( !variableNames.Contains(variable.Name) ) {
                     variable.ResetToDefaultValue();
                 }

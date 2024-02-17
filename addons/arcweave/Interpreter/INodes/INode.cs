@@ -1,6 +1,6 @@
 ﻿namespace Arcweave.Interpreter.INodes
 {
-    public interface INode
+    public partial interface INode
     {
         string Id { get; }
         Arcweave.Project.Project Project { get; }

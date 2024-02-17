@@ -3,7 +3,6 @@ using Antlr4.Runtime;
 using System.IO;
 using System.Linq;
 using Arcweave.Interpreter.INodes;
-using Godot;
 
 namespace Arcweave.Interpreter
 {
@@ -72,7 +71,7 @@ namespace Arcweave.Interpreter
 
         public bool assertVariable(IToken variable) {
             var variableName = variable.Text;
-            var found = this.Project.Variables.Values.First(x => x.Name == variableName);
+            var found = this.Project.Variables.First(x => x.Name == variableName);
             if ( found != null ) {
                 return false;
             }

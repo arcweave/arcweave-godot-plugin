@@ -30,7 +30,7 @@ namespace Arcweave.Project
             }
         }
 
-        public string _typeName { get; private set; }
+        private string _typeName { get; set; }
         public System.Type Type {
             get
             {
@@ -41,7 +41,7 @@ namespace Arcweave.Project
                 return null;
             }
         }
-        public Variant _defaultValue { get; private set; }
+        private Variant _defaultValue { get; set; }
 
         public Variable(string name, Variant value)
         {
