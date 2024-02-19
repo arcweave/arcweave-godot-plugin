@@ -32,25 +32,70 @@ namespace Arcweave.Interpreter
             if ( context == null ) {
                 return null;
             }
-            if ( context.normal_text() != null && context.normal_text().Length > 0 ) {
-                this.state.outputs.Add(context.GetText());
-                return context.GetText();
+
+            var blockquoteContexts = context.blockquote();
+            if (blockquoteContexts != null && blockquoteContexts.Length > 0)
+            {
+                object[] result = new object[blockquoteContexts.Length];
+                int index = 0;
+                foreach (var blockquoteContext in blockquoteContexts)
+                {
+                    result[index++] = this.VisitBlockquote(blockquoteContext);
+                }
+                return result;
             }
+
+            var paragraphContexts = context.paragraph();
+            if (paragraphContexts != null && paragraphContexts.Length > 0)
+            {
+                object[] result = new object[paragraphContexts.Length];
+                int index = 0;
+                foreach (var paragraphContext in paragraphContexts)
+                {
+                    result[index++] = this.VisitParagraph(paragraphContext);
+                }
+                return result;
+            } 
+            // if ( context.normal_text() != null && context.normal_text().Length > 0 ) {
+            //     this.state.outputs.Add(context.GetText());
+            //     return context.GetText();
+            // }
 
             return this.VisitChildren(context);
         }
 
+        public override object VisitParagraph(ArcscriptParser.ParagraphContext context)
+        {
+            // this.state.outputs.Add(context.GetText());
+            var paragraphEnd = context.PARAGRAPHEND().GetText();
+            var paragraphContent = paragraphEnd.Substring(0, paragraphEnd.Length - "</p>".Length);
+            this.state.Outputs.AddParagraph(paragraphContent);
+            return context.GetText();
+        }
+
+        public override object VisitBlockquote(ArcscriptParser.BlockquoteContext context)
+        {
+            this.state.Outputs.AddBlockquote();
+            this.VisitChildren(context);
+            this.state.Outputs.ExitBlockquote();
+            return context.GetText();
+        }
+
         public override object VisitAssignment_segment([NotNull] ArcscriptParser.Assignment_segmentContext context) {
+            this.state.Outputs.AddScriptOutput(null);
             return this.VisitStatement_assignment(context.statement_assignment());
         }
 
         public override object VisitFunction_call_segment([NotNull] ArcscriptParser.Function_call_segmentContext context) {
+            this.state.Outputs.AddScriptOutput(null);
             return this.VisitStatement_function_call(context.statement_function_call());
         }
 
         public override object VisitConditional_section([NotNull] ArcscriptParser.Conditional_sectionContext context) {
+            this.state.Outputs.AddScriptOutput(null);
             ConditionalSection if_section = (ConditionalSection)this.VisitIf_section(context.if_section());
             if ( if_section.Clause ) {
+                this.state.Outputs.AddScriptOutput(null);
                 return if_section.Script;
             }
             foreach(ArcscriptParser.Else_if_sectionContext else_if_context in context.else_if_section())
@@ -64,8 +109,10 @@ namespace Arcweave.Interpreter
 
             if ( context.else_section() != null ) {
                 ConditionalSection elseSection = (ConditionalSection)this.VisitElse_section(context.else_section());
+                this.state.Outputs.AddScriptOutput(null);
                 return elseSection.Script;
             }
+            this.state.Outputs.AddScriptOutput(null);
             return null;
         }
 
@@ -107,7 +154,7 @@ namespace Arcweave.Interpreter
 
             Expression compound_condition_or = (Expression)this.VisitCompound_condition_or(context.compound_condition_or());
             if ( context.ASSIGN() != null ) {
-                this.state.SetVarValue(variableName, Convert.ChangeType(compound_condition_or.Value, variable.Type));
+                this.state.SetVarValue(variableName, compound_condition_or.Value);
                 return null;
             }
 
@@ -123,7 +170,7 @@ namespace Arcweave.Interpreter
                 variableValue /= compound_condition_or;
             }
 
-            this.state.SetVarValue(variableName, Convert.ChangeType(variableValue.Value, variable.Type));
+            this.state.SetVarValue(variableName, variableValue.Value);
             return null;
         }
 
@@ -270,8 +317,14 @@ namespace Arcweave.Interpreter
                 return new Expression(this.state.GetVarValue(variableName));
             }
 
-            if ( context.function_call() != null ) {
-                return new Expression(this.VisitFunction_call(context.function_call()));
+            if ( context.function_call() != null )
+            {
+                object functionResult = this.VisitFunction_call(context.function_call());
+                if (functionResult.GetType() == typeof(Expression))
+                {
+                    return functionResult;
+                }
+                return new Expression(functionResult);
             }
             return this.VisitCompound_condition_or(context.compound_condition_or());
         }

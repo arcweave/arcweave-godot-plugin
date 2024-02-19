@@ -34,17 +34,17 @@ namespace Arcweave.Interpreter
             ArcscriptVisitor visitor = new ArcscriptVisitor(this.ElementId, this.Project);
             object result = tree.Accept(visitor);
 
-            List<string> outputs = visitor.state.outputs;
-            var outputResult = "";
-            if (outputs.Count > 0)
-            {
-                foreach (var t in outputs)
-                {
-                    outputResult += t.Trim();
-                }
-
-                outputResult = Utils.CleanString(outputResult);
-            }
+            // List<string> outputs = visitor.state.outputs;
+            var outputResult = visitor.state.Outputs.GetText();
+            // if (outputs.Count > 0)
+            // {
+            //     foreach (var t in outputs)
+            //     {
+            //         outputResult += t.Trim();
+            //     }
+            //
+            //     //outputResult = Utils.CleanString(outputResult);
+            // }
 
             var isCondition = tree.script() != null;
 

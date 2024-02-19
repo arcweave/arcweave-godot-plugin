@@ -51,11 +51,11 @@ public interface IArcscriptParserVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitScript_section([NotNull] ArcscriptParser.Script_sectionContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="ArcscriptParser.normal_text"/>.
+	/// Visit a parse tree produced by <see cref="ArcscriptParser.blockquote"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitNormal_text([NotNull] ArcscriptParser.Normal_textContext context);
+	Result VisitBlockquote([NotNull] ArcscriptParser.BlockquoteContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="ArcscriptParser.paragraph"/>.
 	/// </summary>

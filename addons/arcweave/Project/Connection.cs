@@ -57,7 +57,7 @@ namespace Arcweave.Project
                 }
             }
 
-            RuntimeLabel = output.Output;
+            RuntimeLabel = Utils.CleanString(output.Output);
         }
 
         public Path ResolvePath(Path p)

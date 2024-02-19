@@ -66,7 +66,7 @@ public partial class ArcscriptParserBaseVisitor<Result> : AbstractParseTreeVisit
 	/// <return>The visitor result.</return>
 	public virtual Result VisitScript_section([NotNull] ArcscriptParser.Script_sectionContext context) { return VisitChildren(context); }
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="ArcscriptParser.normal_text"/>.
+	/// Visit a parse tree produced by <see cref="ArcscriptParser.blockquote"/>.
 	/// <para>
 	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
 	/// on <paramref name="context"/>.
@@ -74,7 +74,7 @@ public partial class ArcscriptParserBaseVisitor<Result> : AbstractParseTreeVisit
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	public virtual Result VisitNormal_text([NotNull] ArcscriptParser.Normal_textContext context) { return VisitChildren(context); }
+	public virtual Result VisitBlockquote([NotNull] ArcscriptParser.BlockquoteContext context) { return VisitChildren(context); }
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="ArcscriptParser.paragraph"/>.
 	/// <para>

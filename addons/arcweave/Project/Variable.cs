@@ -18,6 +18,8 @@ namespace Arcweave.Project
                 Changed = true;
             }
         }
+        private Variant _defaultValue { get; set; }
+        public Variant DefaultValue => _defaultValue;
 
         public object ObjectValue {
             get
@@ -41,7 +43,6 @@ namespace Arcweave.Project
                 return null;
             }
         }
-        private Variant _defaultValue { get; set; }
 
         public Variable(string name, Variant value)
         {

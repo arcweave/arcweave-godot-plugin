@@ -7,10 +7,13 @@ namespace Arcweave.Interpreter
     public class ArcscriptState
     {
         public Dictionary<string, object> VariableChanges = new Dictionary<string, object>();
-        public List<string> outputs = new List<string>();
+        // public List<string> outputs = new List<string>();
+        public ArcscriptOutputs Outputs;
         public string currentElement { get; set; }
         public IProject project { get; set; }
-        public ArcscriptState(string elementId, IProject project) {
+        public ArcscriptState(string elementId, IProject project)
+        {
+            Outputs = new ArcscriptOutputs();
             this.currentElement = elementId;
             this.project = project;
         }

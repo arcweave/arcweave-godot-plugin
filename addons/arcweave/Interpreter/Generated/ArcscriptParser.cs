@@ -38,18 +38,18 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 	protected static PredictionContextCache sharedContextCache = new PredictionContextCache();
 	public const int
 		CODESTART=1, PARAGRAPHSTART=2, BLOCKQUOTESTART=3, NORMAL_WHITESPACE=4, 
-		PARAGRAPHEND=5, BQ_PARAGRAPHSTART=6, BLOCKQUOTEEND=7, BQ_WHITESPACE=8, 
-		CODEEND=9, MENTION_TAG_OPEN=10, FLOAT=11, INTEGER=12, DIGIT=13, LPAREN=14, 
-		RPAREN=15, ASSIGNMUL=16, ASSIGNDIV=17, ASSIGNADD=18, ASSIGNSUB=19, MUL=20, 
-		DIV=21, ADD=22, SUB=23, GE=24, GT=25, LE=26, LT=27, EQ=28, NE=29, AND=30, 
-		OR=31, ASSIGN=32, NEG=33, COMMA=34, LBRACE=35, RBRACE=36, BOOLEAN=37, 
-		FNAME=38, VFNAME=39, VFNAMEVARS=40, IFKEYWORD=41, ELSEKEYWORD=42, ELSEIFKEYWORD=43, 
-		ENDIFKEYWORD=44, ANDKEYWORD=45, ORKEYWORD=46, ISKEYWORD=47, NOTKEYWORD=48, 
-		STRING=49, VARIABLE=50, WHITESPACE=51, TAG_CLOSE=52, ATTR_NAME=53, TAG_EQUALS=54, 
-		MENTION_TAG_CLOSE=55, TAG_WHITESPACE=56, TAG_OPEN=57, MENTION_LABEL=58, 
-		ATTR_VALUE=59, ATTRIBUTE=60;
+		PARAGRAPHEND=5, BQ_CODESTART=6, BQ_PARAGRAPHSTART=7, BLOCKQUOTEEND=8, 
+		BQ_WHITESPACE=9, CODEEND=10, MENTION_TAG_OPEN=11, FLOAT=12, INTEGER=13, 
+		DIGIT=14, LPAREN=15, RPAREN=16, ASSIGNMUL=17, ASSIGNDIV=18, ASSIGNADD=19, 
+		ASSIGNSUB=20, MUL=21, DIV=22, ADD=23, SUB=24, GE=25, GT=26, LE=27, LT=28, 
+		EQ=29, NE=30, AND=31, OR=32, ASSIGN=33, NEG=34, COMMA=35, LBRACE=36, RBRACE=37, 
+		BOOLEAN=38, FNAME=39, VFNAME=40, VFNAMEVARS=41, IFKEYWORD=42, ELSEKEYWORD=43, 
+		ELSEIFKEYWORD=44, ENDIFKEYWORD=45, ANDKEYWORD=46, ORKEYWORD=47, ISKEYWORD=48, 
+		NOTKEYWORD=49, STRING=50, VARIABLE=51, WHITESPACE=52, TAG_CLOSE=53, ATTR_NAME=54, 
+		TAG_EQUALS=55, MENTION_TAG_CLOSE=56, TAG_WHITESPACE=57, TAG_OPEN=58, MENTION_LABEL=59, 
+		ATTR_VALUE=60, ATTRIBUTE=61;
 	public const int
-		RULE_input = 0, RULE_script = 1, RULE_script_section = 2, RULE_normal_text = 3, 
+		RULE_input = 0, RULE_script = 1, RULE_script_section = 2, RULE_blockquote = 3, 
 		RULE_paragraph = 4, RULE_paragraph_start = 5, RULE_codestart = 6, RULE_codeend = 7, 
 		RULE_assignment_segment = 8, RULE_function_call_segment = 9, RULE_conditional_section = 10, 
 		RULE_if_section = 11, RULE_else_if_section = 12, RULE_else_section = 13, 
@@ -62,7 +62,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		RULE_compound_condition_and = 32, RULE_negated_unary_condition = 33, RULE_unary_condition = 34, 
 		RULE_condition = 35, RULE_conditional_operator = 36, RULE_expression = 37;
 	public static readonly string[] ruleNames = {
-		"input", "script", "script_section", "normal_text", "paragraph", "paragraph_start", 
+		"input", "script", "script_section", "blockquote", "paragraph", "paragraph_start", 
 		"codestart", "codeend", "assignment_segment", "function_call_segment", 
 		"conditional_section", "if_section", "else_if_section", "else_section", 
 		"if_clause", "else_if_clause", "endif_segment", "statement_assignment", 
@@ -74,24 +74,25 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 	};
 
 	private static readonly string[] _LiteralNames = {
-		null, null, null, null, null, null, null, "'</blockquote>'", null, "'</code></pre>'", 
-		"'<span'", null, null, null, "'('", "')'", "'*='", "'/='", "'+='", "'-='", 
-		"'*'", "'/'", "'+'", "'-'", null, null, null, null, "'=='", "'!='", null, 
-		"'||'", null, "'!'", "','", "'{'", "'}'", null, null, "'show'", null, 
-		"'if'", "'else'", "'elseif'", "'endif'", "'and'", "'or'", "'is'", "'not'", 
-		null, null, null, "'>'", null, null, "'/span>'", null, "'<'"
+		null, null, null, null, null, null, null, null, "'</blockquote>'", null, 
+		"'</code></pre>'", "'<span'", null, null, null, "'('", "')'", "'*='", 
+		"'/='", "'+='", "'-='", "'*'", "'/'", "'+'", "'-'", null, null, null, 
+		null, "'=='", "'!='", null, "'||'", null, "'!'", "','", "'{'", "'}'", 
+		null, null, "'show'", null, "'if'", "'else'", "'elseif'", "'endif'", "'and'", 
+		"'or'", "'is'", "'not'", null, null, null, "'>'", null, null, "'/span>'", 
+		null, "'<'"
 	};
 	private static readonly string[] _SymbolicNames = {
 		null, "CODESTART", "PARAGRAPHSTART", "BLOCKQUOTESTART", "NORMAL_WHITESPACE", 
-		"PARAGRAPHEND", "BQ_PARAGRAPHSTART", "BLOCKQUOTEEND", "BQ_WHITESPACE", 
-		"CODEEND", "MENTION_TAG_OPEN", "FLOAT", "INTEGER", "DIGIT", "LPAREN", 
-		"RPAREN", "ASSIGNMUL", "ASSIGNDIV", "ASSIGNADD", "ASSIGNSUB", "MUL", "DIV", 
-		"ADD", "SUB", "GE", "GT", "LE", "LT", "EQ", "NE", "AND", "OR", "ASSIGN", 
-		"NEG", "COMMA", "LBRACE", "RBRACE", "BOOLEAN", "FNAME", "VFNAME", "VFNAMEVARS", 
-		"IFKEYWORD", "ELSEKEYWORD", "ELSEIFKEYWORD", "ENDIFKEYWORD", "ANDKEYWORD", 
-		"ORKEYWORD", "ISKEYWORD", "NOTKEYWORD", "STRING", "VARIABLE", "WHITESPACE", 
-		"TAG_CLOSE", "ATTR_NAME", "TAG_EQUALS", "MENTION_TAG_CLOSE", "TAG_WHITESPACE", 
-		"TAG_OPEN", "MENTION_LABEL", "ATTR_VALUE", "ATTRIBUTE"
+		"PARAGRAPHEND", "BQ_CODESTART", "BQ_PARAGRAPHSTART", "BLOCKQUOTEEND", 
+		"BQ_WHITESPACE", "CODEEND", "MENTION_TAG_OPEN", "FLOAT", "INTEGER", "DIGIT", 
+		"LPAREN", "RPAREN", "ASSIGNMUL", "ASSIGNDIV", "ASSIGNADD", "ASSIGNSUB", 
+		"MUL", "DIV", "ADD", "SUB", "GE", "GT", "LE", "LT", "EQ", "NE", "AND", 
+		"OR", "ASSIGN", "NEG", "COMMA", "LBRACE", "RBRACE", "BOOLEAN", "FNAME", 
+		"VFNAME", "VFNAMEVARS", "IFKEYWORD", "ELSEKEYWORD", "ELSEIFKEYWORD", "ENDIFKEYWORD", 
+		"ANDKEYWORD", "ORKEYWORD", "ISKEYWORD", "NOTKEYWORD", "STRING", "VARIABLE", 
+		"WHITESPACE", "TAG_CLOSE", "ATTR_NAME", "TAG_EQUALS", "MENTION_TAG_CLOSE", 
+		"TAG_WHITESPACE", "TAG_OPEN", "MENTION_LABEL", "ATTR_VALUE", "ATTRIBUTE"
 	};
 	public static readonly IVocabulary DefaultVocabulary = new Vocabulary(_LiteralNames, _SymbolicNames);
 
@@ -257,11 +258,17 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 	}
 
 	public partial class Script_sectionContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public Normal_textContext[] normal_text() {
-			return GetRuleContexts<Normal_textContext>();
+		[System.Diagnostics.DebuggerNonUserCode] public BlockquoteContext[] blockquote() {
+			return GetRuleContexts<BlockquoteContext>();
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public Normal_textContext normal_text(int i) {
-			return GetRuleContext<Normal_textContext>(i);
+		[System.Diagnostics.DebuggerNonUserCode] public BlockquoteContext blockquote(int i) {
+			return GetRuleContext<BlockquoteContext>(i);
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public ParagraphContext[] paragraph() {
+			return GetRuleContexts<ParagraphContext>();
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public ParagraphContext paragraph(int i) {
+			return GetRuleContext<ParagraphContext>(i);
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public Assignment_segmentContext assignment_segment() {
 			return GetRuleContext<Assignment_segmentContext>(0);
@@ -291,9 +298,9 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		EnterRule(_localctx, 4, RULE_script_section);
 		try {
 			int _alt;
-			State = 99;
+			State = 104;
 			ErrorHandler.Sync(this);
-			switch ( Interpreter.AdaptivePredict(TokenStream,3,Context) ) {
+			switch ( Interpreter.AdaptivePredict(TokenStream,4,Context) ) {
 			case 1:
 				EnterOuterAlt(_localctx, 1);
 				{
@@ -306,7 +313,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 						{
 						{
 						State = 91;
-						normal_text();
+						blockquote();
 						}
 						}
 						break;
@@ -322,21 +329,46 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 			case 2:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 96;
-				assignment_segment();
+				State = 97;
+				ErrorHandler.Sync(this);
+				_alt = 1+1;
+				do {
+					switch (_alt) {
+					case 1+1:
+						{
+						{
+						State = 96;
+						paragraph();
+						}
+						}
+						break;
+					default:
+						throw new NoViableAltException(this);
+					}
+					State = 99;
+					ErrorHandler.Sync(this);
+					_alt = Interpreter.AdaptivePredict(TokenStream,3,Context);
+				} while ( _alt!=1 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER );
 				}
 				break;
 			case 3:
 				EnterOuterAlt(_localctx, 3);
 				{
-				State = 97;
-				function_call_segment();
+				State = 101;
+				assignment_segment();
 				}
 				break;
 			case 4:
 				EnterOuterAlt(_localctx, 4);
 				{
-				State = 98;
+				State = 102;
+				function_call_segment();
+				}
+				break;
+			case 5:
+				EnterOuterAlt(_localctx, 5);
+				{
+				State = 103;
 				conditional_section();
 				}
 				break;
@@ -353,70 +385,84 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		return _localctx;
 	}
 
-	public partial class Normal_textContext : ParserRuleContext {
+	public partial class BlockquoteContext : ParserRuleContext {
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode BLOCKQUOTESTART() { return GetToken(ArcscriptParser.BLOCKQUOTESTART, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode BLOCKQUOTEEND() { return GetToken(ArcscriptParser.BLOCKQUOTEEND, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ParagraphContext[] paragraph() {
 			return GetRuleContexts<ParagraphContext>();
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public ParagraphContext paragraph(int i) {
 			return GetRuleContext<ParagraphContext>(i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode BLOCKQUOTESTART() { return GetToken(ArcscriptParser.BLOCKQUOTESTART, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode BLOCKQUOTEEND() { return GetToken(ArcscriptParser.BLOCKQUOTEEND, 0); }
-		public Normal_textContext(ParserRuleContext parent, int invokingState)
+		[System.Diagnostics.DebuggerNonUserCode] public Assignment_segmentContext[] assignment_segment() {
+			return GetRuleContexts<Assignment_segmentContext>();
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public Assignment_segmentContext assignment_segment(int i) {
+			return GetRuleContext<Assignment_segmentContext>(i);
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public Function_call_segmentContext[] function_call_segment() {
+			return GetRuleContexts<Function_call_segmentContext>();
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public Function_call_segmentContext function_call_segment(int i) {
+			return GetRuleContext<Function_call_segmentContext>(i);
+		}
+		public BlockquoteContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
 		{
 		}
-		public override int RuleIndex { get { return RULE_normal_text; } }
+		public override int RuleIndex { get { return RULE_blockquote; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IArcscriptParserVisitor<TResult> typedVisitor = visitor as IArcscriptParserVisitor<TResult>;
-			if (typedVisitor != null) return typedVisitor.VisitNormal_text(this);
+			if (typedVisitor != null) return typedVisitor.VisitBlockquote(this);
 			else return visitor.VisitChildren(this);
 		}
 	}
 
 	[RuleVersion(0)]
-	public Normal_textContext normal_text() {
-		Normal_textContext _localctx = new Normal_textContext(Context, State);
-		EnterRule(_localctx, 6, RULE_normal_text);
+	public BlockquoteContext blockquote() {
+		BlockquoteContext _localctx = new BlockquoteContext(Context, State);
+		EnterRule(_localctx, 6, RULE_blockquote);
 		int _la;
 		try {
-			State = 110;
+			EnterOuterAlt(_localctx, 1);
+			{
+			State = 106;
+			Match(BLOCKQUOTESTART);
+			State = 112;
 			ErrorHandler.Sync(this);
-			switch (TokenStream.LA(1)) {
-			case PARAGRAPHSTART:
-			case BQ_PARAGRAPHSTART:
-				EnterOuterAlt(_localctx, 1);
+			_la = TokenStream.LA(1);
+			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 198L) != 0)) {
 				{
-				State = 101;
-				paragraph();
-				}
-				break;
-			case BLOCKQUOTESTART:
-				EnterOuterAlt(_localctx, 2);
-				{
-				State = 102;
-				Match(BLOCKQUOTESTART);
-				State = 106;
+				State = 110;
 				ErrorHandler.Sync(this);
-				_la = TokenStream.LA(1);
-				while (_la==PARAGRAPHSTART || _la==BQ_PARAGRAPHSTART) {
+				switch ( Interpreter.AdaptivePredict(TokenStream,5,Context) ) {
+				case 1:
 					{
-					{
-					State = 103;
+					State = 107;
 					paragraph();
 					}
-					}
+					break;
+				case 2:
+					{
 					State = 108;
-					ErrorHandler.Sync(this);
-					_la = TokenStream.LA(1);
+					assignment_segment();
+					}
+					break;
+				case 3:
+					{
+					State = 109;
+					function_call_segment();
+					}
+					break;
 				}
-				State = 109;
-				Match(BLOCKQUOTEEND);
 				}
-				break;
-			default:
-				throw new NoViableAltException(this);
+				State = 114;
+				ErrorHandler.Sync(this);
+				_la = TokenStream.LA(1);
+			}
+			State = 115;
+			Match(BLOCKQUOTEEND);
 			}
 		}
 		catch (RecognitionException re) {
@@ -455,9 +501,9 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 112;
+			State = 117;
 			paragraph_start();
-			State = 113;
+			State = 118;
 			Match(PARAGRAPHEND);
 			 this.currentLine++;
 			}
@@ -496,13 +542,13 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		Paragraph_startContext _localctx = new Paragraph_startContext(Context, State);
 		EnterRule(_localctx, 10, RULE_paragraph_start);
 		try {
-			State = 120;
+			State = 125;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case PARAGRAPHSTART:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 116;
+				State = 121;
 				_localctx._PARAGRAPHSTART = Match(PARAGRAPHSTART);
 				 this.setLineStart(_localctx._PARAGRAPHSTART); 
 				}
@@ -510,7 +556,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 			case BQ_PARAGRAPHSTART:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 118;
+				State = 123;
 				_localctx._BQ_PARAGRAPHSTART = Match(BQ_PARAGRAPHSTART);
 				 this.setLineStart(_localctx._BQ_PARAGRAPHSTART); 
 				}
@@ -532,7 +578,9 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 
 	public partial class CodestartContext : ParserRuleContext {
 		public IToken _CODESTART;
+		public IToken _BQ_CODESTART;
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode CODESTART() { return GetToken(ArcscriptParser.CODESTART, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode BQ_CODESTART() { return GetToken(ArcscriptParser.BQ_CODESTART, 0); }
 		public CodestartContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
 		{
@@ -551,11 +599,27 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		CodestartContext _localctx = new CodestartContext(Context, State);
 		EnterRule(_localctx, 12, RULE_codestart);
 		try {
-			EnterOuterAlt(_localctx, 1);
-			{
-			State = 122;
-			_localctx._CODESTART = Match(CODESTART);
-			 this.currentLine++; this.setLineStart(_localctx._CODESTART);
+			State = 131;
+			ErrorHandler.Sync(this);
+			switch (TokenStream.LA(1)) {
+			case CODESTART:
+				EnterOuterAlt(_localctx, 1);
+				{
+				State = 127;
+				_localctx._CODESTART = Match(CODESTART);
+				 this.currentLine++; this.setLineStart(_localctx._CODESTART);
+				}
+				break;
+			case BQ_CODESTART:
+				EnterOuterAlt(_localctx, 2);
+				{
+				State = 129;
+				_localctx._BQ_CODESTART = Match(BQ_CODESTART);
+				 this.currentLine++; this.setLineStart(_localctx._BQ_CODESTART);
+				}
+				break;
+			default:
+				throw new NoViableAltException(this);
 			}
 		}
 		catch (RecognitionException re) {
@@ -591,7 +655,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 125;
+			State = 133;
 			Match(CODEEND);
 			}
 		}
@@ -636,11 +700,11 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 127;
+			State = 135;
 			codestart();
-			State = 128;
+			State = 136;
 			statement_assignment();
-			State = 129;
+			State = 137;
 			codeend();
 			}
 		}
@@ -685,11 +749,11 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 131;
+			State = 139;
 			codestart();
-			State = 132;
+			State = 140;
 			statement_function_call();
-			State = 133;
+			State = 141;
 			codeend();
 			}
 		}
@@ -741,35 +805,35 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 135;
+			State = 143;
 			if_section();
-			State = 139;
+			State = 147;
 			ErrorHandler.Sync(this);
-			_alt = Interpreter.AdaptivePredict(TokenStream,7,Context);
+			_alt = Interpreter.AdaptivePredict(TokenStream,9,Context);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					{
 					{
-					State = 136;
+					State = 144;
 					else_if_section();
 					}
 					} 
 				}
-				State = 141;
+				State = 149;
 				ErrorHandler.Sync(this);
-				_alt = Interpreter.AdaptivePredict(TokenStream,7,Context);
+				_alt = Interpreter.AdaptivePredict(TokenStream,9,Context);
 			}
-			State = 143;
+			State = 151;
 			ErrorHandler.Sync(this);
-			switch ( Interpreter.AdaptivePredict(TokenStream,8,Context) ) {
+			switch ( Interpreter.AdaptivePredict(TokenStream,10,Context) ) {
 			case 1:
 				{
-				State = 142;
+				State = 150;
 				else_section();
 				}
 				break;
 			}
-			State = 145;
+			State = 153;
 			endif_segment();
 			}
 		}
@@ -817,13 +881,13 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 147;
+			State = 155;
 			codestart();
-			State = 148;
+			State = 156;
 			if_clause();
-			State = 149;
+			State = 157;
 			codeend();
-			State = 150;
+			State = 158;
 			script();
 			}
 		}
@@ -871,13 +935,13 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 152;
+			State = 160;
 			codestart();
-			State = 153;
+			State = 161;
 			else_if_clause();
-			State = 154;
+			State = 162;
 			codeend();
-			State = 155;
+			State = 163;
 			script();
 			}
 		}
@@ -923,13 +987,13 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 157;
+			State = 165;
 			codestart();
-			State = 158;
+			State = 166;
 			Match(ELSEKEYWORD);
-			State = 159;
+			State = 167;
 			codeend();
-			State = 160;
+			State = 168;
 			script();
 			}
 		}
@@ -969,9 +1033,9 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 162;
+			State = 170;
 			Match(IFKEYWORD);
-			State = 163;
+			State = 171;
 			compound_condition_or();
 			}
 		}
@@ -1011,9 +1075,9 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 165;
+			State = 173;
 			Match(ELSEIFKEYWORD);
-			State = 166;
+			State = 174;
 			compound_condition_or();
 			}
 		}
@@ -1056,11 +1120,11 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 168;
+			State = 176;
 			codestart();
-			State = 169;
+			State = 177;
 			Match(ENDIFKEYWORD);
-			State = 170;
+			State = 178;
 			codeend();
 			}
 		}
@@ -1107,18 +1171,18 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 172;
+			State = 180;
 			_localctx._VARIABLE = Match(VARIABLE);
-			State = 173;
+			State = 181;
 			_la = TokenStream.LA(1);
-			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 4295950336L) != 0)) ) {
+			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 8591900672L) != 0)) ) {
 			ErrorHandler.RecoverInline(this);
 			}
 			else {
 				ErrorHandler.ReportMatch(this);
 			    Consume();
 			}
-			State = 174;
+			State = 182;
 			compound_condition_or();
 			this.assertVariable(_localctx._VARIABLE);
 			}
@@ -1158,7 +1222,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 177;
+			State = 185;
 			void_function_call();
 			}
 		}
@@ -1205,21 +1269,21 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 179;
+			State = 187;
 			argument();
-			State = 184;
+			State = 192;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==COMMA) {
 				{
 				{
-				State = 180;
+				State = 188;
 				Match(COMMA);
-				State = 181;
+				State = 189;
 				argument();
 				}
 				}
-				State = 186;
+				State = 194;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
@@ -1262,7 +1326,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		ArgumentContext _localctx = new ArgumentContext(Context, State);
 		EnterRule(_localctx, 40, RULE_argument);
 		try {
-			State = 190;
+			State = 198;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case FLOAT:
@@ -1274,21 +1338,21 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 			case VARIABLE:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 187;
+				State = 195;
 				additive_numeric_expression();
 				}
 				break;
 			case STRING:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 188;
+				State = 196;
 				Match(STRING);
 				}
 				break;
 			case MENTION_TAG_OPEN:
 				EnterOuterAlt(_localctx, 3);
 				{
-				State = 189;
+				State = 197;
 				mention();
 				}
 				break;
@@ -1342,40 +1406,40 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 192;
+			State = 200;
 			Match(MENTION_TAG_OPEN);
-			State = 196;
+			State = 204;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==ATTR_NAME) {
 				{
 				{
-				State = 193;
+				State = 201;
 				_localctx._mention_attributes = mention_attributes();
 				_localctx._attr.Add(_localctx._mention_attributes);
 				}
 				}
-				State = 198;
+				State = 206;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 199;
+			State = 207;
 			Match(TAG_CLOSE);
-			State = 201;
+			State = 209;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==MENTION_LABEL) {
 				{
-				State = 200;
+				State = 208;
 				Match(MENTION_LABEL);
 				}
 			}
 
-			State = 203;
+			State = 211;
 			Match(TAG_OPEN);
-			State = 204;
+			State = 212;
 			Match(MENTION_TAG_CLOSE);
-			State = 205;
+			State = 213;
 			if (!(this.assertMention(_localctx._attr))) throw new FailedPredicateException(this, "this.assertMention($attr)");
 			}
 		}
@@ -1415,16 +1479,16 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 207;
+			State = 215;
 			Match(ATTR_NAME);
-			State = 210;
+			State = 218;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==TAG_EQUALS) {
 				{
-				State = 208;
+				State = 216;
 				Match(TAG_EQUALS);
-				State = 209;
+				State = 217;
 				Match(ATTR_VALUE);
 				}
 			}
@@ -1472,14 +1536,14 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 212;
+			State = 220;
 			multiplicative_numeric_expression();
-			State = 215;
+			State = 223;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==ADD || _la==SUB) {
 				{
-				State = 213;
+				State = 221;
 				_la = TokenStream.LA(1);
 				if ( !(_la==ADD || _la==SUB) ) {
 				ErrorHandler.RecoverInline(this);
@@ -1488,7 +1552,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 					ErrorHandler.ReportMatch(this);
 				    Consume();
 				}
-				State = 214;
+				State = 222;
 				additive_numeric_expression();
 				}
 			}
@@ -1536,14 +1600,14 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 217;
+			State = 225;
 			signed_unary_numeric_expression();
-			State = 220;
+			State = 228;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==MUL || _la==DIV) {
 				{
-				State = 218;
+				State = 226;
 				_la = TokenStream.LA(1);
 				if ( !(_la==MUL || _la==DIV) ) {
 				ErrorHandler.RecoverInline(this);
@@ -1552,7 +1616,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 					ErrorHandler.ReportMatch(this);
 				    Consume();
 				}
-				State = 219;
+				State = 227;
 				multiplicative_numeric_expression();
 				}
 			}
@@ -1595,16 +1659,16 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		Signed_unary_numeric_expressionContext _localctx = new Signed_unary_numeric_expressionContext(Context, State);
 		EnterRule(_localctx, 50, RULE_signed_unary_numeric_expression);
 		try {
-			State = 226;
+			State = 234;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case ADD:
 			case SUB:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 222;
+				State = 230;
 				sign();
-				State = 223;
+				State = 231;
 				unary_numeric_expression();
 				}
 				break;
@@ -1615,7 +1679,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 			case VARIABLE:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 225;
+				State = 233;
 				unary_numeric_expression();
 				}
 				break;
@@ -1665,20 +1729,20 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		Unary_numeric_expressionContext _localctx = new Unary_numeric_expressionContext(Context, State);
 		EnterRule(_localctx, 52, RULE_unary_numeric_expression);
 		try {
-			State = 237;
+			State = 245;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case FLOAT:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 228;
+				State = 236;
 				Match(FLOAT);
 				}
 				break;
 			case VARIABLE:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 229;
+				State = 237;
 				_localctx._VARIABLE = Match(VARIABLE);
 				this.assertVariable(_localctx._VARIABLE);
 				}
@@ -1686,25 +1750,25 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 			case INTEGER:
 				EnterOuterAlt(_localctx, 3);
 				{
-				State = 231;
+				State = 239;
 				Match(INTEGER);
 				}
 				break;
 			case FNAME:
 				EnterOuterAlt(_localctx, 4);
 				{
-				State = 232;
+				State = 240;
 				function_call();
 				}
 				break;
 			case LPAREN:
 				EnterOuterAlt(_localctx, 5);
 				{
-				State = 233;
+				State = 241;
 				Match(LPAREN);
-				State = 234;
+				State = 242;
 				compound_condition_or();
-				State = 235;
+				State = 243;
 				Match(RPAREN);
 				}
 				break;
@@ -1753,21 +1817,21 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 239;
+			State = 247;
 			_localctx._FNAME = Match(FNAME);
-			State = 240;
+			State = 248;
 			Match(LPAREN);
-			State = 242;
+			State = 250;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 1689124750777344L) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 3378249501554688L) != 0)) {
 				{
-				State = 241;
+				State = 249;
 				_localctx._argument_list = argument_list();
 				}
 			}
 
-			State = 244;
+			State = 252;
 			Match(RPAREN);
 			this.assertFunctionArguments(_localctx._FNAME, _localctx._argument_list);
 			}
@@ -1817,27 +1881,27 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		EnterRule(_localctx, 56, RULE_void_function_call);
 		int _la;
 		try {
-			State = 261;
+			State = 269;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case VFNAME:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 247;
+				State = 255;
 				_localctx._VFNAME = Match(VFNAME);
-				State = 248;
+				State = 256;
 				Match(LPAREN);
-				State = 250;
+				State = 258;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 1689124750777344L) != 0)) {
+				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 3378249501554688L) != 0)) {
 					{
-					State = 249;
+					State = 257;
 					_localctx._argument_list = argument_list();
 					}
 				}
 
-				State = 252;
+				State = 260;
 				Match(RPAREN);
 				this.assertFunctionArguments(_localctx._VFNAME, _localctx._argument_list);
 				}
@@ -1845,21 +1909,21 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 			case VFNAMEVARS:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 254;
+				State = 262;
 				_localctx._VFNAMEVARS = Match(VFNAMEVARS);
-				State = 255;
+				State = 263;
 				Match(LPAREN);
-				State = 257;
+				State = 265;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 				if (_la==VARIABLE) {
 					{
-					State = 256;
+					State = 264;
 					_localctx._variable_list = variable_list();
 					}
 				}
 
-				State = 259;
+				State = 267;
 				Match(RPAREN);
 				this.assertFunctionArguments(_localctx._VFNAMEVARS, _localctx._variable_list);
 				}
@@ -1903,7 +1967,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 263;
+			State = 271;
 			_la = TokenStream.LA(1);
 			if ( !(_la==ADD || _la==SUB) ) {
 			ErrorHandler.RecoverInline(this);
@@ -1956,21 +2020,21 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 265;
+			State = 273;
 			_localctx._VARIABLE = Match(VARIABLE);
-			State = 270;
+			State = 278;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==COMMA) {
 				{
 				{
-				State = 266;
+				State = 274;
 				Match(COMMA);
-				State = 267;
+				State = 275;
 				_localctx._VARIABLE = Match(VARIABLE);
 				}
 				}
-				State = 272;
+				State = 280;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
@@ -2018,14 +2082,14 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 275;
+			State = 283;
 			compound_condition_and();
-			State = 278;
+			State = 286;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==OR || _la==ORKEYWORD) {
 				{
-				State = 276;
+				State = 284;
 				_la = TokenStream.LA(1);
 				if ( !(_la==OR || _la==ORKEYWORD) ) {
 				ErrorHandler.RecoverInline(this);
@@ -2034,7 +2098,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 					ErrorHandler.ReportMatch(this);
 				    Consume();
 				}
-				State = 277;
+				State = 285;
 				compound_condition_or();
 				}
 			}
@@ -2082,14 +2146,14 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 280;
+			State = 288;
 			negated_unary_condition();
-			State = 283;
+			State = 291;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==AND || _la==ANDKEYWORD) {
 				{
-				State = 281;
+				State = 289;
 				_la = TokenStream.LA(1);
 				if ( !(_la==AND || _la==ANDKEYWORD) ) {
 				ErrorHandler.RecoverInline(this);
@@ -2098,7 +2162,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 					ErrorHandler.ReportMatch(this);
 				    Consume();
 				}
-				State = 282;
+				State = 290;
 				compound_condition_and();
 				}
 			}
@@ -2143,12 +2207,12 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 286;
+			State = 294;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==NEG || _la==NOTKEYWORD) {
 				{
-				State = 285;
+				State = 293;
 				_la = TokenStream.LA(1);
 				if ( !(_la==NEG || _la==NOTKEYWORD) ) {
 				ErrorHandler.RecoverInline(this);
@@ -2160,7 +2224,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 				}
 			}
 
-			State = 288;
+			State = 296;
 			unary_condition();
 			}
 		}
@@ -2199,7 +2263,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 290;
+			State = 298;
 			condition();
 			}
 		}
@@ -2245,16 +2309,16 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 292;
+			State = 300;
 			expression();
-			State = 296;
+			State = 304;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 140738545319936L) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 281477090639872L) != 0)) {
 				{
-				State = 293;
+				State = 301;
 				conditional_operator();
-				State = 294;
+				State = 302;
 				expression();
 				}
 			}
@@ -2299,64 +2363,64 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		Conditional_operatorContext _localctx = new Conditional_operatorContext(Context, State);
 		EnterRule(_localctx, 72, RULE_conditional_operator);
 		try {
-			State = 307;
+			State = 315;
 			ErrorHandler.Sync(this);
-			switch ( Interpreter.AdaptivePredict(TokenStream,27,Context) ) {
+			switch ( Interpreter.AdaptivePredict(TokenStream,29,Context) ) {
 			case 1:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 298;
+				State = 306;
 				Match(GT);
 				}
 				break;
 			case 2:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 299;
+				State = 307;
 				Match(GE);
 				}
 				break;
 			case 3:
 				EnterOuterAlt(_localctx, 3);
 				{
-				State = 300;
+				State = 308;
 				Match(LT);
 				}
 				break;
 			case 4:
 				EnterOuterAlt(_localctx, 4);
 				{
-				State = 301;
+				State = 309;
 				Match(LE);
 				}
 				break;
 			case 5:
 				EnterOuterAlt(_localctx, 5);
 				{
-				State = 302;
+				State = 310;
 				Match(EQ);
 				}
 				break;
 			case 6:
 				EnterOuterAlt(_localctx, 6);
 				{
-				State = 303;
+				State = 311;
 				Match(NE);
 				}
 				break;
 			case 7:
 				EnterOuterAlt(_localctx, 7);
 				{
-				State = 304;
+				State = 312;
 				Match(ISKEYWORD);
 				}
 				break;
 			case 8:
 				EnterOuterAlt(_localctx, 8);
 				{
-				State = 305;
+				State = 313;
 				Match(ISKEYWORD);
-				State = 306;
+				State = 314;
 				Match(NOTKEYWORD);
 				}
 				break;
@@ -2397,20 +2461,20 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 		ExpressionContext _localctx = new ExpressionContext(Context, State);
 		EnterRule(_localctx, 74, RULE_expression);
 		try {
-			State = 312;
+			State = 320;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case STRING:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 309;
+				State = 317;
 				Match(STRING);
 				}
 				break;
 			case BOOLEAN:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 310;
+				State = 318;
 				Match(BOOLEAN);
 				}
 				break;
@@ -2423,7 +2487,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 			case VARIABLE:
 				EnterOuterAlt(_localctx, 3);
 				{
-				State = 311;
+				State = 319;
 				additive_numeric_expression();
 				}
 				break;
@@ -2456,106 +2520,110 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 	}
 
 	private static int[] _serializedATN = {
-		4,1,60,315,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
+		4,1,61,323,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
 		7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,14,
 		2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,21,
 		2,22,7,22,2,23,7,23,2,24,7,24,2,25,7,25,2,26,7,26,2,27,7,27,2,28,7,28,
 		2,29,7,29,2,30,7,30,2,31,7,31,2,32,7,32,2,33,7,33,2,34,7,34,2,35,7,35,
 		2,36,7,36,2,37,7,37,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,3,0,85,8,0,1,1,4,1,
-		88,8,1,11,1,12,1,89,1,2,4,2,93,8,2,11,2,12,2,94,1,2,1,2,1,2,3,2,100,8,
-		2,1,3,1,3,1,3,5,3,105,8,3,10,3,12,3,108,9,3,1,3,3,3,111,8,3,1,4,1,4,1,
-		4,1,4,1,5,1,5,1,5,1,5,3,5,121,8,5,1,6,1,6,1,6,1,7,1,7,1,8,1,8,1,8,1,8,
-		1,9,1,9,1,9,1,9,1,10,1,10,5,10,138,8,10,10,10,12,10,141,9,10,1,10,3,10,
-		144,8,10,1,10,1,10,1,11,1,11,1,11,1,11,1,11,1,12,1,12,1,12,1,12,1,12,1,
-		13,1,13,1,13,1,13,1,13,1,14,1,14,1,14,1,15,1,15,1,15,1,16,1,16,1,16,1,
-		16,1,17,1,17,1,17,1,17,1,17,1,18,1,18,1,19,1,19,1,19,5,19,183,8,19,10,
-		19,12,19,186,9,19,1,20,1,20,1,20,3,20,191,8,20,1,21,1,21,5,21,195,8,21,
-		10,21,12,21,198,9,21,1,21,1,21,3,21,202,8,21,1,21,1,21,1,21,1,21,1,22,
-		1,22,1,22,3,22,211,8,22,1,23,1,23,1,23,3,23,216,8,23,1,24,1,24,1,24,3,
-		24,221,8,24,1,25,1,25,1,25,1,25,3,25,227,8,25,1,26,1,26,1,26,1,26,1,26,
-		1,26,1,26,1,26,1,26,3,26,238,8,26,1,27,1,27,1,27,3,27,243,8,27,1,27,1,
-		27,1,27,1,28,1,28,1,28,3,28,251,8,28,1,28,1,28,1,28,1,28,1,28,3,28,258,
-		8,28,1,28,1,28,3,28,262,8,28,1,29,1,29,1,30,1,30,1,30,5,30,269,8,30,10,
-		30,12,30,272,9,30,1,30,1,30,1,31,1,31,1,31,3,31,279,8,31,1,32,1,32,1,32,
-		3,32,284,8,32,1,33,3,33,287,8,33,1,33,1,33,1,34,1,34,1,35,1,35,1,35,1,
-		35,3,35,297,8,35,1,36,1,36,1,36,1,36,1,36,1,36,1,36,1,36,1,36,3,36,308,
-		8,36,1,37,1,37,1,37,3,37,313,8,37,1,37,1,94,0,38,0,2,4,6,8,10,12,14,16,
-		18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,
-		66,68,70,72,74,0,6,2,0,16,19,32,32,1,0,22,23,1,0,20,21,2,0,31,31,46,46,
-		2,0,30,30,45,45,2,0,33,33,48,48,318,0,84,1,0,0,0,2,87,1,0,0,0,4,99,1,0,
-		0,0,6,110,1,0,0,0,8,112,1,0,0,0,10,120,1,0,0,0,12,122,1,0,0,0,14,125,1,
-		0,0,0,16,127,1,0,0,0,18,131,1,0,0,0,20,135,1,0,0,0,22,147,1,0,0,0,24,152,
-		1,0,0,0,26,157,1,0,0,0,28,162,1,0,0,0,30,165,1,0,0,0,32,168,1,0,0,0,34,
-		172,1,0,0,0,36,177,1,0,0,0,38,179,1,0,0,0,40,190,1,0,0,0,42,192,1,0,0,
-		0,44,207,1,0,0,0,46,212,1,0,0,0,48,217,1,0,0,0,50,226,1,0,0,0,52,237,1,
-		0,0,0,54,239,1,0,0,0,56,261,1,0,0,0,58,263,1,0,0,0,60,265,1,0,0,0,62,275,
-		1,0,0,0,64,280,1,0,0,0,66,286,1,0,0,0,68,290,1,0,0,0,70,292,1,0,0,0,72,
-		307,1,0,0,0,74,312,1,0,0,0,76,77,3,2,1,0,77,78,5,0,0,1,78,85,1,0,0,0,79,
-		80,3,12,6,0,80,81,3,62,31,0,81,82,3,14,7,0,82,83,5,0,0,1,83,85,1,0,0,0,
-		84,76,1,0,0,0,84,79,1,0,0,0,85,1,1,0,0,0,86,88,3,4,2,0,87,86,1,0,0,0,88,
-		89,1,0,0,0,89,87,1,0,0,0,89,90,1,0,0,0,90,3,1,0,0,0,91,93,3,6,3,0,92,91,
-		1,0,0,0,93,94,1,0,0,0,94,95,1,0,0,0,94,92,1,0,0,0,95,100,1,0,0,0,96,100,
-		3,16,8,0,97,100,3,18,9,0,98,100,3,20,10,0,99,92,1,0,0,0,99,96,1,0,0,0,
-		99,97,1,0,0,0,99,98,1,0,0,0,100,5,1,0,0,0,101,111,3,8,4,0,102,106,5,3,
-		0,0,103,105,3,8,4,0,104,103,1,0,0,0,105,108,1,0,0,0,106,104,1,0,0,0,106,
-		107,1,0,0,0,107,109,1,0,0,0,108,106,1,0,0,0,109,111,5,7,0,0,110,101,1,
-		0,0,0,110,102,1,0,0,0,111,7,1,0,0,0,112,113,3,10,5,0,113,114,5,5,0,0,114,
-		115,6,4,-1,0,115,9,1,0,0,0,116,117,5,2,0,0,117,121,6,5,-1,0,118,119,5,
-		6,0,0,119,121,6,5,-1,0,120,116,1,0,0,0,120,118,1,0,0,0,121,11,1,0,0,0,
-		122,123,5,1,0,0,123,124,6,6,-1,0,124,13,1,0,0,0,125,126,5,9,0,0,126,15,
-		1,0,0,0,127,128,3,12,6,0,128,129,3,34,17,0,129,130,3,14,7,0,130,17,1,0,
-		0,0,131,132,3,12,6,0,132,133,3,36,18,0,133,134,3,14,7,0,134,19,1,0,0,0,
-		135,139,3,22,11,0,136,138,3,24,12,0,137,136,1,0,0,0,138,141,1,0,0,0,139,
-		137,1,0,0,0,139,140,1,0,0,0,140,143,1,0,0,0,141,139,1,0,0,0,142,144,3,
-		26,13,0,143,142,1,0,0,0,143,144,1,0,0,0,144,145,1,0,0,0,145,146,3,32,16,
-		0,146,21,1,0,0,0,147,148,3,12,6,0,148,149,3,28,14,0,149,150,3,14,7,0,150,
-		151,3,2,1,0,151,23,1,0,0,0,152,153,3,12,6,0,153,154,3,30,15,0,154,155,
-		3,14,7,0,155,156,3,2,1,0,156,25,1,0,0,0,157,158,3,12,6,0,158,159,5,42,
-		0,0,159,160,3,14,7,0,160,161,3,2,1,0,161,27,1,0,0,0,162,163,5,41,0,0,163,
-		164,3,62,31,0,164,29,1,0,0,0,165,166,5,43,0,0,166,167,3,62,31,0,167,31,
-		1,0,0,0,168,169,3,12,6,0,169,170,5,44,0,0,170,171,3,14,7,0,171,33,1,0,
-		0,0,172,173,5,50,0,0,173,174,7,0,0,0,174,175,3,62,31,0,175,176,6,17,-1,
-		0,176,35,1,0,0,0,177,178,3,56,28,0,178,37,1,0,0,0,179,184,3,40,20,0,180,
-		181,5,34,0,0,181,183,3,40,20,0,182,180,1,0,0,0,183,186,1,0,0,0,184,182,
-		1,0,0,0,184,185,1,0,0,0,185,39,1,0,0,0,186,184,1,0,0,0,187,191,3,46,23,
-		0,188,191,5,49,0,0,189,191,3,42,21,0,190,187,1,0,0,0,190,188,1,0,0,0,190,
-		189,1,0,0,0,191,41,1,0,0,0,192,196,5,10,0,0,193,195,3,44,22,0,194,193,
-		1,0,0,0,195,198,1,0,0,0,196,194,1,0,0,0,196,197,1,0,0,0,197,199,1,0,0,
-		0,198,196,1,0,0,0,199,201,5,52,0,0,200,202,5,58,0,0,201,200,1,0,0,0,201,
-		202,1,0,0,0,202,203,1,0,0,0,203,204,5,57,0,0,204,205,5,55,0,0,205,206,
-		4,21,0,1,206,43,1,0,0,0,207,210,5,53,0,0,208,209,5,54,0,0,209,211,5,59,
-		0,0,210,208,1,0,0,0,210,211,1,0,0,0,211,45,1,0,0,0,212,215,3,48,24,0,213,
-		214,7,1,0,0,214,216,3,46,23,0,215,213,1,0,0,0,215,216,1,0,0,0,216,47,1,
-		0,0,0,217,220,3,50,25,0,218,219,7,2,0,0,219,221,3,48,24,0,220,218,1,0,
-		0,0,220,221,1,0,0,0,221,49,1,0,0,0,222,223,3,58,29,0,223,224,3,52,26,0,
-		224,227,1,0,0,0,225,227,3,52,26,0,226,222,1,0,0,0,226,225,1,0,0,0,227,
-		51,1,0,0,0,228,238,5,11,0,0,229,230,5,50,0,0,230,238,6,26,-1,0,231,238,
-		5,12,0,0,232,238,3,54,27,0,233,234,5,14,0,0,234,235,3,62,31,0,235,236,
-		5,15,0,0,236,238,1,0,0,0,237,228,1,0,0,0,237,229,1,0,0,0,237,231,1,0,0,
-		0,237,232,1,0,0,0,237,233,1,0,0,0,238,53,1,0,0,0,239,240,5,38,0,0,240,
-		242,5,14,0,0,241,243,3,38,19,0,242,241,1,0,0,0,242,243,1,0,0,0,243,244,
-		1,0,0,0,244,245,5,15,0,0,245,246,6,27,-1,0,246,55,1,0,0,0,247,248,5,39,
-		0,0,248,250,5,14,0,0,249,251,3,38,19,0,250,249,1,0,0,0,250,251,1,0,0,0,
-		251,252,1,0,0,0,252,253,5,15,0,0,253,262,6,28,-1,0,254,255,5,40,0,0,255,
-		257,5,14,0,0,256,258,3,60,30,0,257,256,1,0,0,0,257,258,1,0,0,0,258,259,
-		1,0,0,0,259,260,5,15,0,0,260,262,6,28,-1,0,261,247,1,0,0,0,261,254,1,0,
-		0,0,262,57,1,0,0,0,263,264,7,1,0,0,264,59,1,0,0,0,265,270,5,50,0,0,266,
-		267,5,34,0,0,267,269,5,50,0,0,268,266,1,0,0,0,269,272,1,0,0,0,270,268,
-		1,0,0,0,270,271,1,0,0,0,271,273,1,0,0,0,272,270,1,0,0,0,273,274,6,30,-1,
-		0,274,61,1,0,0,0,275,278,3,64,32,0,276,277,7,3,0,0,277,279,3,62,31,0,278,
-		276,1,0,0,0,278,279,1,0,0,0,279,63,1,0,0,0,280,283,3,66,33,0,281,282,7,
-		4,0,0,282,284,3,64,32,0,283,281,1,0,0,0,283,284,1,0,0,0,284,65,1,0,0,0,
-		285,287,7,5,0,0,286,285,1,0,0,0,286,287,1,0,0,0,287,288,1,0,0,0,288,289,
-		3,68,34,0,289,67,1,0,0,0,290,291,3,70,35,0,291,69,1,0,0,0,292,296,3,74,
-		37,0,293,294,3,72,36,0,294,295,3,74,37,0,295,297,1,0,0,0,296,293,1,0,0,
-		0,296,297,1,0,0,0,297,71,1,0,0,0,298,308,5,25,0,0,299,308,5,24,0,0,300,
-		308,5,27,0,0,301,308,5,26,0,0,302,308,5,28,0,0,303,308,5,29,0,0,304,308,
-		5,47,0,0,305,306,5,47,0,0,306,308,5,48,0,0,307,298,1,0,0,0,307,299,1,0,
-		0,0,307,300,1,0,0,0,307,301,1,0,0,0,307,302,1,0,0,0,307,303,1,0,0,0,307,
-		304,1,0,0,0,307,305,1,0,0,0,308,73,1,0,0,0,309,313,5,49,0,0,310,313,5,
-		37,0,0,311,313,3,46,23,0,312,309,1,0,0,0,312,310,1,0,0,0,312,311,1,0,0,
-		0,313,75,1,0,0,0,29,84,89,94,99,106,110,120,139,143,184,190,196,201,210,
-		215,220,226,237,242,250,257,261,270,278,283,286,296,307,312
+		88,8,1,11,1,12,1,89,1,2,4,2,93,8,2,11,2,12,2,94,1,2,4,2,98,8,2,11,2,12,
+		2,99,1,2,1,2,1,2,3,2,105,8,2,1,3,1,3,1,3,1,3,5,3,111,8,3,10,3,12,3,114,
+		9,3,1,3,1,3,1,4,1,4,1,4,1,4,1,5,1,5,1,5,1,5,3,5,126,8,5,1,6,1,6,1,6,1,
+		6,3,6,132,8,6,1,7,1,7,1,8,1,8,1,8,1,8,1,9,1,9,1,9,1,9,1,10,1,10,5,10,146,
+		8,10,10,10,12,10,149,9,10,1,10,3,10,152,8,10,1,10,1,10,1,11,1,11,1,11,
+		1,11,1,11,1,12,1,12,1,12,1,12,1,12,1,13,1,13,1,13,1,13,1,13,1,14,1,14,
+		1,14,1,15,1,15,1,15,1,16,1,16,1,16,1,16,1,17,1,17,1,17,1,17,1,17,1,18,
+		1,18,1,19,1,19,1,19,5,19,191,8,19,10,19,12,19,194,9,19,1,20,1,20,1,20,
+		3,20,199,8,20,1,21,1,21,5,21,203,8,21,10,21,12,21,206,9,21,1,21,1,21,3,
+		21,210,8,21,1,21,1,21,1,21,1,21,1,22,1,22,1,22,3,22,219,8,22,1,23,1,23,
+		1,23,3,23,224,8,23,1,24,1,24,1,24,3,24,229,8,24,1,25,1,25,1,25,1,25,3,
+		25,235,8,25,1,26,1,26,1,26,1,26,1,26,1,26,1,26,1,26,1,26,3,26,246,8,26,
+		1,27,1,27,1,27,3,27,251,8,27,1,27,1,27,1,27,1,28,1,28,1,28,3,28,259,8,
+		28,1,28,1,28,1,28,1,28,1,28,3,28,266,8,28,1,28,1,28,3,28,270,8,28,1,29,
+		1,29,1,30,1,30,1,30,5,30,277,8,30,10,30,12,30,280,9,30,1,30,1,30,1,31,
+		1,31,1,31,3,31,287,8,31,1,32,1,32,1,32,3,32,292,8,32,1,33,3,33,295,8,33,
+		1,33,1,33,1,34,1,34,1,35,1,35,1,35,1,35,3,35,305,8,35,1,36,1,36,1,36,1,
+		36,1,36,1,36,1,36,1,36,1,36,3,36,316,8,36,1,37,1,37,1,37,3,37,321,8,37,
+		1,37,2,94,99,0,38,0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,
+		38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,0,6,2,0,17,20,
+		33,33,1,0,23,24,1,0,21,22,2,0,32,32,47,47,2,0,31,31,46,46,2,0,34,34,49,
+		49,330,0,84,1,0,0,0,2,87,1,0,0,0,4,104,1,0,0,0,6,106,1,0,0,0,8,117,1,0,
+		0,0,10,125,1,0,0,0,12,131,1,0,0,0,14,133,1,0,0,0,16,135,1,0,0,0,18,139,
+		1,0,0,0,20,143,1,0,0,0,22,155,1,0,0,0,24,160,1,0,0,0,26,165,1,0,0,0,28,
+		170,1,0,0,0,30,173,1,0,0,0,32,176,1,0,0,0,34,180,1,0,0,0,36,185,1,0,0,
+		0,38,187,1,0,0,0,40,198,1,0,0,0,42,200,1,0,0,0,44,215,1,0,0,0,46,220,1,
+		0,0,0,48,225,1,0,0,0,50,234,1,0,0,0,52,245,1,0,0,0,54,247,1,0,0,0,56,269,
+		1,0,0,0,58,271,1,0,0,0,60,273,1,0,0,0,62,283,1,0,0,0,64,288,1,0,0,0,66,
+		294,1,0,0,0,68,298,1,0,0,0,70,300,1,0,0,0,72,315,1,0,0,0,74,320,1,0,0,
+		0,76,77,3,2,1,0,77,78,5,0,0,1,78,85,1,0,0,0,79,80,3,12,6,0,80,81,3,62,
+		31,0,81,82,3,14,7,0,82,83,5,0,0,1,83,85,1,0,0,0,84,76,1,0,0,0,84,79,1,
+		0,0,0,85,1,1,0,0,0,86,88,3,4,2,0,87,86,1,0,0,0,88,89,1,0,0,0,89,87,1,0,
+		0,0,89,90,1,0,0,0,90,3,1,0,0,0,91,93,3,6,3,0,92,91,1,0,0,0,93,94,1,0,0,
+		0,94,95,1,0,0,0,94,92,1,0,0,0,95,105,1,0,0,0,96,98,3,8,4,0,97,96,1,0,0,
+		0,98,99,1,0,0,0,99,100,1,0,0,0,99,97,1,0,0,0,100,105,1,0,0,0,101,105,3,
+		16,8,0,102,105,3,18,9,0,103,105,3,20,10,0,104,92,1,0,0,0,104,97,1,0,0,
+		0,104,101,1,0,0,0,104,102,1,0,0,0,104,103,1,0,0,0,105,5,1,0,0,0,106,112,
+		5,3,0,0,107,111,3,8,4,0,108,111,3,16,8,0,109,111,3,18,9,0,110,107,1,0,
+		0,0,110,108,1,0,0,0,110,109,1,0,0,0,111,114,1,0,0,0,112,110,1,0,0,0,112,
+		113,1,0,0,0,113,115,1,0,0,0,114,112,1,0,0,0,115,116,5,8,0,0,116,7,1,0,
+		0,0,117,118,3,10,5,0,118,119,5,5,0,0,119,120,6,4,-1,0,120,9,1,0,0,0,121,
+		122,5,2,0,0,122,126,6,5,-1,0,123,124,5,7,0,0,124,126,6,5,-1,0,125,121,
+		1,0,0,0,125,123,1,0,0,0,126,11,1,0,0,0,127,128,5,1,0,0,128,132,6,6,-1,
+		0,129,130,5,6,0,0,130,132,6,6,-1,0,131,127,1,0,0,0,131,129,1,0,0,0,132,
+		13,1,0,0,0,133,134,5,10,0,0,134,15,1,0,0,0,135,136,3,12,6,0,136,137,3,
+		34,17,0,137,138,3,14,7,0,138,17,1,0,0,0,139,140,3,12,6,0,140,141,3,36,
+		18,0,141,142,3,14,7,0,142,19,1,0,0,0,143,147,3,22,11,0,144,146,3,24,12,
+		0,145,144,1,0,0,0,146,149,1,0,0,0,147,145,1,0,0,0,147,148,1,0,0,0,148,
+		151,1,0,0,0,149,147,1,0,0,0,150,152,3,26,13,0,151,150,1,0,0,0,151,152,
+		1,0,0,0,152,153,1,0,0,0,153,154,3,32,16,0,154,21,1,0,0,0,155,156,3,12,
+		6,0,156,157,3,28,14,0,157,158,3,14,7,0,158,159,3,2,1,0,159,23,1,0,0,0,
+		160,161,3,12,6,0,161,162,3,30,15,0,162,163,3,14,7,0,163,164,3,2,1,0,164,
+		25,1,0,0,0,165,166,3,12,6,0,166,167,5,43,0,0,167,168,3,14,7,0,168,169,
+		3,2,1,0,169,27,1,0,0,0,170,171,5,42,0,0,171,172,3,62,31,0,172,29,1,0,0,
+		0,173,174,5,44,0,0,174,175,3,62,31,0,175,31,1,0,0,0,176,177,3,12,6,0,177,
+		178,5,45,0,0,178,179,3,14,7,0,179,33,1,0,0,0,180,181,5,51,0,0,181,182,
+		7,0,0,0,182,183,3,62,31,0,183,184,6,17,-1,0,184,35,1,0,0,0,185,186,3,56,
+		28,0,186,37,1,0,0,0,187,192,3,40,20,0,188,189,5,35,0,0,189,191,3,40,20,
+		0,190,188,1,0,0,0,191,194,1,0,0,0,192,190,1,0,0,0,192,193,1,0,0,0,193,
+		39,1,0,0,0,194,192,1,0,0,0,195,199,3,46,23,0,196,199,5,50,0,0,197,199,
+		3,42,21,0,198,195,1,0,0,0,198,196,1,0,0,0,198,197,1,0,0,0,199,41,1,0,0,
+		0,200,204,5,11,0,0,201,203,3,44,22,0,202,201,1,0,0,0,203,206,1,0,0,0,204,
+		202,1,0,0,0,204,205,1,0,0,0,205,207,1,0,0,0,206,204,1,0,0,0,207,209,5,
+		53,0,0,208,210,5,59,0,0,209,208,1,0,0,0,209,210,1,0,0,0,210,211,1,0,0,
+		0,211,212,5,58,0,0,212,213,5,56,0,0,213,214,4,21,0,1,214,43,1,0,0,0,215,
+		218,5,54,0,0,216,217,5,55,0,0,217,219,5,60,0,0,218,216,1,0,0,0,218,219,
+		1,0,0,0,219,45,1,0,0,0,220,223,3,48,24,0,221,222,7,1,0,0,222,224,3,46,
+		23,0,223,221,1,0,0,0,223,224,1,0,0,0,224,47,1,0,0,0,225,228,3,50,25,0,
+		226,227,7,2,0,0,227,229,3,48,24,0,228,226,1,0,0,0,228,229,1,0,0,0,229,
+		49,1,0,0,0,230,231,3,58,29,0,231,232,3,52,26,0,232,235,1,0,0,0,233,235,
+		3,52,26,0,234,230,1,0,0,0,234,233,1,0,0,0,235,51,1,0,0,0,236,246,5,12,
+		0,0,237,238,5,51,0,0,238,246,6,26,-1,0,239,246,5,13,0,0,240,246,3,54,27,
+		0,241,242,5,15,0,0,242,243,3,62,31,0,243,244,5,16,0,0,244,246,1,0,0,0,
+		245,236,1,0,0,0,245,237,1,0,0,0,245,239,1,0,0,0,245,240,1,0,0,0,245,241,
+		1,0,0,0,246,53,1,0,0,0,247,248,5,39,0,0,248,250,5,15,0,0,249,251,3,38,
+		19,0,250,249,1,0,0,0,250,251,1,0,0,0,251,252,1,0,0,0,252,253,5,16,0,0,
+		253,254,6,27,-1,0,254,55,1,0,0,0,255,256,5,40,0,0,256,258,5,15,0,0,257,
+		259,3,38,19,0,258,257,1,0,0,0,258,259,1,0,0,0,259,260,1,0,0,0,260,261,
+		5,16,0,0,261,270,6,28,-1,0,262,263,5,41,0,0,263,265,5,15,0,0,264,266,3,
+		60,30,0,265,264,1,0,0,0,265,266,1,0,0,0,266,267,1,0,0,0,267,268,5,16,0,
+		0,268,270,6,28,-1,0,269,255,1,0,0,0,269,262,1,0,0,0,270,57,1,0,0,0,271,
+		272,7,1,0,0,272,59,1,0,0,0,273,278,5,51,0,0,274,275,5,35,0,0,275,277,5,
+		51,0,0,276,274,1,0,0,0,277,280,1,0,0,0,278,276,1,0,0,0,278,279,1,0,0,0,
+		279,281,1,0,0,0,280,278,1,0,0,0,281,282,6,30,-1,0,282,61,1,0,0,0,283,286,
+		3,64,32,0,284,285,7,3,0,0,285,287,3,62,31,0,286,284,1,0,0,0,286,287,1,
+		0,0,0,287,63,1,0,0,0,288,291,3,66,33,0,289,290,7,4,0,0,290,292,3,64,32,
+		0,291,289,1,0,0,0,291,292,1,0,0,0,292,65,1,0,0,0,293,295,7,5,0,0,294,293,
+		1,0,0,0,294,295,1,0,0,0,295,296,1,0,0,0,296,297,3,68,34,0,297,67,1,0,0,
+		0,298,299,3,70,35,0,299,69,1,0,0,0,300,304,3,74,37,0,301,302,3,72,36,0,
+		302,303,3,74,37,0,303,305,1,0,0,0,304,301,1,0,0,0,304,305,1,0,0,0,305,
+		71,1,0,0,0,306,316,5,26,0,0,307,316,5,25,0,0,308,316,5,28,0,0,309,316,
+		5,27,0,0,310,316,5,29,0,0,311,316,5,30,0,0,312,316,5,48,0,0,313,314,5,
+		48,0,0,314,316,5,49,0,0,315,306,1,0,0,0,315,307,1,0,0,0,315,308,1,0,0,
+		0,315,309,1,0,0,0,315,310,1,0,0,0,315,311,1,0,0,0,315,312,1,0,0,0,315,
+		313,1,0,0,0,316,73,1,0,0,0,317,321,5,50,0,0,318,321,5,38,0,0,319,321,3,
+		46,23,0,320,317,1,0,0,0,320,318,1,0,0,0,320,319,1,0,0,0,321,75,1,0,0,0,
+		31,84,89,94,99,104,110,112,125,131,147,151,192,198,204,209,218,223,228,
+		234,245,250,258,265,269,278,286,291,294,304,315,320
 	};
 
 	public static readonly ATN _ATN =

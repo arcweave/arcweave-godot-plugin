@@ -50,19 +50,52 @@ namespace Arcweave.Interpreter
 
         public object Sqrt(IList<object> args) {
             Expression e = args[0] as Expression;
-            double n = (double)e.Value;
+            double n;
+            if (e.Value is int i)
+            {
+                n = i;
+            } else if (e.Value is double d)
+            {
+                n = d;
+            }
+            else
+            {
+                n = (double)e.Value;
+            }
             return Math.Sqrt(n);
         }
 
         public object Sqr(IList<object> args) {
             Expression e = args[0] as Expression;
-            double n = (double)e.Value;
+            double n;
+            if (e.Value is int i)
+            {
+                n = i;
+            } else if (e.Value is double d)
+            {
+                n = d;
+            }
+            else
+            {
+                n = (double)e.Value;
+            }
             return n * n;
         }
 
         public object Abs(IList<object> args) {
             Expression e = args[0] as Expression;
-            double n = (double)e.Value;
+            double n;
+            if (e.Value is int i)
+            {
+                n = i;
+            } else if (e.Value is double d)
+            {
+                n = d;
+            }
+            else
+            {
+                n = (double)e.Value;
+            }
             return Math.Abs(n);
         }
 
@@ -93,15 +126,16 @@ namespace Arcweave.Interpreter
             foreach (Expression arg in args ) {
                 results.Add(arg.Value.ToString());
             }
-            string result = String.Join(' ', results.ToArray());
+            string result = String.Join("", results.ToArray());
             //UnityEngine.Debug.Log(result);
-            this.state.outputs.Add(result);
+            // this.state.outputs.Add(result);
+            this.state.Outputs.AddScriptOutput(result);
             return null;
         }
 
         public object Reset(IList<object> args) {
             foreach (IVariable argument in args ) {
-                argument.ResetToDefaultValue();
+                state.SetVarValue(argument.Name, argument.DefaultValue);
             }
             return null;
         }
@@ -113,7 +147,7 @@ namespace Arcweave.Interpreter
             }
             foreach ( IVariable variable in this._project.Variables ) {
                 if ( !variableNames.Contains(variable.Name) ) {
-                    variable.ResetToDefaultValue();
+                    state.SetVarValue(variable.Name, variable.DefaultValue);
                 }
             }
             return null;
@@ -125,12 +159,15 @@ namespace Arcweave.Interpreter
             return (int)Math.Round(n);
         }
 
-        public object Min(IList<object> args) {
-            return args.Min();
+        public object Min(IList<object> args)
+        {
+            IList<Expression> arguments = args.Cast<Expression>().ToList();
+            return arguments.Min();
         }
 
         public object Max(IList<object> args) {
-            return args.Max();
+            IList<Expression> arguments = args.Cast<Expression>().ToList();
+            return arguments.Max();
         }
 
         public object Visits(IList<object> args) {

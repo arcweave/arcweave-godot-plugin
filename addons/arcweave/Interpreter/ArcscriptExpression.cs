@@ -1,9 +1,10 @@
 
 using System;
+using System.Collections;
 
 namespace Arcweave.Interpreter
 {
-    public class Expression
+    public class Expression : IComparable
     {
         public object Value { get; set; }
         public Expression() { Value = null; }
@@ -19,7 +20,7 @@ namespace Arcweave.Interpreter
             {
                 return new Expression(-i);
             }
-            else if (e.Value is float value)
+            else if (e.Value is double value)
             {
                 return new Expression(-value);
             }
@@ -31,58 +32,58 @@ namespace Arcweave.Interpreter
             {
                 return new Expression(first.Value.ToString() + second.Value.ToString());
             }
-            var floatValues = GetFloatValues(first.Value, second.Value);
-            if (!floatValues.HasFloat)
+            var doubleValues = GetDoubleValues(first.Value, second.Value);
+            if (!doubleValues.HasDouble)
             {
-                var intValue = (int)(floatValues.Value1 + floatValues.Value2);
+                var intValue = (int)(doubleValues.Value1 + doubleValues.Value2);
                 return new Expression(intValue);
             }
             else
             {
-                return new Expression(floatValues.Value1 + floatValues.Value2);
+                return new Expression(doubleValues.Value1 + doubleValues.Value2);
             }
         }
 
         public static Expression operator -(Expression first, Expression second)
         {
-            var floatValues = GetFloatValues(first.Value, second.Value);
-            if (!floatValues.HasFloat)
+            var doubleValues = GetDoubleValues(first.Value, second.Value);
+            if (!doubleValues.HasDouble)
             {
-                var intValue = (int) (floatValues.Value1 - floatValues.Value2);
+                var intValue = (int) (doubleValues.Value1 - doubleValues.Value2);
                 return new Expression(intValue);
             } else
             {
-                return new Expression(floatValues.Value1 - floatValues.Value2);
+                return new Expression(doubleValues.Value1 - doubleValues.Value2);
             }
         }
 
         public static Expression operator *(Expression first, Expression second)
         {
-            var floatValues = GetFloatValues(first.Value, second.Value);
-            if (!floatValues.HasFloat)
+            var doubleValues = GetDoubleValues(first.Value, second.Value);
+            if (!doubleValues.HasDouble)
             {
-                var intValue = (int)(floatValues.Value1 * floatValues.Value2);
+                var intValue = (int)(doubleValues.Value1 * doubleValues.Value2);
                 return new Expression(intValue);
             }
             else
             {
-                return new Expression(floatValues.Value1 * floatValues.Value2);
+                return new Expression(doubleValues.Value1 * doubleValues.Value2);
             }
         }
 
         public static Expression operator /(Expression first, Expression second)
         {
-            var floatValues = GetFloatValues(first.Value, second.Value);
-            return new Expression(floatValues.Value1 / floatValues.Value2);
+            var doubleValues = GetDoubleValues(first.Value, second.Value);
+            return new Expression(doubleValues.Value1 / doubleValues.Value2);
         }
 
         public static bool operator ==(Expression first, Expression second)
         {
             System.Type type1 = first.Type();
-            if (type1 == typeof(int) || type1 == typeof(float))
+            if (type1 == typeof(int) || type1 == typeof(double))
             {
-                FloatValues floatValues = GetFloatValues(first.Value, second.Value);
-                return floatValues.Value1 == floatValues.Value2;
+                DoubleValues doubleValues = GetDoubleValues(first.Value, second.Value);
+                return doubleValues.Value1 == doubleValues.Value2;
             }
             if (type1 == typeof(bool))
             {
@@ -95,6 +96,21 @@ namespace Arcweave.Interpreter
             return false;
         }
 
+        public int CompareTo(object other)
+        {
+            Expression o = (Expression)other;
+            DoubleValues fValues = GetDoubleValues(this.Value, o.Value);
+            double result = fValues.Value1 - fValues.Value2;
+            if (result < 0)
+            {
+                return -1;
+            } else if (result > 0)
+            {
+                return 1;
+            }
+            return 0;
+        }
+
         public override bool Equals(object obj)
         {
             if (obj == null || !(obj is Expression))
@@ -104,10 +120,10 @@ namespace Arcweave.Interpreter
             Expression e = (Expression)obj;
 
             System.Type type1 = Type();
-            if (type1 == typeof(int) || type1 == typeof(float))
+            if (type1 == typeof(int) || type1 == typeof(double))
             {
-                FloatValues floatValues = GetFloatValues(Value, e.Value);
-                return floatValues.Value1 == floatValues.Value2;
+                DoubleValues doubleValues = GetDoubleValues(Value, e.Value);
+                return doubleValues.Value1 == doubleValues.Value2;
             }
             if (type1 == typeof(bool))
             {
@@ -123,10 +139,10 @@ namespace Arcweave.Interpreter
         public static bool operator !=(Expression first, Expression second)
         {
             System.Type type1 = first.Type();
-            if (type1 == typeof(int) || type1 == typeof(float))
+            if (type1 == typeof(int) || type1 == typeof(double))
             {
-                FloatValues floatValues = GetFloatValues(first.Value, second.Value);
-                return floatValues.Value1 != floatValues.Value2;
+                DoubleValues doubleValues = GetDoubleValues(first.Value, second.Value);
+                return doubleValues.Value1 != doubleValues.Value2;
             }
             if (type1 == typeof(bool))
             {
@@ -148,23 +164,23 @@ namespace Arcweave.Interpreter
         }
         public static bool operator ==(Expression first, int second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second);
-            return floatValues.Value1 == floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second);
+            return doubleValues.Value1 == doubleValues.Value2;
         }
         public static bool operator !=(Expression first, int second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second);
-            return floatValues.Value1 != floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second);
+            return doubleValues.Value1 != doubleValues.Value2;
         }
-        public static bool operator ==(Expression first, float second)
+        public static bool operator ==(Expression first, double second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second);
-            return floatValues.Value1 == floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second);
+            return doubleValues.Value1 == doubleValues.Value2;
         }
-        public static bool operator !=(Expression first, float second)
+        public static bool operator !=(Expression first, double second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second);
-            return floatValues.Value1 != floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second);
+            return doubleValues.Value1 != doubleValues.Value2;
         }
         public static bool operator ==(Expression first, string second)
         {
@@ -182,63 +198,63 @@ namespace Arcweave.Interpreter
 
         public static bool operator >(Expression first, Expression second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second.Value);
-            return floatValues.Value1 > floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second.Value);
+            return doubleValues.Value1 > doubleValues.Value2;
         }
         public static bool operator <(Expression first, Expression second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second.Value);
-            return floatValues.Value1 < floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second.Value);
+            return doubleValues.Value1 < doubleValues.Value2;
         }
         public static bool operator >=(Expression first, Expression second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second.Value);
-            return floatValues.Value1 >= floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second.Value);
+            return doubleValues.Value1 >= doubleValues.Value2;
         }
         public static bool operator <=(Expression first, Expression second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second.Value);
-            return floatValues.Value1 <= floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second.Value);
+            return doubleValues.Value1 <= doubleValues.Value2;
         }
         public static bool operator >(Expression first, int second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second);
-            return floatValues.Value1 > floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second);
+            return doubleValues.Value1 > doubleValues.Value2;
         }
         public static bool operator <(Expression first, int second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second);
-            return floatValues.Value1 < floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second);
+            return doubleValues.Value1 < doubleValues.Value2;
         }
         public static bool operator >=(Expression first, int second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second);
-            return floatValues.Value1 >= floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second);
+            return doubleValues.Value1 >= doubleValues.Value2;
         }
         public static bool operator <=(Expression first, int second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second);
-            return floatValues.Value1 <= floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second);
+            return doubleValues.Value1 <= doubleValues.Value2;
         }
-        public static bool operator >(Expression first, float second)
+        public static bool operator >(Expression first, double second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second);
-            return floatValues.Value1 > floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second);
+            return doubleValues.Value1 > doubleValues.Value2;
         }
-        public static bool operator <(Expression first, float second)
+        public static bool operator <(Expression first, double second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second);
-            return floatValues.Value1 < floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second);
+            return doubleValues.Value1 < doubleValues.Value2;
         }
-        public static bool operator >=(Expression first, float second)
+        public static bool operator >=(Expression first, double second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second);
-            return floatValues.Value1 >= floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second);
+            return doubleValues.Value1 >= doubleValues.Value2;
         }
-        public static bool operator <=(Expression first, float second)
+        public static bool operator <=(Expression first, double second)
         {
-            FloatValues floatValues = GetFloatValues(first.Value, second);
-            return floatValues.Value1 <= floatValues.Value2;
+            DoubleValues doubleValues = GetDoubleValues(first.Value, second);
+            return doubleValues.Value1 <= doubleValues.Value2;
         }
         public static Expression operator !(Expression e)
         {
@@ -275,27 +291,27 @@ namespace Arcweave.Interpreter
             return Value.ToString();
         }
 
-        private struct FloatValues
+        private struct DoubleValues
         {
-            public float Value1;
-            public float Value2;
-            public bool HasFloat;
+            public double Value1;
+            public double Value2;
+            public bool HasDouble;
 
-            public FloatValues(float val1, float val2, bool hasFloat) {  Value1 = val1; Value2 = val2; HasFloat = hasFloat; }
+            public DoubleValues(double val1, double val2, bool hasDouble) {  Value1 = val1; Value2 = val2; HasDouble = hasDouble; }
         }
 
-        private static FloatValues GetFloatValues(object first, object second) {
-            bool hasFloat = false;
+        private static DoubleValues GetDoubleValues(object first, object second) {
+            bool hasDouble = false;
             int value1, value2;
-            float flValue1 = 0, flValue2 = 0;
+            double flValue1 = 0, flValue2 = 0;
             if (first.GetType() == typeof(int))
             {
                 value1 = (int)first;
                 flValue1 = value1;
-            } else if (first.GetType() == typeof(float))
+            } else if (first.GetType() == typeof(double))
             {
-                hasFloat = true;
-                flValue1 = (float)first;
+                hasDouble = true;
+                flValue1 = (double)first;
             } else if (first.GetType() == typeof(bool))
             {
                 flValue1 = (bool)first ? 1 : 0;
@@ -305,16 +321,16 @@ namespace Arcweave.Interpreter
             {
                 value2 = (int)second;
                 flValue2 = value2;
-            } else if (second.GetType() == typeof(float))
+            } else if (second.GetType() == typeof(double))
             {
-                hasFloat = true;
-                flValue2 = (float)second;
+                hasDouble = true;
+                flValue2 = (double)second;
             } else if (second.GetType() == typeof(bool))
             {
                 flValue2 = (bool)second ? 1 : 0;
             }
 
-            return new FloatValues(flValue1, flValue2, hasFloat);
+            return new DoubleValues(flValue1, flValue2, hasDouble);
         }
 
         internal static bool GetBoolValue(object value)
@@ -322,7 +338,7 @@ namespace Arcweave.Interpreter
             if (value.GetType() == typeof(bool)) { return (bool)value; }
             if (value.GetType() == typeof(string)) { return ((string)value).Length > 0; }
             if (value.GetType() == typeof(int)) { return (int)value > 0; }
-            if (value.GetType() == typeof(float)) { return (float)value > 0; }
+            if (value.GetType() == typeof(double)) { return (double)value > 0; }
             return false;
         }
     }
