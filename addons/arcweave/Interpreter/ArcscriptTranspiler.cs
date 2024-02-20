@@ -30,21 +30,16 @@ namespace Arcweave.Interpreter
 
         public TranspilerOutput RunScript(string code)
         {
+            if (string.IsNullOrEmpty(code))
+            {
+                return new TranspilerOutput();
+            }
             ArcscriptParser.InputContext tree = this.GetParseTree(code);
             ArcscriptVisitor visitor = new ArcscriptVisitor(this.ElementId, this.Project);
             object result = tree.Accept(visitor);
 
             // List<string> outputs = visitor.state.outputs;
             var outputResult = visitor.state.Outputs.GetText();
-            // if (outputs.Count > 0)
-            // {
-            //     foreach (var t in outputs)
-            //     {
-            //         outputResult += t.Trim();
-            //     }
-            //
-            //     //outputResult = Utils.CleanString(outputResult);
-            // }
 
             var isCondition = tree.script() != null;
 
@@ -58,6 +53,13 @@ namespace Arcweave.Interpreter
             public object Result { get; private set; }
             public bool IsCondition { get; private set; }
 
+            public TranspilerOutput()
+            {
+                Result = false;
+                Output = "";
+                Changes = new Dictionary<string, object>();
+                IsCondition = false;
+            }
             public TranspilerOutput(string output, Dictionary<string, object> changes, object result,
                 bool isCondition = false)
             {

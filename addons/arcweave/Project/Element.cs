@@ -27,6 +27,8 @@ namespace Arcweave.Project
         /// The runtime content after the element's script is run
         /// </summary>
         [Export] public string RuntimeContent { get; private set; }
+
+        public bool HasContent => !string.IsNullOrEmpty(RawContent);
         public Element(string id, string title, string rawContent, Project project, Array<Connection> outputs, Array<Component> components, Array<Attribute> attributes, Asset cover)
         {
             Visits = 0;
@@ -61,6 +63,11 @@ namespace Arcweave.Project
         /// </summary>
         public void RunContentScript()
         {
+            if (!HasContent)
+            {
+                RuntimeContent = null;
+                return;
+            }
             AwInterpreter i = new AwInterpreter(Project, Id);
             var output = i.RunScript(RawContent);
             if ( output.Changes.Count > 0 ) {
