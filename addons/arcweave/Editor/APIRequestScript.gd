@@ -20,7 +20,7 @@ func request():
 	project_hash = arcweave_asset.project_hash
 	_update_env_vars()
 	
-	var request_url = default_domain + "api/"+project_hash+"/json"
+	var request_url = default_domain + "api/"+project_hash+"/godot"
 	var headers = []
 	var auth_header = false
 	
@@ -54,7 +54,8 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 		printerr(body.get_string_from_utf8())
 		project_updated.emit(null)
 		return
-	var project_settings = JSON.parse_string(body.get_string_from_utf8())
+	var response = JSON.parse_string(body.get_string_from_utf8())
+	var project_settings = response["project"]
 	project_updated.emit(project_settings)
 
 func _update_env_vars():
