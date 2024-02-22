@@ -1,0 +1,54 @@
+[gd_scene load_steps=4 format=3 uid="uid://yosf0sm5shc6"]
+
+[ext_resource type="Script" path="res://StartScene.gd" id="1_0aa8i"]
+[ext_resource type="Texture2D" uid="uid://1ukcv3o4tysi" path="res://assets/cs_icon.png" id="2_csjdh"]
+[ext_resource type="Texture2D" uid="uid://bp4j0lli1xfqt" path="res://icon.svg" id="2_vgk4k"]
+
+[node name="StartScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_0aa8i")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="GridContainer" type="GridContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+columns = 2
+
+[node name="GodotButton" type="TextureButton" parent="CenterContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+texture_normal = ExtResource("2_vgk4k")
+stretch_mode = 3
+
+[node name="CSharpButton" type="TextureButton" parent="CenterContainer/GridContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+texture_normal = ExtResource("2_csjdh")
+stretch_mode = 3
+
+[node name="CSharpLabel" type="Label" parent="CenterContainer/GridContainer"]
+layout_mode = 2
+text = "Use the GDScript Scene"
+horizontal_alignment = 1
+
+[node name="GodotLabel" type="Label" parent="CenterContainer/GridContainer"]
+layout_mode = 2
+text = "Use the CSharp Scene"
+horizontal_alignment = 1
+
+[connection signal="pressed" from="CenterContainer/GridContainer/GodotButton" to="." method="_on_godot_button_pressed"]
+[connection signal="pressed" from="CenterContainer/GridContainer/CSharpButton" to="." method="_on_c_sharp_button_pressed"]

@@ -16,3 +16,17 @@ export_presets.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# VSCode
+.vscode
+
+# Rider
+.idea
+Properties/launchSettings.json
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates

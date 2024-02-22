@@ -4,40 +4,71 @@ Arcweave Godot Plugin is a plugin for importing Arcweave Projects from [arcweave
 
 The Arcweave Godot Exports currently are offered to our Pro and Team Accounts.
 
-The exports consist from two `.gd` files, `data_export.gd` and `state_export.gd`. These contain the data from your project as well as helper functions in order to use [arcscript](https://arcweave.com/docs/1.0/arcscript), Arcweave's scripting language in your Godot Projects.
-
 ## Table of Contents
 
 - [Arcweave Godot Plugin](#arcweave-godot-plugin)
-  - [Table of Contents](#table-of-contents)
   - [Installing the Plugin](#installing-the-plugin)
-  - [Importing your project](#importing-your-project)
+  - [Getting data from Arcweave](#getting-data-from-arcweave)
     - [Folder Import](#folder-import)
     - [API Import](#api-import)
+  - [Creating an ArcweaveAsset](#creating-an-arcweaveasset)
+    - [Loading the Project Data](#loading-the-project-data)
+    - [Using the ArcweaveAsset](#using-the-arcweaveasset)
+      - [Use ArcweaveNode](#use-arcweavenode)
+      - [Create your own Node](#create-your-own-node)
+  - [Our Implementation](#our-implementation)
   - [Using the Plugin](#using-the-plugin)
+    - [C#](#c)
+    - [GDScript](#gdscript)
   - [API Documentation](#api-documentation)
-    - [Story](#story)
-    - [Component](#component)
-    - [Element](#element)
-    - [Board](#board)
+    - [Story class](#story-class)
+      - [Properties](#properties)
+      - [Methods](#methods)
+    - [Project class](#project-class)
+      - [Properties](#properties-1)
+      - [Methods](#methods-1)
 
 ---
 
 ## Installing the Plugin
 
+In order to use the plugin, you will need the **.NET** version of **Godot Engine** which you can find [here](https://godotengine.org/).
+
 Download the plugin and add the `addons/arcweave` folder in your project's `addons` folder.
 
-Then refresh your project, go to `AssetLib` -> `Plugins` and enable it.
+If you haven't already, create a C# solution for your project, through `Project` -> `Tools` -> `C#` -> `Create C# Solution`. This will create two files in your root folder with the name of your project and with extensions `.csproj` and `.sln`.
 
-![Enable Plugin](docs/images/enable_plugin.png)
+Open the `.csproj` file, and after the `PropertyGroup` part, add the following:
 
-Now the Godot Plugin should appear in the Right Dock of the Godot Engine
+```xml
+<ItemGroup>
+    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
+</ItemGroup>
+```
 
----
+So the file will now look similar to this:
 
-## Importing your project
+```xml
+<Project Sdk="Godot.NET.Sdk/4.2.1">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net7.0</TargetFramework>
+    <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'ios' ">net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
+  </ItemGroup>
+</Project>
+```
 
-You can import your project in two ways, using our API or by downloading the Godot Export, unzipping the contents and selecting the unzipped folder
+This will add a required library for the plugin which handles the interpretation of **Arcscript**.
+
+Then refresh your project, go to `Project` -> `Project Settings` -> `Plugins` and enable it.
+
+## Getting data from Arcweave
+
+You can import your project in two ways, using our API or by downloading the Godot Export and selecting the exported file
 
 ### Folder Import
 
@@ -51,171 +82,276 @@ Then Select the Engine Tab and Download the Export file for Godot.
 
 ![Arcweave Export Tab](docs/images/aw_export_tab.png)
 
-Save the zip file in your computer and extract it. Two files should appear, `data_export.gd` and `state_export.gd`.
-
------
-
-From the Arcweave Plugin select the source to be **Folder Selection**.
-
-![Folder Selection](docs/images/folder.png)
-
-Then Select the folder containing the extracted files and **Refresh From Folder**
+Save the exported file.
 
 ### API Import
 
-To use the API import functionality, you will have to be in a Team Plan in Arcweave.
+Feature available to Team account holders only. You can fetch your Arcweave project's data from within Godot, via Arcweave's web API.
 
-Using the instructions in the [Arcweave Documentation](https://arcweave.com/docs/1.0/api) to create and use an API Token.
+To do this, you will need:
 
-From the Arcweave Plugin select the source to be **API** and fill your **API Key** and your **Project Hash**. The **Project Hash**.
+* your **API key** as an Arcweave user.
+* your **project's hash**.
 
-![API Selection](docs/images/api.png)
+[This chapter](https://arcweave.com/docs/1.0/api) in the Arcweave Documentation explains where to find both of them.
 
-Then press **Refresh Project**
+## Creating an ArcweaveAsset
 
-In the Godot Engine Output a **SUCCESS** message should appear.
+Either way, to import your data into Godot, you must create an **ArcweaveAsset** in your Godot project. To do this, right-click on your Godot FileSystem tab, select **New Resource** and find the **ArcweaveAsset** option and pick the file name of your choice. 
 
-[TOC](#table-of-contents)
+### Loading the Project Data
 
----
+Open the newly created resource's inspector. You will see two options for selecting either a file or use the Arcweave API to retrieve the data.
+
+- **Importing from JSON**: Click on **Select Project File**, find your downloaded export file and select it.
+- **Importing from API**: Fill the **API key** and **Project Hash** values.
+
+Then click on **Initialize Arcweave Asset** button. This will either load the project from the file, or fetch the data from the API and store it's info in the Resource.
+
+### Using the ArcweaveAsset
+
+You can use ArcweaveAsset in your own way. Use a separate node for the Arcweave Project, integrate it on your own,
+or you can use the **ArcweaveNode** we are providing.
+
+#### Use ArcweaveNode
+
+This plugin creates a new **ArcweaveNode** type, that you can use in your scenes to integrate your Arcweave Project
+in your game.
+
+Add an **ArcweaveNode** as a child node in your scene and use the Inspector tab connect it to your resource that you created earlier.
+
+This Node has 3 properties:
+
+- ArcweaveAsset
+- Story
+- ApiRequest
+
+The **Story** is the class that handles the Arcweave Project. It stores all the info regarding your project and it's
+the way we are interacting with it.
+
+**ApiRequest** is an instance of a Node that is being added as a child of ArcweaveNode. It handles the connection to
+the Arcweave API for requesting and retrieving the updated Arcweave Project.
+
+#### Create your own Node
+
+You can also create your own nodes and interact with the ArcweaveAsset. 
+
+In order to update during runtime though, you would have to add the node `APIRequest.gd` inside your scene. This will insert an HTTPRequest node in your scene and you will be able to make requests. You can see how we implemented owr own [`ArcweaveNode.cs`](./addons/arcweave/Editor/ArcweaveNode.cs) for C# or [`gd_script_scene_no_arcweave_node.gd`](./scripts/gd_script_scene_no_arcweave_node.gd) for GDScript and follow a similar pattern.
+
+## Our Implementation
+
+Most of our implementation, except ArcweaveAsset and some editor GDScript classes, are written in C#. This means that not all of the API is available in GDScript, because of type compatibility issues. The reason is that the interpreter we are using for **arcscript** is written in C# and uses built in types. 
+
+Using functions with the name pattern `GetGodot*` will retrieve the appropriate instance properties in Godot types but doing this will require copying and typecasting, so the experience might be slower.
+
+We are planning to integrate Godot types in our interpreter in the near future that will speed up this process.
 
 ## Using the Plugin
 
-The main Class that the user should use is the [**Story**](#story) class of the plugin. This has most of the functionalities needed to traverse through a Project
+Using Godot's functionality for [Cross-language scripting](https://docs.godotengine.org/en/stable/tutorials/scripting/cross_language_scripting.html) you can use the plugin both from GDScript and C# Godot Projects. The only limitation is using the *.NET*  version of Godot Engine.
 
-Our plugin has some Classes to represent Arcweave's Nodes. These are:
+In this repo we are providing a simple Demo of both implementations.
 
-* [**Element**](#element)
-* [**Component**](#component)
-* [**Board**](#board)
+### C#
 
-Also a **Util** Class exists with Utility Functions used to transpile Arcscript to Godot.
+<details>
+<summary>How to use the plugin in a C# Godot Project</summary>
 
-To start a Project's Story you have to initialize a Story instance.
+<br/>
 
-```gdscript
-var story: Story
-func _ready():
-    self.story = Story.new()
+The main Class that the user should use is the [**Story**](#story) class of the plugin. This has most of the functionalities needed to traverse through a Project. Story is stored as a property inside our ArcweaveNode so our examples are based on that.
+
+To start a Project's Story you have to initialize a Story instance with it's project settings, as well as an instance of APIRequest to be able to update your project on runtime. ArcweaveNode handles that in it's `_Ready` function, so if you are using this Node Type, you don't have to do it.
+
+```csharp
+
+public override void _Ready()
+{
+    Dictionary projectSettings = (Dictionary)ArcweaveAsset.Get("project_settings");
+    Story = new Story(projectSettings);
+
+    var requestScript = GD.Load<GDScript>("res://addons/arcweave/Editor/APIRequestScript.gd");
+    ApiRequest = (Node)requestScript.New(ArcweaveAsset);
+    AddChild(ApiRequest);
+}
 ```
 
 During the initialization, the data is loaded, the starting_element is set and the Element Options are generated.
 
-If you have a text container you can use the `story.get_current_content()` function to get the text of the current element and set it.
+If you have a text container you can use the `Story.GetCurrentRuntimeContent()` function to get the text of the current element and set it. In our Demo project, we have a function called `Repaint()` that updates our TextContainer with the new content.
 
-```gdscript
-var textContainer: RichTextLabel
-var story: Story
-func _ready():
-    self.story = Story.new()
-
-    textContainer.bbcode_enabled = true
-    textContainer.bbcode_text = story.get_current_content()
+```csharp
+private void Repaint()
+{
+    TextContainer.Text = ArcweaveNode.Story.GetCurrentRuntimeContent();
+}
 ```
 
-You can also use `story.get_current_options()` function to get the options of the current element:
+You can also use `Story.GenerateCurrentOptions()` function to get the options of the current element:
+
+```csharp
+private void Repaint()
+{
+    TextContainer.Text = ArcweaveNode.Story.GetCurrentRuntimeContent();
+    AddOptions()
+}
+
+private void AddOptions()
+{
+    // Empty the previous options
+    foreach (var b in OptionContainer.GetChildren())
+    {
+        OptionContainer.RemoveChild(b);
+    }
+    // Retrieve the current options
+    Options options = ArcweaveNode.Story.GenerateCurrentOptions();
+    if (options.Paths != null)
+    {
+        foreach (var path in options.Paths)
+        {
+            if (path.IsValid)
+            {
+                Button button = CreateButton(path);
+                OptionContainer.AddChild(button);
+            }
+        }
+    }
+}
+```
+
+To select a certain option and continue the story path, we add a signal handler for the button in `CreateButton` that we used earlier, where we select the Path that we provided using `Story.SelectPath()`. When the new path is selected, we call the repaint function to recreate our UI. 
+
+```csharp
+private Button CreateButton(IPath path)
+{
+    Button button = new Button();
+    button.Text = path.label;
+    button.Pressed += () => OptionButtonPressed(path);
+
+    return button;
+}
+
+private void OptionButtonPressed(IPath path)
+{
+    ArcweaveNode.Story.SelectPath(path as Path);
+    Repaint();
+}
+```
+</details>
+
+### GDScript
+
+<details>
+<summary>How to use the plugin in a GDScript Godot Project</summary>
+
+<br/>
+
+The main Class that the user should use is the [**Story**](#story) class of the plugin. This has most of the functionalities needed to traverse through a Project. Story is stored as a property inside our ArcweaveNode so our examples are based on that.
+
+To start a Project's Story you have to initialize a Story instance with it's project settings, as well as an instance of APIRequest to be able to update your project on runtime. ArcweaveNode handles that in its `_ready` function, so if you are using this Node Type, you don't have to do it.
 
 ```gdscript
-var textContainer: RichTextLabel
-var optionContainer: VBoxContainer
+# Your ArcweaveAsset resource file
+var arcweave_asset: ArcweaveAsset = preload("res://ArcweaveAsset.tres")
+var api_request: APIRequest
+var Story = load("res://addons/arcweave/Story.cs")
+var story
 
-var story: Story
 func _ready():
-    self.story = Story.new()
+	api_request = APIRequest.new(arcweave_asset)
+	arcweave_asset.project_updated.connect(_on_project_updated)
+	add_child(api_request)
 
-    textContainer.bbcode_enabled = true
-    textContainer.bbcode_text = story.get_current_content()
-    self.addOptions(story.get_current_options())
+	story = Story.new(arcweave_asset.project_settings)
 
-func addOptions(options):
-    for n in self.optionContainer.get_children():
-        self.optionContainer.remove_child(n)
-        n.queue_free()
-
-    ## The option.connectionPath has all the connections of the element.
-    ## Since it might not have a label, we keep only the last available label or a separate default label.
-    for option in options:
-        var lastLabel = null
-        for connection in option.connectionPath:
-            if connection.label:
-                lastLabel = connection.label
-        if lastLabel == null:
-            lastLabel = self.story.elements[option.targetid].title
-        if lastLabel == null or lastLabel == "":
-            lastLabel = self.story.elements[option.targetid].get_content(self.story.state)
-        self.createButton(lastLabel, option)
 ```
-[TOC](#table-of-contents)
 
----
+During the initialization, the data is loaded, the starting_element is set and the Element Options are generated.
+
+If you have a text container (here, a RichTextLabel node saved as `text_window`) you can use the `story.GetCurrentRuntimeContent()` function to get the text of the current element and set it. In our Demo project, we have a function called `repaint()` that updates our TextContainer with the new content.
+
+```gdscript
+func repaint():
+	text_window.text = story.GetCurrentRuntimeContent()
+```
+
+You can also use `story.GenerateCurrentOptions()` function to get the options of the current element:
+
+```gdscript
+func repaint():
+	text_window.text = story.GetCurrentRuntimeContent()
+	add_options()
+
+func add_options():
+	for option in options_container.get_children():
+		options_container.remove_child(option)
+		option.queue_free()
+	
+	var options = story.GenerateCurrentOptions()
+	var paths = options.GetPaths()
+	if paths != null:
+		for path in paths:
+			if path.IsValid:
+				var button : Button = create_button(path)
+				options_container.add_child(button)
+```
+
+To select a certain option and continue the story path, we add a signal handler for the button in `create_button` that we used earlier, where we select the Path that we provided using `story.SelectPath()`. When the new path is selected, we call the repaint function to recreate our UI. 
+
+```gdscript
+func create_button(path):
+	var button : Button = Button.new()
+	button.text = path.label
+	button.pressed.connect(option_button_pressed.bind(path))
+	return button
+
+func option_button_pressed(path):
+	story.SelectPath(path)
+	repaint()
+```
+</details>
 
 ## API Documentation
 
 
-### Story
+### Story class
 
-The story class provides the following functions
+#### Properties
 
-| Function Name                                   | Description                               |
-| :---                                            | :---                                      |
-| `get_current_element() -> Element`              | Returns the current Element               |
-| `set_current_element(id: String)`               | Sets the current element                  |
-| `get_current_content() -> String`               | Returns the current element's content     |
-| `get_current_options() -> Array`                | Returns the current element's options     |
-| `get_element(element_id: String) -> Element`    | Returns an element                        |
-| `get_state() -> Dictionary`                     | Returns the current state of the project  |
-| `set_state(state: Dictionary)`                  | Sets the current state of the project     |
-| `select_option(option)`                         | Select's an option                        |
+| Property                  | Description                       |
+| :------------------------ | :-------------------------------- |
+| `Project project`         | The Project instance of the story |
+| `Dictionary ProjectData`  | The starting ProjectData          |
+| `IElement CurrentElement` | The current element of the story  |
 
-### Component
+#### Methods
 
-Variables
+| Method Name                                | Description                                 |
+| :----------------------------------------- | :------------------------------------------ |
+| `Story(Dictionary projectData)`            | Initializes a Story with the project data   |
+| `void UpdateStory(Dictionary projectData)` | Updates the story with the new project data |
+| `void SetCurrentElement(string id)`        | Sets the current element                    |
+| `void SetCurrentElement(IElement element)` | Sets the current element                    |
+| `string GenerateCurrentRuntimeContent()`   | Returns the current element's content       |
+| `Options GenerateCurrentOptions()`         | Returns the current element's options       |
+| `Element GetCurrentElement()`              | Returns the current element                 |
+| `void SelectPath(Path path)`               | Selects a path/option                       |
 
-* `var id: String`
-* `var name: String`
-* `var cover: Dictionary`
-* `var attributes: Dictionary`
+### Project class
 
-Functions
+#### Properties
 
-| Function Name                                       | Description                                       |
-| :---                                                | :---                                              |
-| `get_name()`                                        | Returns the name of the Component                 |
-| `get_attribute_by_name(name: String) -> Dictionary` | Returns the first attribute with this name        |
-| `search_attributes_by_name(name: String) -> Array`  | Returns an array with attributes with this name   |
-| `get_cover() -> Dictionary`                         | Returns the cover information for the component   |
+| Property                                    | Description                         |
+| :------------------------------------------ | :---------------------------------- |
+| `string Name`                               | The Project's name                  |
+| `Dictionary<string, IBoard> Boards`         | The Boards of the Project           |
+| `Dictionary<string, IComponent> Components` | The Components of the Project       |
+| `Dictionary<string, IVariable> Variables`   | The Variables of the Project        |
+| `Dictionary<string, IElement> Elements`     | The Elements of the Project         |
+| `IElement StartingElement`                  | The starting element of the Project |
 
-### Element
+#### Methods
 
-Variables
-
-* `var id: String`
-* `var title: String`
-* `var theme: String`
-* `var outputs: Array`
-* `var components: Array`
-* `var attributes: Dictionary`
-* `var cover: Dictionary`
-* `var content_ref`
-
-Functions
-
-| Function Name                                       | Description                                           |
-| :---                                                | :---                                                  |
-| `get_content(state: Dictionary) -> String`          | Returns the content of the element based on the state |
-| `get_cover() -> Dictionary`                         | Returns the cover information for the element         |
-
-### Board
-
-Variables 
-
-* `var id: String`
-* `var customId: String`
-* `var name: String`
-* `var elements: Dictionary`
-* `var connections: Dictionary`
-* `var notes: Dictionary`
-* `var jumpers: Dictionary`
-* `var branches: Dictionary`
-
-[TOC](#table-of-contents)
+| Method Name | Description |
+| :---------- | :---------- |
+|             |             |
