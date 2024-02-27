@@ -36,6 +36,8 @@ In order to use the plugin, you will need the **.NET** version of **Godot Engine
 
 Download the plugin and add the `addons/arcweave` folder in your project's `addons` folder.
 
+> Note: Downloading this plugin from the "Download ZIP" button, will only download the `addons` folder. If you want to download our test project as well, you have to either clone the repo or find the `arcweave-godot-plugin.zip` file in releases which contains all the files of this repo.
+
 If you haven't already, create a C# solution for your project, through `Project` -> `Tools` -> `C#` -> `Create C# Solution`. This will create two files in your root folder with the name of your project and with extensions `.csproj` and `.sln`.
 
 Open the `.csproj` file, and after the `PropertyGroup` part, add the following:
