@@ -2,7 +2,7 @@
 
 Arcweave Godot Plugin is a plugin for importing Arcweave Projects from [arcweave.com](https://arcweave.com/) in Godot and using them in your Projects.
 
-The Arcweave Godot Exports currently are offered to our Pro and Team Accounts.
+The Arcweave Godot Export feature is available to all Arcweave users, including the Free accounts. The API import feature is available to the Team tier.
 
 ## Table of Contents
 
@@ -51,13 +51,13 @@ Open the `.csproj` file, and after the `PropertyGroup` part, add the following:
 So the file will now look similar to this:
 
 ```xml
-<Project Sdk="Godot.NET.Sdk/4.2.1">
-  <PropertyGroup>
+<ject Sdk="Godot.NET.Sdk/4.2.1">
+  <pertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net7.0</TargetFramework>
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'ios' ">net8.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
-  </PropertyGroup>
+  </pertyGroup>
   <ItemGroup>
     <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
   </ItemGroup>
