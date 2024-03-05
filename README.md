@@ -51,13 +51,13 @@ Open the `.csproj` file, and after the `PropertyGroup` part, add the following:
 So the file will now look similar to this:
 
 ```xml
-<ject Sdk="Godot.NET.Sdk/4.2.1">
-  <pertyGroup>
+<Project Sdk="Godot.NET.Sdk/4.2.1">
+  <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net7.0</TargetFramework>
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'ios' ">net8.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
-  </pertyGroup>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
   </ItemGroup>
