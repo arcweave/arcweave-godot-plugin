@@ -38,11 +38,6 @@ layout_mode = 2
 layout_mode = 2
 alignment = 1
 
-[node name="SaveButton" type="Button" parent="StoryContainer/UIButtonsContainer"]
-custom_minimum_size = Vector2(0, 32)
-layout_mode = 2
-text = "Save State"
-
 [node name="RefreshButton" type="Button" parent="StoryContainer/UIButtonsContainer"]
 custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
@@ -53,6 +48,14 @@ custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
 text = "Restart Story
 "
+
+[node name="MenuButton" type="MenuButton" parent="."]
+offset_left = 23.0
+offset_top = 525.0
+offset_right = 76.0
+offset_bottom = 556.0
+mouse_default_cursor_shape = 2
+text = "Menu"
 
 [node name="ArcweaveNode" type="Node" parent="."]
 script = ExtResource("3_gdtfr")

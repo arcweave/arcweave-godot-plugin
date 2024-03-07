@@ -2,7 +2,7 @@ extends Control
 
 @onready var text_window: RichTextLabel = $StoryContainer/TextWindow
 @onready var options_container: VBoxContainer = $StoryContainer/OptionsContainer
-@onready var save_button: Button = $StoryContainer/UIButtonsContainer/SaveButton
+@onready var menu_button: MenuButton = $MenuButton
 @onready var refresh_button: Button = $StoryContainer/UIButtonsContainer/RefreshButton
 @onready var restart_button: Button = $StoryContainer/UIButtonsContainer/RestartButton
 
@@ -18,7 +18,13 @@ func _ready():
 	arcweave_asset.project_updated.connect(_on_project_updated)
 	add_child(api_request)
 	story = Story.new(arcweave_asset.project_settings)
-	# save_button.
+	
+	menu_button.pressed.connect(_on_menu_pressed)
+	var popup = menu_button.get_popup()
+	popup.add_item("Save Game", 0)
+	popup.add_item("Load Game", 1)
+	popup.id_pressed.connect(_on_menu_item_pressed)
+	
 	refresh_button.pressed.connect(_on_refresh_pressed)
 	restart_button.pressed.connect(_on_restart_pressed)
 	repaint()
@@ -66,3 +72,25 @@ func _on_refresh_pressed():
 
 func _on_restart_pressed():
 	get_tree().reload_current_scene()
+
+func _on_menu_pressed():
+	var popup = menu_button.get_popup()
+	popup.set_item_disabled(1, !FileAccess.file_exists("user://savegame.save"))
+	popup.position = Vector2i(25, 460)
+
+func _on_menu_item_pressed(id):
+	if id == 0:
+		save_game()
+	elif id == 1:
+		load_game()
+
+func save_game():
+	var save_game_file = FileAccess.open("user://savegame.save", FileAccess.WRITE)
+	var save = story.GetSave()
+	save_game_file.store_var(save)
+
+func load_game():
+	var save_game_file = FileAccess.open("user://savegame.save", FileAccess.READ)
+	var save = save_game_file.get_var()
+	story.LoadSave(save)
+	repaint()
