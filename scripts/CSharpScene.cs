@@ -9,8 +9,9 @@ public partial class CSharpScene : Control
 {
 	public RichTextLabel TextContainer;
 	public VBoxContainer OptionContainer;
-	public Button SaveButton;
+	public MenuButton MenuButton;
 	public Button RefreshButton;
+	public Button RestartButton;
 	public ArcweaveNode ArcweaveNode;
 
 	// Called when the node enters the scene tree for the first time.
@@ -24,12 +25,40 @@ public partial class CSharpScene : Control
 		// Create the UI
 		TextContainer = GetNode<RichTextLabel>("StoryContainer/TextWindow");
 		OptionContainer = GetNode<VBoxContainer>("StoryContainer/OptionsContainer");
-		SaveButton = GetNode<Button>("StoryContainer/UIButtonsContainer/SaveButton");
+		MenuButton = GetNode<MenuButton>("MenuButton");
+		MenuButton.Pressed += OnMenuButtonPressed;
+		var popup = MenuButton.GetPopup();
+		popup.AddItem("Save Game", 0);
+		popup.AddItem("Load Game", 1);
+		popup.IdPressed += MenuItemPressed;
+		
 		RefreshButton = GetNode<Button>("StoryContainer/UIButtonsContainer/RefreshButton");
 		RefreshButton.Pressed += RefreshProject;
+
+		RestartButton = GetNode<Button>("StoryContainer/UIButtonsContainer/RestartButton");
+		RestartButton.Pressed += RestartProject;
+		
 		TextContainer.BbcodeEnabled = true;
 
 		Repaint();
+	}
+
+	private void OnMenuButtonPressed()
+	{
+		var popup = MenuButton.GetPopup();
+		popup.SetItemDisabled(1, !FileAccess.FileExists("user://savegame.save"));
+		popup.Position = new Vector2I(25, 460);
+	}
+
+	private void MenuItemPressed(long id)
+	{
+		if (id == 0)
+		{
+			SaveGame();
+		} else if (id == 1)
+		{
+			LoadGame();
+		}
 	}
 
 	/// <summary>
@@ -95,12 +124,38 @@ public partial class CSharpScene : Control
 	{
 		ArcweaveNode.UpdateStory();
 	}
+	
+	/// <summary>
+	/// Refreshes the project.
+	/// </summary>
+	private void RestartProject()
+	{
+		ArcweaveNode.Story.ResetStory();
+		Repaint();
+	}
 
 	/// <summary>
 	/// Signal Handler for Project Updates
 	/// </summary>
 	private void OnProjectUpdated()
 	{
+		Repaint();
+	}
+
+	private void SaveGame()
+	{
+		using var saveGame = FileAccess.Open("user://savegame.save", FileAccess.ModeFlags.Write);
+
+		var save = ArcweaveNode.Story.GetSave();
+		saveGame.StoreVar(save);
+	}
+	
+	private void LoadGame()
+	{
+		using var saveGame = FileAccess.Open("user://savegame.save", FileAccess.ModeFlags.Read);
+
+		var save = saveGame.GetVar().AsGodotDictionary<string, Variant>();
+		ArcweaveNode.Story.LoadSave(save);
 		Repaint();
 	}
 }

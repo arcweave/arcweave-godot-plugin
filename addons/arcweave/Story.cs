@@ -179,6 +179,62 @@ namespace Arcweave
 		{
 			return VariableChanges.GetChanges();
 		}
+
+		/// <summary>
+		/// Returns a Save Dictionary including the currentElement ID, the variable values before
+		/// the current element changes and the visits (also before the current element visit)
+		/// </summary>
+		/// <returns></returns>
+		public Dictionary<string, Variant> GetSave()
+		{
+			var visits = new Dictionary<string, int>();
+			foreach (var element in Project.Elements.Values)
+			{
+				visits[element.Id] = element.Visits;
+				if (element.Id == _currentElement.Id) visits[element.Id]--;
+			}
+
+			var variables = Project.SaveVariables();
+			foreach (var variable in variables)
+			{
+				if (VariableChanges.Changed[variable.Key]) variables[variable.Key] = VariableChanges.OldValues[variable.Key];
+			}
+			return new Dictionary<string, Variant>()
+			{
+				{ "currentElement", _currentElement.Id },
+				{ "variables", variables },
+				{ "visits", visits }
+			};
+		}
+
+		/// <summary>
+		/// Loads the Game Save that was previously created from GetSave()
+		/// </summary>
+		/// <param name="save"></param>
+		public void LoadSave(Dictionary<string, Variant> save)
+		{
+			Project.ResetVariables();
+			Project.LoadVariables(save["variables"].AsGodotDictionary<string, Variant>());
+			Project.ResetVisits();
+			foreach (var kvp in save["visits"].AsGodotDictionary<string, int>())
+			{
+				
+				if (Project.Elements.TryGetValue(kvp.Key, out var element))
+				{
+					element.Visits = kvp.Value;
+				}
+			}
+
+			var newCurrentElement = Project.ElementWithId(save["currentElement"].AsString());
+			if (newCurrentElement != null)
+			{
+				CurrentElement = newCurrentElement;
+			}
+			else
+			{
+				_currentElement = Project.StartingElement;
+			}
+		}
 	}
 
 	public partial class VariableChanges : GodotObject
