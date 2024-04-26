@@ -30,7 +30,17 @@ namespace Arcweave.Interpreter
         {
             if (first.Type() == typeof(string) || second.Type() == typeof(string))
             {
-                return new Expression(first.Value.ToString() + second.Value.ToString());
+                var val1 = first.Value;
+                var val2 = second.Value;
+                if (first.Type() == typeof(bool))
+                {
+                    val1 = ((bool)first.Value) ? "true" : "false";
+                }
+                if (second.Type() == typeof(bool))
+                {
+                    val2 = ((bool)second.Value) ? "true" : "false";
+                }
+                return new Expression(val1.ToString() + val2.ToString());
             }
             var doubleValues = GetDoubleValues(first.Value, second.Value);
             if (!doubleValues.HasDouble)
