@@ -81,7 +81,12 @@ namespace Arcweave.Project
 
         Path INode.ResolvePath(Path path)
         {
-            if (string.IsNullOrEmpty(path.label)) { path.label = Title; }
+            if (string.IsNullOrEmpty(path.label))
+            {
+                var i = new AwInterpreter(Project, Id);
+                var output = i.RunScript(Title);
+                path.label = Utils.CleanString(output.Output);
+            }
             path.TargetElement = this;
             return path;
         }

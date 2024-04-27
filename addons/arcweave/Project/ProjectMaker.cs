@@ -75,7 +75,7 @@ namespace Arcweave.Project
 			
 			foreach (string key in _attributesDict.Keys)
 			{
-				_attributes[key] = new Attribute();
+				_attributes[key] = new Attribute(project);
 			}
 
 			foreach (string key in _componentsDict.Keys)
