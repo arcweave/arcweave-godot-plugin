@@ -1,4 +1,5 @@
-﻿using Arcweave.Interpreter.INodes;
+﻿using Arcweave.Interpreter;
+using Arcweave.Interpreter.INodes;
 using Godot;
 using Godot.Collections;
 
@@ -11,7 +12,11 @@ namespace Arcweave.Project
         [Export] public string containerId { get; private set; }
 
         [Export] private string _dataString;
+        [Export] private string _dataStringRichText;
+        [Export] private string _dataStringRichTextRaw;
         [Export] private Array<Component> _dataComponentList;
+
+        private Project _project;
 
         [Export] public IAttribute.ContainerType containerType { get; private set; }
 
@@ -21,17 +26,36 @@ namespace Arcweave.Project
         {
             get
             {
-                if ( Type == IAttribute.DataType.StringPlainText || Type == IAttribute.DataType.StringRichText ) { return _dataString;  }
+                if ( Type == IAttribute.DataType.StringPlainText) { return _dataString;  }
+
+                if (Type == IAttribute.DataType.StringRichText)
+                {
+                    if (string.IsNullOrEmpty(_dataStringRichText))
+                    {
+                        var i = new AwInterpreter(_project);
+                        var output = i.RunScript(_dataStringRichTextRaw);
+                        _dataStringRichText = Utils.CleanString(output.Output);
+                        return _dataStringRichText;
+                    }
+
+                    return _dataStringRichText;
+                }
                 if ( Type == IAttribute.DataType.ComponentList) { return _dataComponentList; }
                 return default(Variant);
             }
             private set { }
         }
 
+        public Attribute(Project project)
+        {
+            _project = project;
+        }
+
         internal void Set(string id, string name, IAttribute.DataType type, object dataObject, IAttribute.ContainerType containerType, string containerId)
         {
             Id = id; Name = name; Type = type;
-            if ( type == IAttribute.DataType.StringPlainText || type == IAttribute.DataType.StringRichText ) { _dataString = (string) dataObject; }
+            if ( type == IAttribute.DataType.StringPlainText) { _dataString = (string) dataObject; }
+            if ( type == IAttribute.DataType.StringRichText) { _dataStringRichTextRaw = (string) dataObject; }
             if ( type == IAttribute.DataType.ComponentList) {  _dataComponentList = (Array<Component>) dataObject; }
             this.containerType = containerType;
             this.containerId = containerId;
