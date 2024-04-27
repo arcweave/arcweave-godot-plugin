@@ -11,6 +11,7 @@
                 s = s.Replace("<em>", "{italic}").Replace("</em>", "{/italic}");
                 s = s.Replace("&lt;", string.Empty).Replace("&gt;", string.Empty);
                 s = s.Replace("</p>", "\n\n");
+                s = s.Replace("<br>", "\n");
                 s = s.Replace("<code>", "{code}");
                 s = s.Replace("</code>", "{/code}");
                 s = System.Text.RegularExpressions.Regex.Replace(s, @"<[^>]*>", string.Empty);
