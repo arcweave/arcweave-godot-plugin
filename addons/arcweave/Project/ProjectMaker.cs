@@ -190,7 +190,7 @@ namespace Arcweave.Project
 						}
 					}
 				}
-				_elements[key] = new Element(key, Interpreter.Utils.CleanString(el["title"].AsString()), el["content"].AsString(), project, elConnections, elComponents, elAttributes, coverAsset);
+				_elements[key] = new Element(key, el["title"].AsString(), el["content"].AsString(), project, elConnections, elComponents, elAttributes, coverAsset);
 			}
 
 			_startingElement = _elements[_projectData["startingElement"].AsString()];
@@ -211,7 +211,7 @@ namespace Arcweave.Project
 				Dictionary cond = _conditionsDict[key].AsGodotDictionary();
 				Connection condOutput = null;
 				string script = null;
-				if (cond.ContainsKey("output"))
+				if (cond.ContainsKey("output") && cond["output"].VariantType != Variant.Type.Nil)
 				{
 					condOutput = _connections[cond["output"].AsString()];
 				}
