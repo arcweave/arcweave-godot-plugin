@@ -15,6 +15,7 @@ namespace Arcweave.Project
         [Export] private string _dataStringRichText;
         [Export] private string _dataStringRichTextRaw;
         [Export] private Array<Component> _dataComponentList;
+        [Export] private Array<Asset> _dataAssetList;
 
         private Project _project;
 
@@ -41,6 +42,7 @@ namespace Arcweave.Project
                     return _dataStringRichText;
                 }
                 if ( Type == IAttribute.DataType.ComponentList) { return _dataComponentList; }
+                if ( Type == IAttribute.DataType.AssetList) { return _dataAssetList; } 
                 return default(Variant);
             }
             private set { }
@@ -57,6 +59,7 @@ namespace Arcweave.Project
             if ( type == IAttribute.DataType.StringPlainText) { _dataString = (string) dataObject; }
             if ( type == IAttribute.DataType.StringRichText) { _dataStringRichTextRaw = (string) dataObject; }
             if ( type == IAttribute.DataType.ComponentList) {  _dataComponentList = (Array<Component>) dataObject; }
+            if ( type == IAttribute.DataType.AssetList) { _dataAssetList = (Array<Asset>) dataObject; }
             this.containerType = containerType;
             this.containerId = containerId;
         }
