@@ -8,6 +8,7 @@
             StringPlainText,
             StringRichText,
             ComponentList,
+            AssetList,
         }
 
         public enum ContainerType

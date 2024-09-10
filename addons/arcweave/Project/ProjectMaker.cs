@@ -113,9 +113,9 @@ namespace Arcweave.Project
 			foreach (string key in _attributesDict.Keys)
 			{
 				Dictionary attr = _attributesDict[key].AsGodotDictionary();
-				IAttribute.DataType attrType;
+				IAttribute.DataType attrType = IAttribute.DataType.Undefined;
 				Dictionary attrValue = attr["value"].AsGodotDictionary();
-				object data;
+				object data = null;
 				if (attrValue["type"].AsString() == "string")
 				{
 					if (attrValue.ContainsKey("plain") && attrValue["plain"].AsBool())
@@ -129,7 +129,7 @@ namespace Arcweave.Project
 					var dataString = attrValue["data"].AsString();
 					data = dataString;
 				}
-				else
+				else if (attrValue["type"].AsString() == "component-list")
 				{
 					attrType = IAttribute.DataType.ComponentList;
 					Array<Component> attrComps = new();
@@ -138,6 +138,16 @@ namespace Arcweave.Project
 						attrComps.Add(_components[compId]);
 					}
 					data = attrComps;
+				}
+				else if (attrValue["type"].AsString() == "asset-list")
+				{
+					attrType = IAttribute.DataType.AssetList;
+					Array<Asset> attrAssets = new();
+					foreach (string assetId in attrValue["data"].AsStringArray())
+					{
+						attrAssets.Add(_assets[assetId]);
+					}
+					data = attrAssets;
 				}
 
 				var containerType = attr["cType"].AsString() == "elements" ? IAttribute.ContainerType.Element : IAttribute.ContainerType.Component;
