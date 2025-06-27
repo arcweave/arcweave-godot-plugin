@@ -66,7 +66,10 @@ So the file will now look similar to this:
 
 This will add a required library for the plugin which handles the interpretation of **Arcscript**.
 
-Then refresh your project, go to `Project` -> `Project Settings` -> `Plugins` and enable it.
+Then:
+- Reload your project from `Project` -> `Reload Current Project`
+- Build your Project using the top right build pickaxe icon (or press `Alt + B`)
+- Go to `Project` -> `Project Settings` -> `Plugins` and enable it.
 
 ## Getting data from Arcweave
 
