@@ -1,4 +1,4 @@
-﻿namespace Arcweave.Interpreter
+namespace Arcweave.Interpreter
 {
     public class Utils
     {
@@ -9,16 +9,13 @@
             {
                 s = s.Replace("<strong>", "{bold}").Replace("</strong>", "{/bold}");
                 s = s.Replace("<em>", "{italic}").Replace("</em>", "{/italic}");
-                s = s.Replace("<u>", "{underline}").Replace("</u>", "{/underline}");
                 s = s.Replace("&lt;", string.Empty).Replace("&gt;", string.Empty);
                 s = s.Replace("</p>", "\n\n");
-                s = s.Replace("<br>", "\n");
                 s = s.Replace("<code>", "{code}");
                 s = s.Replace("</code>", "{/code}");
                 s = System.Text.RegularExpressions.Regex.Replace(s, @"<[^>]*>", string.Empty);
                 s = s.Replace("{bold}", "[b]").Replace("{/bold}", "[/b]");
                 s = s.Replace("{italic}", "[i]").Replace("{/italic}", "[/i]");
-                s = s.Replace("{underline}", "[u]").Replace("{/underline}", "[/u]");
                 s = s.Replace("{code}", string.Format("<color={0}>", CODE_HEX_COLOR));
                 s = s.Replace("{/code}", "</color>\n");
                 s = s.TrimEnd();

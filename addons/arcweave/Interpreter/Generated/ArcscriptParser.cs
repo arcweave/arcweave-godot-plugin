@@ -1433,7 +1433,7 @@ public partial class ArcscriptParser : ArcscriptParserBase {
 			Match(MENTION_TAG_CLOSE);
 			State = 213;
 			if (!(this.assertMention(_localctx._attr)
-					)) throw new FailedPredicateException(this, "this.assertMention($attr)\n\t\t");
+					)) throw new FailedPredicateException(this, "this.assertMention($attr)\r\n\t\t");
 			}
 		}
 		catch (RecognitionException re) {

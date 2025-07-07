@@ -124,11 +124,21 @@ namespace Arcweave.Interpreter
         public object Show(IList<object> args) {
             List<string> results = new List<string>();
             foreach (Expression arg in args ) {
-                results.Add(arg.Value.ToString());
+                results.Add(arg.ToString());
             }
             string result = String.Join("", results.ToArray());
-            //UnityEngine.Debug.Log(result);
-            // this.state.outputs.Add(result);
+            // Replace escaped sequences with their actual characters
+            result = result
+                .Replace("\\a", "\a")
+                .Replace("\\b", "\b")
+                .Replace("\\f", "\f")
+                .Replace("\\n", "\n")
+                .Replace("\\r", "\r")
+                .Replace("\\t", "\t")
+                .Replace("\\v", "\v")
+                .Replace("\\'", "'")
+                .Replace("\\\"", "\"")
+                .Replace("\\\\", "\\");
             this.state.Outputs.AddScriptOutput(result);
             return null;
         }
