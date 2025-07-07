@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="ArcweaveAsset" load_steps=2 format=3 uid="uid://cmnanlsystim6"]
 
-[ext_resource type="Script" path="res://addons/arcweave/Editor/ArcweaveAssetScript.gd" id="1_rro12"]
+[ext_resource type="Script" uid="uid://dpjvxabsow167" path="res://addons/arcweave/Editor/ArcweaveAssetScript.gd" id="1_rro12"]
 
 [resource]
 script = ExtResource("1_rro12")

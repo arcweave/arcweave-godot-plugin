@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://c4aplifwk2ofl"]
 
-[ext_resource type="Script" path="res://scripts/CSharpScene.cs" id="2_xoto7"]
-[ext_resource type="Script" path="res://addons/arcweave/Editor/ArcweaveNode.cs" id="3_31kyx"]
+[ext_resource type="Script" uid="uid://lvhnwo762eem" path="res://scripts/CSharpScene.cs" id="2_xoto7"]
+[ext_resource type="Script" uid="uid://ch6p62juc6acm" path="res://addons/arcweave/Editor/ArcweaveNode.cs" id="3_31kyx"]
 [ext_resource type="Resource" uid="uid://cmnanlsystim6" path="res://resources/ArcweaveAsset.tres" id="4_1wps6"]
 
 [node name="CSharpScene" type="Control"]
