@@ -1,30 +1,54 @@
+#nullable enable
 using Antlr4.Runtime;
 using System.Collections.Generic;
 using Arcweave.Interpreter.INodes;
 
 namespace Arcweave.Interpreter
 {
-
     public class AwInterpreter
     {
         private IProject Project { get; set; }
         private string ElementId { get; set; }
 
-        public AwInterpreter(IProject project, string elementId = "")
+        private System.Action<string> _emit;
+
+        public AwInterpreter(IProject project, string elementId = "", System.Action<string>? onEvent = null)
         {
             this.Project = project;
             this.ElementId = elementId;
+            if (onEvent != null)
+            {
+                _emit = onEvent;
+            }
+            else
+            {
+                _emit = (string eventName) => { };
+            }
         }
 
         private ArcscriptParser.InputContext GetParseTree(string code)
         {
             ICharStream stream = CharStreams.fromString(code);
-            ITokenSource lexer = new ArcscriptLexer(stream);
+            ArcscriptLexer lexer = new ArcscriptLexer(stream);
+            var lexerErrorListener = new ErrorListener<int>();
+            lexer.AddErrorListener(lexerErrorListener);
             ITokenStream tokens = new CommonTokenStream(lexer);
+            var parserErrorListener = new ErrorListener<IToken>();
             ArcscriptParser parser = new ArcscriptParser(tokens);
+            parser.AddErrorListener(parserErrorListener);
             parser.SetProject(Project);
 
             ArcscriptParser.InputContext tree = parser.input();
+            
+            if (lexerErrorListener.HasErrors)
+            {
+                throw new ParseException("Lexing errors:\n" + string.Join("\n", lexerErrorListener.Errors));
+            }
+            if (parserErrorListener.HasErrors)
+            {
+                throw new ParseException("Parsing errors:\n" + string.Join("\n", parserErrorListener.Errors));
+            }
+            
             return tree;
         }
 
@@ -34,9 +58,27 @@ namespace Arcweave.Interpreter
             {
                 return new TranspilerOutput();
             }
-            ArcscriptParser.InputContext tree = this.GetParseTree(code);
-            ArcscriptVisitor visitor = new ArcscriptVisitor(this.ElementId, this.Project);
-            object result = tree.Accept(visitor);
+
+            ArcscriptParser.InputContext tree;
+            try
+            {
+                tree = this.GetParseTree(code);
+            }
+            catch (System.Exception e)
+            {
+                throw new ParseException(e.Message, e);
+            }
+            
+            ArcscriptVisitor visitor = new ArcscriptVisitor(this.ElementId, this.Project, _emit);
+            object result;
+            try
+            {
+                result = tree.Accept(visitor);
+            }
+            catch (System.Exception e)
+            {
+                throw new RuntimeException($"Error interpreting Arcscript code: {e.Message}\nCode:\n{code}", e);
+            }
 
             // List<string> outputs = visitor.state.outputs;
             var outputResult = visitor.state.Outputs.GetText();

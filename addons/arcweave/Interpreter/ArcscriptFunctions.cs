@@ -26,7 +26,8 @@ namespace Arcweave.Interpreter
             { "round", typeof (int) },
             { "min", typeof (double) },
             { "max", typeof (double) },
-            { "visits", typeof (int) }
+            { "visits", typeof (int) },
+            { "resetVisits", typeof (void) },
         };
 
         public Functions(string elementId, IProject project, ArcscriptState state) {
@@ -46,6 +47,7 @@ namespace Arcweave.Interpreter
             this.functions["min"] = this.Min;
             this.functions["max"] = this.Max;
             this.functions["visits"] = this.Visits;
+            this.functions["resetVisits"] = this.ResetVisits;
         }
 
         public object Sqrt(IList<object> args) {
@@ -62,7 +64,12 @@ namespace Arcweave.Interpreter
             {
                 n = (double)e.Value;
             }
-            return Math.Sqrt(n);
+            var result = Math.Sqrt(n);
+            if (double.IsNaN(result))
+            {
+                throw new InvalidOperationException("Cannot compute square root of a negative number.");
+            }
+            return result;
         }
 
         public object Sqr(IList<object> args) {
@@ -188,6 +195,11 @@ namespace Arcweave.Interpreter
             }
             IElement element = this._project.ElementWithId(elementId);
             return element.Visits;
+        }
+        
+        public object ResetVisits(IList<object> args) {
+            this.state.ResetVisits();
+            return null;
         }
     }
 }
