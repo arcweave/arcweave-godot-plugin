@@ -34,6 +34,7 @@ namespace Arcweave.Interpreter
             { "show", new FunctionArgs { MinArgs=1 } },
             { "reset", new FunctionArgs { MinArgs=1 } },
             { "resetAll", new FunctionArgs { MinArgs=0 } },
+            { "resetVisits", new FunctionArgs { MinArgs=0, MaxArgs = 0} },
         };
 
             this.ArcscriptFunctions = functions;
@@ -54,6 +55,7 @@ namespace Arcweave.Interpreter
             { "show", new FunctionArgs { MinArgs=1 } },
             { "reset", new FunctionArgs { MinArgs=1 } },
             { "resetAll", new FunctionArgs { MinArgs=0 } },
+            { "resetVisits", new FunctionArgs { MinArgs=0, MaxArgs = 0} },
         };
 
             this.ArcscriptFunctions = functions;
@@ -90,7 +92,7 @@ namespace Arcweave.Interpreter
                 }
                 attrs.Add(attrName, attrValue);
             }
-            string[] classList = attrs["class"].Split(" ");
+            string[] classList = attrs["class"].Split(' ');
             if ( !classList.Contains("mention") ) {
                 return false;
             }
@@ -111,7 +113,7 @@ namespace Arcweave.Interpreter
             var min = this.ArcscriptFunctions[fname.Text].MinArgs;
             var max = this.ArcscriptFunctions[fname.Text].MaxArgs;
             if ( ( min != null && argListLength < min ) || ( max != null && argListLength > max ) ) {
-                return false;
+                throw new RecognitionException("Incorrect number of arguments for function " + fname.Text, this, this.InputStream, this.Context);
             }
             return true;
         }
@@ -121,7 +123,7 @@ namespace Arcweave.Interpreter
             var min = this.ArcscriptFunctions[fname.Text].MinArgs;
             var max = this.ArcscriptFunctions[fname.Text].MaxArgs;
             if ( ( min != null && varListLength < min ) || ( max != null && varListLength > max ) ) {
-                return false;
+                throw new RecognitionException("Incorrect number of arguments for function " + fname.Text, this, this.InputStream, this.Context);
             }
             return true;
         }

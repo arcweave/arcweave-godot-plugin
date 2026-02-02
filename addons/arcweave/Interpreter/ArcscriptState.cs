@@ -1,6 +1,8 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using Arcweave.Interpreter.INodes;
+using Arcweave.Project;
 
 namespace Arcweave.Interpreter
 {
@@ -11,14 +13,24 @@ namespace Arcweave.Interpreter
         public ArcscriptOutputs Outputs;
         public string currentElement { get; set; }
         public IProject project { get; set; }
-        public ArcscriptState(string elementId, IProject project)
+
+        private System.Action<string> _emit;
+        public ArcscriptState(string elementId, IProject project, System.Action<string>? emit = null)
         {
             Outputs = new ArcscriptOutputs();
             this.currentElement = elementId;
             this.project = project;
+            if (emit != null)
+            {
+                _emit = emit;
+            }
+            else
+            {
+                _emit = (string eventName) => { };
+            }
         }
 
-        public IVariable GetVariable(string name) {
+        public IVariable? GetVariable(string name) {
             try
             {
                 return this.project.Variables.First(variable => variable.Name == name);
@@ -42,6 +54,22 @@ namespace Arcweave.Interpreter
             for ( int i = 0; i < names.Length; i++ ) {
                 this.VariableChanges[names[i]] = values[i];
             }
+        }
+
+        public void ResetVisits()
+        {
+            foreach (var board in project.Boards)
+            {
+#if GODOT
+                foreach (var element in board.Value.Elements)
+#else
+                foreach (var element in board.Nodes.OfType<Element>())
+#endif
+                {
+                    element.Visits = 0;
+                }
+            }
+            _emit("resetVisits");
         }
     }
 }
