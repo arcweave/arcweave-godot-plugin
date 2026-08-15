@@ -1,11 +1,15 @@
-﻿using Godot;
+﻿using System;
+using Arcweave.Interpreter.INodes;
+using Godot;
 
 namespace Arcweave.Project
 {
     public partial class Variable
     {
         [Signal] public delegate void VariableUpdatedEventHandler(Variant oldValue, Variant newValue);
+        [Export] public string Id { get; private set; }
         public string Name { get; set; }
+        public IHasVariables Parent { get; set; }
         public bool Changed;
         private Variant _value;
 
@@ -44,12 +48,21 @@ namespace Arcweave.Project
             }
         }
 
-        public Variable(string name, Variant value)
+        public Variable(string name, Variant value) : this(name, name, value) { }
+
+        public Variable(string id, string name, Variant value, IHasVariables parent = null)
         {
+            if (value.VariantType == Variant.Type.Nil)
+            {
+                throw new ArgumentNullException(nameof(value), "Variable value cannot be null.");
+            }
+
+            Id = id;
             Name = name;
             Value = value;
             _defaultValue = value;
-            this._typeName = value.GetType().FullName;
+            _typeName = value.GetType().FullName;
+            Parent = parent;
             Changed = false;
         }
 

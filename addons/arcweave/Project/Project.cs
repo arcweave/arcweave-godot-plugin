@@ -52,7 +52,7 @@ namespace Arcweave.Project
         /// </summary>
         public void ResetVariables()
         {
-            foreach (var variable in Variables)
+            foreach (var variable in GetAllVariables())
             {
                 variable.ResetToDefaultValue();
             }
@@ -70,20 +70,38 @@ namespace Arcweave.Project
         }
 
         /// <summary>
-        /// Returns a Variable based on it's name
+        /// Returns a global variable by name, or a scoped variable when an owner custom ID is provided.
         /// </summary>
         /// <param name="name">The variable name</param>
         /// <returns>The variable of null if not found</returns>
-        public Variable GetVariable(string name)
+        public Variable GetVariable(string name, string scope = null)
         {
-            try
+            if (scope == null)
             {
-                return Variables.First(x => x.Name == name);
+                return Variables.FirstOrDefault(variable => variable.Name == name);
             }
-            catch (System.InvalidOperationException)
-            {
-                return null;
-            }
+
+            var container = Boards.Values.Cast<IHasVariables>()
+                .Concat(Components.Values)
+                .FirstOrDefault(candidate => candidate.CustomId == scope);
+            return container?.Variables.FirstOrDefault(variable => variable.Name == name);
+        }
+
+        public Variable GetVariableById(string id)
+        {
+            return GetAllVariables().FirstOrDefault(variable => variable.Id == id);
+        }
+
+        public System.Collections.Generic.IEnumerable<Variable> GetAllVariables()
+        {
+            var globals = Variables ?? new Array<Variable>();
+            var boardVariables = Boards == null
+                ? Enumerable.Empty<Variable>()
+                : Boards.Values.SelectMany(board => board.Variables ?? new Array<Variable>());
+            var componentVariables = Components == null
+                ? Enumerable.Empty<Variable>()
+                : Components.Values.SelectMany(component => component.Variables ?? new Array<Variable>());
+            return globals.Concat(boardVariables).Concat(componentVariables);
         }
 
         /// <summary>
@@ -115,14 +133,15 @@ namespace Arcweave.Project
         public Project Merge(Project project)
         {
             // Set the old variable values to the new project
-            foreach (var variable in Variables)
+            foreach (var variable in GetAllVariables())
             {
-                var projVariable = project.Variables.FirstOrDefault(variable1 => variable1.Name == variable.Name);
+                var projVariable = project.GetVariableById(variable.Id);
                 if (projVariable != null)
                 {
                     if (projVariable.Type == variable.Type)
                     {
                         projVariable.Value = variable.Value;
+                        projVariable.Changed = false;
                     }
                 }
             }
@@ -157,52 +176,66 @@ namespace Arcweave.Project
         /// <returns>True if the variable is set, False if the variable doesn't exist</returns>
         public bool SetVariable(string name, object value)
         {
-            try
+            return SetVariableValue(GetVariable(name), value);
+        }
+
+        public bool SetScopedVariable(string name, string scope, object value)
+        {
+            return SetVariableValue(GetVariable(name, scope), value);
+        }
+
+        public bool SetVariableById(string id, object value)
+        {
+            return SetVariableValue(GetVariableById(id), value);
+        }
+
+        private static bool SetVariableValue(Variable variable, object value)
+        {
+            if (variable == null || value == null) return false;
+
+            if (value is Variant variant)
             {
-                Variable variable = Variables.First(x => x.Name == name);
-                if (value is Variant)
-                {
-                    variable.Value = (Variant)value;
-                }
-                else
-                {
-                    switch (Type.GetTypeCode(value.GetType()))
-                    {
-                        case TypeCode.String:
-                            variable.Value = (string)value;
-                            break;
-                        case TypeCode.Boolean:
-                            variable.Value = (bool)value;
-                            break;
-                        case TypeCode.Int32:
-                            variable.Value = (int)value;
-                            break;
-                        case TypeCode.Double:
-                            variable.Value = (double)value;
-                            break;
-                        default:
-                            variable.Value = default;
-                            break;
-                    }
-                }
-                
+                if (variant.VariantType == Variant.Type.Nil) return false;
+                variable.Value = variant;
+                return true;
             }
-            catch (System.InvalidOperationException)
+
+            switch (Type.GetTypeCode(value.GetType()))
             {
-                return false;
+                case TypeCode.String:
+                    variable.Value = (string)value;
+                    break;
+                case TypeCode.Boolean:
+                    variable.Value = (bool)value;
+                    break;
+                case TypeCode.Int32:
+                    variable.Value = (int)value;
+                    break;
+                case TypeCode.Int64:
+                    variable.Value = (long)value;
+                    break;
+                case TypeCode.Single:
+                    variable.Value = (float)value;
+                    break;
+                case TypeCode.Double:
+                    variable.Value = (double)value;
+                    break;
+                default:
+                    return false;
             }
+
             return true;
         }
         
         /// <summary>
         /// Returns a dictionary of the saved variables that can be loaded later.
         /// </summary>
-        /// <returns>A dictionary with key the variable name and value the variable value</returns>
+        /// <returns>A dictionary with stable variable IDs as keys and current values as values.</returns>
         public Dictionary<string, Variant> SaveVariables() {
             var save = new Dictionary<string, Variant>();
-            foreach ( var variable in Variables )
+            foreach ( var variable in GetAllVariables() )
             {
-                save[variable.Name] = variable.Value;
+                save[variable.Id] = variable.Value;
             }
             return save;
         }
@@ -214,7 +247,8 @@ namespace Arcweave.Project
         public void LoadVariables(Dictionary<string, Variant> save) {
             foreach (var entry in save)
             {
-                var variable = Variables.FirstOrDefault(_variable => _variable.Name == entry.Key);
+                var variable = GetVariableById(entry.Key) ??
+                               Variables.FirstOrDefault(global => global.Name == entry.Key);
                 if (variable != null)
                 {
                     variable.Value = entry.Value;

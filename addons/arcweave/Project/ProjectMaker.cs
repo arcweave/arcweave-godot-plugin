@@ -30,6 +30,7 @@ namespace Arcweave.Project
 		private readonly Dictionary<string, Jumper> _jumpers;
 		private readonly Dictionary<string, Branch> _branches;
 		private readonly Array<Variable> _variables;
+		private readonly Dictionary<string, Variable> _variablesById;
 		private readonly Dictionary<string, Note> _notes;
 		private readonly Dictionary<string, Asset> _assets;
 
@@ -57,6 +58,7 @@ namespace Arcweave.Project
 			_jumpers = new Dictionary<string, Jumper>();
 			_branches = new Dictionary<string, Branch>();
 			_variables = new Array<Variable>();
+			_variablesById = new Dictionary<string, Variable>();
 			_notes = new Dictionary<string, Note>();
 			_assets = new Dictionary<string, Asset>();
 		}
@@ -103,7 +105,8 @@ namespace Arcweave.Project
 						}
 					}
 				}
-				_components[key] = new Component(key, comp["name"].AsString(), coverAsset);
+				string customId = comp.ContainsKey("customId") ? comp["customId"].AsString() : null;
+				_components[key] = new Component(key, customId, comp["name"].AsString(), coverAsset);
 				foreach (string attrId in comp["attributes"].AsStringArray())
 				{
 					_components[key].AddAttribute(_attributes[attrId]);
@@ -115,21 +118,26 @@ namespace Arcweave.Project
 				Dictionary attr = _attributesDict[key].AsGodotDictionary();
 				IAttribute.DataType attrType = IAttribute.DataType.Undefined;
 				Dictionary attrValue = attr["value"].AsGodotDictionary();
+				string valueType = attrValue["type"].AsString();
 				object data = null;
-				if (attrValue["type"].AsString() == "string")
+				if (valueType == "string")
 				{
 					if (attrValue.ContainsKey("plain") && attrValue["plain"].AsBool())
 					{
 						attrType = IAttribute.DataType.StringPlainText;
+						data = !attrValue.ContainsKey("data") || attrValue["data"].VariantType == Variant.Type.Nil
+							? string.Empty
+							: attrValue["data"].AsString();
 					}
 					else
 					{
 						attrType = IAttribute.DataType.StringRichText;
+						data = !attrValue.ContainsKey("data") || attrValue["data"].VariantType == Variant.Type.Nil
+							? string.Empty
+							: attrValue["data"].AsString();
 					}
-					var dataString = attrValue["data"].AsString();
-					data = dataString;
 				}
-				else if (attrValue["type"].AsString() == "component-list")
+				else if (valueType == "component-list")
 				{
 					attrType = IAttribute.DataType.ComponentList;
 					Array<Component> attrComps = new();
@@ -139,7 +147,7 @@ namespace Arcweave.Project
 					}
 					data = attrComps;
 				}
-				else if (attrValue["type"].AsString() == "asset-list")
+				else if (valueType == "asset-list")
 				{
 					attrType = IAttribute.DataType.AssetList;
 					Array<Asset> attrAssets = new();
@@ -149,10 +157,35 @@ namespace Arcweave.Project
 					}
 					data = attrAssets;
 				}
+				else if (valueType == "boolean" && attrValue.ContainsKey("data") &&
+				         attrValue["data"].VariantType != Variant.Type.Nil)
+				{
+					attrType = IAttribute.DataType.Boolean;
+					data = attrValue["data"].AsBool();
+				}
+				else if (valueType == "integer" && attrValue.ContainsKey("data") &&
+				         attrValue["data"].VariantType != Variant.Type.Nil)
+				{
+					attrType = IAttribute.DataType.Integer;
+					data = attrValue["data"].AsInt32();
+				}
+				else if (valueType == "float" && attrValue.ContainsKey("data") &&
+				         attrValue["data"].VariantType != Variant.Type.Nil)
+				{
+					attrType = IAttribute.DataType.Float;
+					data = attrValue["data"].AsDouble();
+				}
 
-				var containerType = attr["cType"].AsString() == "elements" ? IAttribute.ContainerType.Element : IAttribute.ContainerType.Component;
+				var containerType = attr["cType"].AsString() switch
+				{
+					"elements" => IAttribute.ContainerType.Element,
+					"components" => IAttribute.ContainerType.Component,
+					"boards" => IAttribute.ContainerType.Board,
+					_ => IAttribute.ContainerType.Undefined
+				};
+				string customId = attr.ContainsKey("customId") ? attr["customId"].AsString() : null;
 
-				_attributes[key].Set(key, attr["name"].AsString(), attrType, data, containerType, attr["cId"].AsString());
+				_attributes[key].Set(key, customId, attr["name"].AsString(), attrType, data, containerType, attr["cId"].AsString());
 			}
 
 			foreach (string key in _connectionsDict.Keys)
@@ -342,38 +375,126 @@ namespace Arcweave.Project
 				string customId = board.ContainsKey("customId") ? board["customId"].AsString() : null;
 
 				_boards[key] = new Board(key, board["name"].AsString(), customId, boardElements, boardConnections, boardJumpers, boardBranches, boardNotes);
+				if (board.ContainsKey("attributes"))
+				{
+					foreach (string attributeId in board["attributes"].AsStringArray())
+					{
+						if (_attributes.TryGetValue(attributeId, out var attribute))
+						{
+							_boards[key].AddAttribute(attribute);
+						}
+					}
+				}
 			}
 
 			foreach (string key in _variablesDict.Keys)
 			{
 				Dictionary variable = _variablesDict[key].AsGodotDictionary();
 				if (variable.ContainsKey("children")) continue;
-				Variant value = default;
-				string type = variable["type"].AsString();
-				switch (type)
+				if (!TryGetVariableValue(variable, out var value))
 				{
-					case "integer":
-						value = variable["value"].AsInt32();
-						break;
-					case "float":
-						value = variable["value"].AsDouble();
-						break;
-					case "string":
-						value = variable["value"].AsString();
-						break;
-					case "boolean":
-						value = variable["value"].AsBool();
-						break;
-					default:
-						GD.Print("[Arcweave] Variable type \"" + variable["type"].AsString() + "\" not found");
-						break;
+					continue;
 				}
-				_variables.Add(new Variable(variable["name"].AsString(), value));
-				
+
+				string containerType = variable.ContainsKey("cType") ? variable["cType"].AsString() : "global";
+				Variable runtimeVariable;
+				if (containerType == "boards")
+				{
+					string boardId = variable.ContainsKey("cId") ? variable["cId"].AsString() : null;
+					if (string.IsNullOrEmpty(boardId) || !_boards.TryGetValue(boardId, out var board))
+					{
+						GD.PushWarning($"[Arcweave] Variable '{variable["name"].AsString()}' references a missing board '{boardId}'.");
+						continue;
+					}
+					runtimeVariable = new Variable(key, variable["name"].AsString(), value, board);
+					board.AddVariable(runtimeVariable);
+				}
+				else
+				{
+					runtimeVariable = new Variable(key, variable["name"].AsString(), value);
+					_variables.Add(runtimeVariable);
+				}
+
+				_variablesById[key] = runtimeVariable;
 			}
+
+			MakeAttributeVariables();
 
 			project.Set(_startingElement, _boards, _components, _variables, _elements, _assets);
 			return project;
+		}
+
+		private bool TryGetVariableValue(Dictionary variable, out Variant value)
+		{
+			value = default;
+			if (!variable.ContainsKey("type") || !variable.ContainsKey("value") ||
+				variable["value"].VariantType == Variant.Type.Nil)
+			{
+				return false;
+			}
+
+			switch (variable["type"].AsString())
+			{
+				case "integer":
+					value = variable["value"].AsInt32();
+					return true;
+				case "float":
+					value = variable["value"].AsDouble();
+					return true;
+				case "string":
+					value = variable["value"].AsString();
+					return true;
+				case "boolean":
+					value = variable["value"].AsBool();
+					return true;
+				default:
+					GD.PushWarning("[Arcweave] Variable type \"" + variable["type"].AsString() + "\" not found");
+					return false;
+			}
+		}
+
+		private void MakeAttributeVariables()
+		{
+			foreach (var board in _boards.Values)
+			{
+				MakeAttributeVariables(board, board.Id, IAttribute.ContainerType.Board, board.Attributes);
+			}
+
+			foreach (var component in _components.Values)
+			{
+				MakeAttributeVariables(component, component.Id, IAttribute.ContainerType.Component, component.Attributes);
+			}
+		}
+
+		private void MakeAttributeVariables(IHasVariables container, string containerId,
+			IAttribute.ContainerType containerType, Array<Attribute> attributes)
+		{
+			if (string.IsNullOrEmpty(container.CustomId)) return;
+
+			foreach (var attribute in attributes)
+			{
+				if (!IsVariableAttribute(attribute, containerId, containerType) ||
+					_variablesById.ContainsKey(attribute.Id))
+				{
+					continue;
+				}
+
+				var variable = new Variable(attribute.Id, attribute.CustomId, attribute.data, container);
+				_variablesById[attribute.Id] = variable;
+				container.AddVariable(variable);
+			}
+		}
+
+		private static bool IsVariableAttribute(Attribute attribute, string containerId,
+			IAttribute.ContainerType containerType)
+		{
+			if (attribute == null || string.IsNullOrEmpty(attribute.CustomId)) return false;
+			if (attribute.containerType != containerType || attribute.containerId != containerId) return false;
+
+			return attribute.Type == IAttribute.DataType.Boolean ||
+			       attribute.Type == IAttribute.DataType.Integer ||
+			       attribute.Type == IAttribute.DataType.Float ||
+			       attribute.Type == IAttribute.DataType.StringPlainText;
 		}
 
 		public void MakeAssets(Array<string> assetIds, string path)
