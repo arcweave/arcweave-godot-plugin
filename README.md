@@ -166,7 +166,7 @@ castle.health = 10
 hero.health = 20
 ```
 
-Unqualified names resolve global variables only. Scoped variables can be retrieved and changed from C# with `GetVariable(name, scope)` and `SetScopedVariable(name, scope, value)`. `GetAllVariables()` enumerates every scope, while `SetVariableById(id, value)` applies changes using the stable Arcweave variable or attribute ID.
+Unqualified names resolve global variables only. Scoped variables can be retrieved and changed from C# with `GetScopedVariable(name, scope)` and `SetScopedVariable(name, scope, value)`. The existing `GetVariable(name)` API remains global-only. `GetAllVariables()` enumerates every scope, while `SetVariableById(id, value)` applies changes using the stable Arcweave variable or attribute ID.
 
 Variable saves and `Story.GetVariableChanges()` use stable IDs as keys so repeated member names remain distinct across scopes. Projects must be exported from a compatible Arcweave version after its board variables have been migrated to attributes.
 

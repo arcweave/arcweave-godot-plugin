@@ -70,21 +70,33 @@ namespace Arcweave.Project
         }
 
         /// <summary>
-        /// Returns a global variable by name, or a scoped variable when an owner custom ID is provided.
+        /// Returns a global variable by name.
         /// </summary>
         /// <param name="name">The variable name</param>
-        /// <returns>The variable of null if not found</returns>
-        public Variable GetVariable(string name, string scope = null)
+        /// <returns>The variable or null if not found</returns>
+        public Variable GetVariable(string name)
         {
-            if (scope == null)
-            {
-                return Variables.FirstOrDefault(variable => variable.Name == name);
-            }
+            return Variables.FirstOrDefault(variable => variable.Name == name);
+        }
 
+        /// <summary>
+        /// Returns a board or component variable by member name and owner custom ID.
+        /// </summary>
+        /// <param name="name">The variable member name</param>
+        /// <param name="scope">The board or component custom ID</param>
+        /// <returns>The variable or null if not found</returns>
+        public Variable GetScopedVariable(string name, string scope)
+        {
+            if (string.IsNullOrEmpty(scope)) return null;
             var container = Boards.Values.Cast<IHasVariables>()
                 .Concat(Components.Values)
                 .FirstOrDefault(candidate => candidate.CustomId == scope);
             return container?.Variables.FirstOrDefault(variable => variable.Name == name);
+        }
+
+        Variable IProject.GetVariable(string name, string scope)
+        {
+            return scope == null ? GetVariable(name) : GetScopedVariable(name, scope);
         }
 
         public Variable GetVariableById(string id)
@@ -181,7 +193,7 @@ namespace Arcweave.Project
 
         public bool SetScopedVariable(string name, string scope, object value)
         {
-            return SetVariableValue(GetVariable(name, scope), value);
+            return SetVariableValue(GetScopedVariable(name, scope), value);
         }
 
         public bool SetVariableById(string id, object value)

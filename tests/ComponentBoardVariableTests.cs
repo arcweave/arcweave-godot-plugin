@@ -40,20 +40,24 @@ public partial class ComponentBoardVariableTests : Node
         AssertEqual(7, project.GetAllVariables().Count(), "all variable count");
 
         AssertVariable(project.GetVariable("health"), "global-health", 100, null);
-        AssertVariable(project.GetVariable("health", "castle"), "board-health", 10, board);
-        AssertVariable(project.GetVariable("health", "hero"), "component-health", 20, component);
-        AssertVariable(project.GetVariable("is_open", "castle"), "board-open", true, board);
-        AssertVariable(project.GetVariable("rate", "castle"), "board-rate", 1.5d, board);
-        AssertVariable(project.GetVariable("title", "castle"), "board-title", string.Empty, board);
-        AssertVariable(project.GetVariable("label", "hero"), "component-label", string.Empty, component);
-        Assert(project.GetVariable("summary", "castle") == null, "rich text must not become a variable");
+        AssertVariable(project.GetScopedVariable("health", "castle"), "board-health", 10, board);
+        AssertVariable(project.GetScopedVariable("health", "hero"), "component-health", 20, component);
+        AssertVariable(project.GetScopedVariable("is_open", "castle"), "board-open", true, board);
+        AssertVariable(project.GetScopedVariable("rate", "castle"), "board-rate", 1.5d, board);
+        AssertVariable(project.GetScopedVariable("title", "castle"), "board-title", string.Empty, board);
+        AssertVariable(project.GetScopedVariable("label", "hero"), "component-label", string.Empty, component);
+        Assert(project.GetScopedVariable("summary", "castle") == null, "rich text must not become a variable");
         Assert(board.Variables.All(variable => variable.Id != "board-ordinary"),
             "attribute without a custom ID must not become a variable");
+        AssertVariable(project.Call(nameof(Arcweave.Project.Project.GetVariable), "health").AsGodotObject() as Variable,
+            "global-health", 100, null);
+        AssertVariable(project.Call(nameof(Arcweave.Project.Project.GetScopedVariable), "health", "castle")
+            .AsGodotObject() as Variable, "board-health", 10, board);
 
         project.StartingElement.RunContentScript();
         AssertEqual(101, project.GetVariable("health").ObjectValue, "global assignment");
-        AssertEqual(11, project.GetVariable("health", "castle").ObjectValue, "board assignment");
-        AssertEqual(21, project.GetVariable("health", "hero").ObjectValue, "component assignment");
+        AssertEqual(11, project.GetScopedVariable("health", "castle").ObjectValue, "board assignment");
+        AssertEqual(21, project.GetScopedVariable("health", "hero").ObjectValue, "component assignment");
 
         var resetAll = new AwInterpreter(project).RunScript(
             "<pre><code>resetAll(hero.health)</code></pre>");
@@ -69,8 +73,8 @@ public partial class ComponentBoardVariableTests : Node
         project.ResetVariables();
         project.LoadVariables(save);
         AssertEqual(101, project.GetVariable("health").ObjectValue, "global save/load");
-        AssertEqual(11, project.GetVariable("health", "castle").ObjectValue, "board save/load");
-        AssertEqual(21, project.GetVariable("health", "hero").ObjectValue, "component save/load");
+        AssertEqual(11, project.GetScopedVariable("health", "castle").ObjectValue, "board save/load");
+        AssertEqual(21, project.GetScopedVariable("health", "hero").ObjectValue, "component save/load");
 
         var refreshedProject = MakeProject();
         project.Merge(refreshedProject);
