@@ -83,7 +83,7 @@ namespace Arcweave.Interpreter
             // List<string> outputs = visitor.state.outputs;
             var outputResult = visitor.state.Outputs.GetText();
 
-            var isCondition = tree.script() != null;
+            var isCondition = tree.condition() != null;
 
             return new TranspilerOutput(outputResult, visitor.state.VariableChanges, result, isCondition);
         }
