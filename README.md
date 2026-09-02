@@ -18,6 +18,7 @@ The Arcweave Godot Export feature is available to all Arcweave users, including 
       - [Create your own Node](#create-your-own-node)
   - [Our Implementation](#our-implementation)
   - [Using the Plugin](#using-the-plugin)
+    - [Scoped variables](#scoped-variables)
     - [C#](#c)
     - [GDScript](#gdscript)
   - [API Documentation](#api-documentation)
@@ -51,11 +52,9 @@ Open the `.csproj` file, and after the `PropertyGroup` part, add the following:
 So the file will now look similar to this:
 
 ```xml
-<Project Sdk="Godot.NET.Sdk/4.2.1">
+<Project Sdk="Godot.NET.Sdk/4.4.0">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net7.0</TargetFramework>
-    <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'ios' ">net8.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
   </PropertyGroup>
   <ItemGroup>
@@ -156,6 +155,20 @@ We are planning to integrate Godot types in our interpreter in the near future t
 Using Godot's functionality for [Cross-language scripting](https://docs.godotengine.org/en/stable/tutorials/scripting/cross_language_scripting.html) you can use the plugin both from GDScript and C# Godot Projects. The only limitation is using the *.NET*  version of Godot Engine.
 
 In this repo we are providing a simple Demo of both implementations.
+
+### Scoped variables
+
+Boolean, integer, float, and plain-string attributes can be used as Arcscript variables when both the attribute and its owning board or component have custom IDs. The attribute custom ID is the member name, while the board or component custom ID is its scope:
+
+```arcscript
+health = 100
+castle.health = 10
+hero.health = 20
+```
+
+Unqualified names resolve global variables only. Scoped variables can be retrieved and changed from C# with `GetScopedVariable(name, scope)` and `SetScopedVariable(name, scope, value)`. The existing `GetVariable(name)` API remains global-only. `GetAllVariables()` enumerates every scope, while `SetVariableById(id, value)` applies changes using the stable Arcweave variable or attribute ID.
+
+Variable saves and `Story.GetVariableChanges()` use stable IDs as keys so repeated member names remain distinct across scopes. Projects must be exported from a compatible Arcweave version after its board variables have been migrated to attributes.
 
 ### C#
 

@@ -3,66 +3,35 @@ using Antlr4.Runtime;
 using System.IO;
 using System.Linq;
 using Arcweave.Interpreter.INodes;
+using Arcweave.Project;
 
 namespace Arcweave.Interpreter
 {
     public class ArcscriptParserBase : Parser
     {
-        private class FunctionArgs
-        {
-            public int? MinArgs { get; set; }
-            public int? MaxArgs { get; set; }
-        }
-
-        private Dictionary<string, FunctionArgs> ArcscriptFunctions;
         private protected IProject Project { get; private set; }
-
+        private protected List<string> VariableNames = new List<string>();
         internal int currentLine;
         internal int openTagEndPos;
-        public ArcscriptParserBase(ITokenStream input) : base(input) {
-            var functions = new Dictionary<string, FunctionArgs>()
-        {
-            { "abs", new FunctionArgs { MinArgs=1, MaxArgs=1 } },
-            { "max", new FunctionArgs { MinArgs=2 } },
-            { "min", new FunctionArgs { MinArgs=2 } },
-            { "random", new FunctionArgs { MinArgs=0, MaxArgs=0 } },
-            { "roll", new FunctionArgs { MinArgs=1, MaxArgs=2 } },
-            { "round", new FunctionArgs { MinArgs=1, MaxArgs=1 } },
-            { "sqr", new FunctionArgs { MinArgs=1, MaxArgs=1 } },
-            { "sqrt", new FunctionArgs { MinArgs=1, MaxArgs=1 } },
-            { "visits", new FunctionArgs { MinArgs=0, MaxArgs=1 } },
-            { "show", new FunctionArgs { MinArgs=1 } },
-            { "reset", new FunctionArgs { MinArgs=1 } },
-            { "resetAll", new FunctionArgs { MinArgs=0 } },
-            { "resetVisits", new FunctionArgs { MinArgs=0, MaxArgs = 0} },
-        };
 
-            this.ArcscriptFunctions = functions;
+
+
+        public ArcscriptParserBase(ITokenStream input) : base(input)
+        {
         }
 
-        public ArcscriptParserBase(ITokenStream input, TextWriter output, TextWriter errorOutput) : base(input, output, errorOutput) {
-            var functions = new Dictionary<string, FunctionArgs>()
+        public ArcscriptParserBase(ITokenStream input, TextWriter output, TextWriter errorOutput) : base(input, output, errorOutput)
         {
-            { "abs", new FunctionArgs { MinArgs=1, MaxArgs=1 } },
-            { "max", new FunctionArgs { MinArgs=2 } },
-            { "min", new FunctionArgs { MinArgs=2 } },
-            { "random", new FunctionArgs { MinArgs=0, MaxArgs=0 } },
-            { "roll", new FunctionArgs { MinArgs=1, MaxArgs=2 } },
-            { "round", new FunctionArgs { MinArgs=1, MaxArgs=1 } },
-            { "sqr", new FunctionArgs { MinArgs=1, MaxArgs=1 } },
-            { "sqrt", new FunctionArgs { MinArgs=1, MaxArgs=1 } },
-            { "visits", new FunctionArgs { MinArgs=0, MaxArgs=1 } },
-            { "show", new FunctionArgs { MinArgs=1 } },
-            { "reset", new FunctionArgs { MinArgs=1 } },
-            { "resetAll", new FunctionArgs { MinArgs=0 } },
-            { "resetVisits", new FunctionArgs { MinArgs=0, MaxArgs = 0} },
-        };
-
-            this.ArcscriptFunctions = functions;
         }
 
         public void SetProject(IProject project) {
             this.Project = project;
+            foreach (var projectVariable in project.GetAllVariables())
+            {
+                VariableNames.Add(projectVariable.Parent == null
+                    ? projectVariable.Name
+                    : projectVariable.Parent.CustomId + "." + projectVariable.Name);
+            }
         }
 
         public override string[] RuleNames => throw new System.NotImplementedException();
@@ -71,9 +40,10 @@ namespace Arcweave.Interpreter
 
         public override string GrammarFileName => throw new System.NotImplementedException();
 
-        public bool assertVariable(IToken variable) {
-            var variableName = variable.Text;
-            var found = this.Project.Variables.First(x => x.Name == variableName);
+        public bool assertVariable(ArcscriptParser.IdentifierContext identifierContext) {
+            var variableName = identifierContext.GetText();
+
+            var found = VariableNames.First(name => name == variableName);
             if ( found != null ) {
                 return false;
             }
@@ -105,26 +75,42 @@ namespace Arcweave.Interpreter
             return true;
         }
 
-        public bool assertFunctionArguments(IToken fname, ArcscriptParser.Argument_listContext argumentList) {
+        public bool assertFunctionArguments(IToken fname, ArcscriptParser.Argument_listContext argumentListContext) {
             int argListLength = 0;
-            if ( argumentList != null && argumentList.argument() != null ) {
-                argListLength = argumentList.argument().Length;
+            if ( argumentListContext != null && argumentListContext.argument() != null ) {
+                argListLength = argumentListContext.argument().Length;
             }
-            var min = this.ArcscriptFunctions[fname.Text].MinArgs;
-            var max = this.ArcscriptFunctions[fname.Text].MaxArgs;
+            var min = Functions.FunctionDefinitions[fname.Text].MinArgs;
+            var max = Functions.FunctionDefinitions[fname.Text].MaxArgs;
+            var argType = Functions.FunctionDefinitions[fname.Text].ArgumentsType;
             if ( ( min != null && argListLength < min ) || ( max != null && argListLength > max ) ) {
                 throw new RecognitionException("Incorrect number of arguments for function " + fname.Text, this, this.InputStream, this.Context);
             }
+
+            if (argType != null && argumentListContext != null && argumentListContext.argument() != null)
+            {
+                if (argType == typeof(Variable))
+                {
+                    throw new RecognitionException("Function " + fname.Text + " accepts variables as arguments", this, this.InputStream, this.Context);
+                }
+            }
+
             return true;
         }
 
-        public bool assertFunctionArguments(IToken fname, ArcscriptParser.Variable_listContext variable_List) {
-            int varListLength = variable_List.VARIABLE().Length;
-            var min = this.ArcscriptFunctions[fname.Text].MinArgs;
-            var max = this.ArcscriptFunctions[fname.Text].MaxArgs;
-            if ( ( min != null && varListLength < min ) || ( max != null && varListLength > max ) ) {
+        public bool assertFunctionArguments(IToken fname, ArcscriptParser.Identifier_listContext identifierListContext) {
+            int identifierListLength = 0;
+            if (identifierListContext != null && identifierListContext.identifier() != null)
+            {
+                identifierListLength = identifierListContext.identifier().Length;
+            }
+
+            var min = Functions.FunctionDefinitions[fname.Text].MinArgs;
+            var max = Functions.FunctionDefinitions[fname.Text].MaxArgs;
+            if ( ( min != null && identifierListLength < min ) || ( max != null && identifierListLength > max ) ) {
                 throw new RecognitionException("Incorrect number of arguments for function " + fname.Text, this, this.InputStream, this.Context);
             }
+
             return true;
         }
 

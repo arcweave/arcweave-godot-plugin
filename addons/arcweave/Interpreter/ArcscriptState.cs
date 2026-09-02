@@ -14,12 +14,20 @@ namespace Arcweave.Interpreter
         public string currentElement { get; set; }
         public IProject project { get; set; }
 
+        public Dictionary<string, Variable> Variables { get; } = new Dictionary<string, Variable>();
+
         private System.Action<string> _emit;
         public ArcscriptState(string elementId, IProject project, System.Action<string>? emit = null)
         {
             Outputs = new ArcscriptOutputs();
             this.currentElement = elementId;
             this.project = project;
+
+            foreach (var variable in project.GetAllVariables())
+            {
+                Variables.TryAdd(variable.Id, variable);
+            }
+
             if (emit != null)
             {
                 _emit = emit;
@@ -30,10 +38,20 @@ namespace Arcweave.Interpreter
             }
         }
 
-        public IVariable? GetVariable(string name) {
+        public IVariable? GetVariable(string name, string? scope = null) {
             try
             {
-                return this.project.Variables.First(variable => variable.Name == name);
+                return Variables.Values.FirstOrDefault(variable =>
+                {
+                    if (scope != null)
+                    {
+                        return variable.Name == name &&
+                            variable.Parent != null &&
+                            scope == variable.Parent.CustomId;
+                    }
+
+                    return variable.Name == name && variable.Parent == null;
+                });
             }
             catch (System.InvalidOperationException)
             {
@@ -41,14 +59,30 @@ namespace Arcweave.Interpreter
             }
         }
 
-        public object GetVarValue(string name) {
-            if ( this.VariableChanges.ContainsKey(name) ) {
-                return VariableChanges[name];
+        public object GetVarValue(string name, string? scope = null)
+        {
+            var v = GetVariable(name, scope);
+            if (v == null)
+            {
+                throw new System.InvalidOperationException($"Variable {name} not found");
             }
-            return this.project.GetVariable(name).ObjectValue;
+
+            return this.VariableChanges.ContainsKey(v.Id) ? VariableChanges[v.Id] : v.ObjectValue;
         }
 
-        public void SetVarValue(string name, object value) { VariableChanges[name] = value; }
+        public void SetVarValue(IVariable v, object value)
+        {
+            VariableChanges[v.Id] = value;
+        }
+
+        public void SetVarValue(ArcscriptVisitor.IdentifierDef identifierDef, object value) {
+            var v = GetVariable(identifierDef.Name, identifierDef.Scope);
+            if (v == null)
+            {
+                throw new System.InvalidOperationException($"Variable {identifierDef.Name} not found");
+            }
+            VariableChanges[v.Id] = value;
+        }
 
         public void SetVarValues(string[] names, string[] values) {
             for ( int i = 0; i < names.Length; i++ ) {

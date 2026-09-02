@@ -390,10 +390,10 @@ namespace Arcweave.Interpreter
 
         internal static bool GetBoolValue(object value)
         {
-            if (value.GetType() == typeof(bool)) { return (bool)value; }
-            if (value.GetType() == typeof(string)) { return ((string)value).Length > 0; }
-            if (value.GetType() == typeof(int)) { return (int)value > 0; }
-            if (value.GetType() == typeof(double)) { return (double)value > 0; }
+            if (value is bool b) { return b; }
+            if (value is string s) { return s.Length > 0; }
+            if (value is int i) { return i > 0; }
+            if (value is double d) { return d > 0; }
             return false;
         }
     }

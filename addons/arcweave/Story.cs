@@ -32,7 +32,7 @@ namespace Arcweave
 			ProjectMaker projectMaker = new ProjectMaker(projectData);
 			Project = projectMaker.MakeProject();
 			VariableChanges = new VariableChanges();
-			foreach (var variable in Project.Variables)
+			foreach (var variable in Project.GetAllVariables())
 			{
 				VariableChanges.AddVariable(variable);
 			}
@@ -70,7 +70,7 @@ namespace Arcweave
 			
 			// Start tracking the new variables
 			VariableChanges = new VariableChanges();
-			foreach (var variable in Project.Variables)
+			foreach (var variable in Project.GetAllVariables())
 			{
 				VariableChanges.AddVariable(variable);
 			}
@@ -171,8 +171,8 @@ namespace Arcweave
 		/// Returns the variable changes that happened from the last path selection.
 		/// </summary>
 		/// <returns>
-		/// A Dictionary where the key is the variable
-		/// name and the value is another Dictionary with keys "oldValue" and "newValue"
+		/// A Dictionary where the key is the stable variable ID and the value is another Dictionary
+		/// with keys "oldValue" and "newValue"
 		/// containing the old and the new variable values respectively.
 		/// </returns>
 		public Dictionary<string, Dictionary<string, Variant>> GetVariableChanges()
@@ -247,21 +247,22 @@ namespace Arcweave
 		public void AddVariable(Variable variable)
 		{
 			Variables.Add(variable);
-			OldValues[variable.Name] = variable.Value;
-			NewValues[variable.Name] = variable.Value;
-			Changed[variable.Name] = false;
+			variable.Changed = false;
+			OldValues[variable.Id] = variable.Value;
+			NewValues[variable.Id] = variable.Value;
+			Changed[variable.Id] = false;
 		}
 
 		internal void TrackChanges()
 		{
 			foreach (var variable in Variables)
 			{
-				Changed[variable.Name] = variable.Changed;
+				Changed[variable.Id] = variable.Changed;
 				if (variable.Changed)
 				{
-					OldValues[variable.Name] = NewValues[variable.Name];
-					NewValues[variable.Name] = variable.Value;
-					Changed[variable.Name] = true;
+					OldValues[variable.Id] = NewValues[variable.Id];
+					NewValues[variable.Id] = variable.Value;
+					Changed[variable.Id] = true;
 					variable.Changed = false;
 				}
 			}
@@ -272,12 +273,12 @@ namespace Arcweave
 			var changes = new Dictionary<string, Dictionary<string, Variant>>();
 			foreach (var variable in Variables)
 			{
-				if (Changed[variable.Name])
+				if (Changed[variable.Id])
 				{
-					changes[variable.Name] = new Dictionary<string, Variant>
+					changes[variable.Id] = new Dictionary<string, Variant>
 					{
-						{ "oldValue", OldValues[variable.Name] },
-						{ "newValue", NewValues[variable.Name] }
+						{ "oldValue", OldValues[variable.Id] },
+						{ "newValue", NewValues[variable.Id] }
 					};
 				}
 			}
@@ -290,7 +291,7 @@ namespace Arcweave
 			var varChanges = changes.GetChanges();
 			foreach (var variableName in varChanges.Keys)
 			{
-				project.SetVariable(variableName, varChanges[variableName]["oldValue"]);
+				project.SetVariableById(variableName, varChanges[variableName]["oldValue"]);
 			}
 		}
 	}

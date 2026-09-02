@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Arcweave.Interpreter.INodes;
+using Arcweave.Project;
 
 namespace Arcweave.Interpreter
 {
@@ -13,21 +14,29 @@ namespace Arcweave.Interpreter
         private ArcscriptState state;
         public Dictionary<string, Func<IList<object>, object>> functions { get; private set; } = new Dictionary<string, Func<IList<object>, object>>();
 
-        public Dictionary<string, Type> returnTypes = new Dictionary<string, Type>()
+        public class FunctionDefinition
         {
-            { "sqrt",  typeof (double) },
-            { "sqr", typeof (double) },
-            { "abs", typeof (double) },
-            { "random", typeof (double) },
-            { "roll", typeof (int) },
-            { "show", typeof (string) },
-            { "reset", typeof (void) },
-            { "resetAll", typeof (void) },
-            { "round", typeof (int) },
-            { "min", typeof (double) },
-            { "max", typeof (double) },
-            { "visits", typeof (int) },
-            { "resetVisits", typeof (void) },
+            public int? MinArgs { get; set; }
+            public int? MaxArgs { get; set; }
+            public Type ArgumentsType { get; set; }
+            public Type ReturnType { get; set; }
+        }
+
+        public static Dictionary<string, FunctionDefinition> FunctionDefinitions =
+        new() {
+            { "abs", new FunctionDefinition { MinArgs=1, MaxArgs=1, ReturnType = typeof(int)} },
+            { "max", new FunctionDefinition { MinArgs=2, ReturnType =  typeof(double)} },
+            { "min", new FunctionDefinition { MinArgs=2, ReturnType = typeof(double)} },
+            { "random", new FunctionDefinition { MinArgs=0, MaxArgs=0, ReturnType = typeof(double)} },
+            { "roll", new FunctionDefinition { MinArgs=1, MaxArgs=2, ReturnType = typeof(int)} },
+            { "round", new FunctionDefinition { MinArgs=1, MaxArgs=1, ReturnType = typeof(int)} },
+            { "sqr", new FunctionDefinition { MinArgs=1, MaxArgs=1, ReturnType = typeof(double)} },
+            { "sqrt", new FunctionDefinition { MinArgs=1, MaxArgs=1, ReturnType = typeof(double)} },
+            { "visits", new FunctionDefinition { MinArgs=0, MaxArgs=1, ReturnType = typeof(int)} },
+            { "show", new FunctionDefinition { MinArgs=1, ReturnType = typeof(string)} },
+            { "reset", new FunctionDefinition { MinArgs=1, ArgumentsType = typeof(Variable), ReturnType = typeof(void)} },
+            { "resetAll", new FunctionDefinition { MinArgs=0, ArgumentsType = typeof(Variable), ReturnType = typeof(void)} },
+            { "resetVisits", new FunctionDefinition { MinArgs=0, MaxArgs = 0, ReturnType = typeof(void)} },
         };
 
         public Functions(string elementId, IProject project, ArcscriptState state) {
@@ -152,19 +161,19 @@ namespace Arcweave.Interpreter
 
         public object Reset(IList<object> args) {
             foreach (IVariable argument in args ) {
-                state.SetVarValue(argument.Name, argument.DefaultValue);
+                state.SetVarValue(argument, argument.DefaultValue);
             }
             return null;
         }
 
         public object ResetAll(IList<object> args) {
-            List<string> variableNames = new List<string>();
+            HashSet<string> variableIds = new HashSet<string>();
             foreach ( IVariable argument in args ) {
-                variableNames.Add(argument.Name);
+                variableIds.Add(argument.Id);
             }
-            foreach ( IVariable variable in this._project.Variables ) {
-                if ( !variableNames.Contains(variable.Name) ) {
-                    state.SetVarValue(variable.Name, variable.DefaultValue);
+            foreach ( IVariable variable in this._project.GetAllVariables() ) {
+                if ( !variableIds.Contains(variable.Id) ) {
+                    state.SetVarValue(variable, variable.DefaultValue);
                 }
             }
             return null;
@@ -179,12 +188,13 @@ namespace Arcweave.Interpreter
         public object Min(IList<object> args)
         {
             IList<Expression> arguments = args.Cast<Expression>().ToList();
-            return arguments.Min();
+
+            return arguments.Min().Value;
         }
 
         public object Max(IList<object> args) {
             IList<Expression> arguments = args.Cast<Expression>().ToList();
-            return arguments.Max();
+            return arguments.Max().Value;
         }
 
         public object Visits(IList<object> args) {
@@ -196,7 +206,7 @@ namespace Arcweave.Interpreter
             IElement element = this._project.ElementWithId(elementId);
             return element.Visits;
         }
-        
+
         public object ResetVisits(IList<object> args) {
             this.state.ResetVisits();
             return null;

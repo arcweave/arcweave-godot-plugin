@@ -3,12 +3,14 @@ using System;
 using System.Collections.Generic;
 using Antlr4.Runtime.Misc;
 using System.Globalization;
+using System.Linq;
 using Antlr4.Runtime.Tree;
 using Arcweave.Interpreter.INodes;
+using Arcweave.Project;
 
 namespace Arcweave.Interpreter
 {
-    public class ArcscriptVisitor : ArcscriptParserBaseVisitor<object>
+    public class ArcscriptVisitor : ArcscriptParserBaseVisitor<object?>
     {
         public IProject project;
         public readonly ArcscriptState state;
@@ -35,8 +37,13 @@ namespace Arcweave.Interpreter
                 return this.VisitScript(context.script());
             }
 
-            Expression comp_cond = (Expression)this.VisitCompound_condition_or(context.compound_condition_or());
-            return Expression.GetBoolValue(comp_cond.Value);
+            Expression condition = (Expression)this.VisitCondition(context.condition());
+            return Expression.GetBoolValue(condition.Value);
+        }
+
+        public override object VisitCondition(ArcscriptParser.ConditionContext context)
+        {
+            return Visit(context.expression())!;
         }
 
         public override object VisitScript_section([NotNull] ArcscriptParser.Script_sectionContext context) {
@@ -66,18 +73,13 @@ namespace Arcweave.Interpreter
                     result[index++] = this.VisitParagraph(paragraphContext);
                 }
                 return result;
-            } 
-            // if ( context.normal_text() != null && context.normal_text().Length > 0 ) {
-            //     this.state.outputs.Add(context.GetText());
-            //     return context.GetText();
-            // }
+            }
 
             return this.VisitChildren(context);
         }
 
         public override object VisitParagraph(ArcscriptParser.ParagraphContext context)
         {
-            // this.state.outputs.Add(context.GetText());
             var paragraphEnd = context.PARAGRAPHEND().GetText();
             var paragraphContent = paragraphEnd.Substring(0, paragraphEnd.Length - "</p>".Length);
             this.state.Outputs.AddParagraph(paragraphContent);
@@ -99,7 +101,7 @@ namespace Arcweave.Interpreter
 
         public override object VisitFunction_call_segment([NotNull] ArcscriptParser.Function_call_segmentContext context) {
             this.state.Outputs.AddScriptOutput(null);
-            return this.VisitStatement_function_call(context.statement_function_call());
+            return this.VisitFunction_call(context.function_call());
         }
 
         public override object VisitConditional_section([NotNull] ArcscriptParser.Conditional_sectionContext context) {
@@ -152,180 +154,191 @@ namespace Arcweave.Interpreter
         }
 
         public override object VisitIf_clause([NotNull] ArcscriptParser.If_clauseContext context) {
-            return this.VisitCompound_condition_or(context.compound_condition_or());
+            return Visit(context.expression())!;
         }
 
         public override object VisitElse_if_clause([NotNull] ArcscriptParser.Else_if_clauseContext context) {
-            return this.VisitCompound_condition_or(context.compound_condition_or());
+            return Visit(context.expression())!;
         }
 
-        public override object VisitStatement_assignment([NotNull] ArcscriptParser.Statement_assignmentContext context) {
-            string variableName = context.VARIABLE().GetText();
+        public override object VisitStatement_assignment([NotNull] ArcscriptParser.Statement_assignmentContext context)
+        {
+            var identifier = (IdentifierDef) this.VisitAssignable(context.assignable());
 
-            Expression compound_condition_or = (Expression)this.VisitCompound_condition_or(context.compound_condition_or());
+            var identifierValue = new Expression(this.state.GetVarValue(identifier.Name, identifier.Scope));
+
+            var re = (Expression)Visit(context.expression())!;
+
             if ( context.ASSIGN() != null ) {
-                this.state.SetVarValue(variableName, compound_condition_or.Value);
+                this.state.SetVarValue(identifier, re.Value);
                 return null!;
             }
 
-            Expression variableValue = new Expression(this.state.GetVarValue(variableName));
-
             if ( context.ASSIGNADD() != null ) {
-                variableValue += compound_condition_or;
+                identifierValue += re;
             } else if ( context.ASSIGNSUB() != null ) {
-                variableValue -= compound_condition_or;
+                identifierValue -= re;
             } else if ( context.ASSIGNMUL() != null ) {
-                variableValue *= compound_condition_or;
+                identifierValue *= re;
             } else if ( context.ASSIGNDIV() != null ) {
-                variableValue /= compound_condition_or;
+                identifierValue /= re;
             } else if (context.ASSIGNMOD() != null) {
-                variableValue %= compound_condition_or;
+                identifierValue %= re;
             }
 
-            this.state.SetVarValue(variableName, variableValue.Value);
+            this.state.SetVarValue(identifier, identifierValue.Value);
             return null!;
         }
 
-        public override object VisitCompound_condition_or([NotNull] ArcscriptParser.Compound_condition_orContext context) {
-            Expression compound_condition_and = (Expression)this.VisitCompound_condition_and(context.compound_condition_and());
-            if ( context.compound_condition_or() != null ) {
-                Expression compound_condition_or = (Expression)this.VisitCompound_condition_or(context.compound_condition_or());
-                Expression result = compound_condition_and || compound_condition_or;
-                return result;
-            }
-            return compound_condition_and;
+        public override object VisitAssignable(ArcscriptParser.AssignableContext context)
+        {
+            return this.VisitIdentifier(context.identifier());
         }
 
-        public override object VisitCompound_condition_and([NotNull] ArcscriptParser.Compound_condition_andContext context) {
-            Expression negated_unary_condition = (Expression)this.VisitNegated_unary_condition(context.negated_unary_condition());
-            if ( context.compound_condition_and() != null ) {
-                Expression compound_condition_and = (Expression)this.VisitCompound_condition_and(context.compound_condition_and());
-                Expression result = negated_unary_condition && compound_condition_and;
-                return result;
-            }
-
-            return negated_unary_condition;
-        }
-
-        public override object VisitNegated_unary_condition([NotNull] ArcscriptParser.Negated_unary_conditionContext context) {
-            Expression unary_condition = (Expression)this.VisitUnary_condition(context.unary_condition());
-
-            if ( context.NEG() != null || context.NOTKEYWORD() != null ) {
-                return !unary_condition;
-            }
-
-            return unary_condition;
-        }
-
-        public override object VisitUnary_condition([NotNull] ArcscriptParser.Unary_conditionContext context) {
-            return this.VisitCondition(context.condition());
-        }
-
-        public override object VisitCondition([NotNull] ArcscriptParser.ConditionContext context) {
-            if ( context.expression().Length == 1 ) {
-                return this.VisitExpression(context.expression()[0]);
-            }
-            ArcscriptParser.Conditional_operatorContext conditional_operator_context = context.conditional_operator();
-            Expression exp0 = (Expression)this.VisitExpression(context.expression()[0]);
-            Expression exp1 = (Expression)this.VisitExpression(context.expression()[1]);
-
-            bool result = false;
-            if ( conditional_operator_context.GT() != null ) {
-                result = exp0 > exp1;
-
-            }
-            if ( conditional_operator_context.GE() != null ) {
-                result = exp0 >= exp1;
-            }
-            if ( conditional_operator_context.LT() != null ) {
-                result = exp0 < exp1;
-            }
-            if ( conditional_operator_context.LE() != null ) {
-                result = exp0 <= exp1;
-            }
-            if ( conditional_operator_context.EQ() != null ) {
-                result = exp0 == exp1;
-            }
-            if ( conditional_operator_context.NE() != null ) {
-                result = exp0 != exp1;
-            }
-            if ( conditional_operator_context.ISKEYWORD() != null ) {
-                if ( conditional_operator_context.NOTKEYWORD() != null ) {
-                    result = exp0 != exp1;
-                } else
+        public override object VisitComparisonExpression(ArcscriptParser.ComparisonExpressionContext context)
+        {
+            var left = (Expression)Visit(context.expression(0))!;
+            if (context.AND() != null || context.ANDKEYWORD() != null)
+            {
+                if (!Expression.GetBoolValue(left.Value))
                 {
-                    result = exp0 == exp1;
+                    return new Expression(false);
                 }
+                var rightComp = (Expression)Visit(context.expression(1))!;
+                return new Expression(Expression.GetBoolValue(rightComp.Value));
             }
 
-            return new Expression(result);
-        }
-
-        public override object VisitExpression([NotNull] ArcscriptParser.ExpressionContext context) {
-            if ( context.STRING() != null ) {
-                string result = context.STRING().GetText();
-                result = result.Substring(1, result.Length - 2);
-                return new Expression(result);
-            }
-            if ( context.BOOLEAN() != null ) {
-                return new Expression(context.BOOLEAN().GetText() == "true");
-            }
-            return this.VisitAdditive_numeric_expression(context.additive_numeric_expression());
-        }
-
-        public override object VisitAdditive_numeric_expression([NotNull] ArcscriptParser.Additive_numeric_expressionContext context) {
-            if ( context.additive_numeric_expression() != null ) {
-                Expression result = (Expression)this.VisitAdditive_numeric_expression(context.additive_numeric_expression());
-                Expression mult_num_expression = (Expression)this.VisitMultiplicative_numeric_expression(context.multiplicative_numeric_expression());
-                if ( context.ADD() != null ) {
-                    return result + mult_num_expression;
-                }
-                // Else MINUS
-                return result - mult_num_expression;
-            }
-
-            return (Expression)this.VisitMultiplicative_numeric_expression(context.multiplicative_numeric_expression());
-        }
-
-        public override object VisitMultiplicative_numeric_expression([NotNull] ArcscriptParser.Multiplicative_numeric_expressionContext context) {
-            if ( context.multiplicative_numeric_expression() != null ) {
-                Expression result = (Expression)this.VisitMultiplicative_numeric_expression(context.multiplicative_numeric_expression());
-                Expression signed_unary_num_expr = (Expression)this.VisitSigned_unary_numeric_expression(context.signed_unary_numeric_expression());
-                if ( context.MUL() != null ) {
-                    return result * signed_unary_num_expr;
-                }
-
-                if (context.DIV() != null)
+            if (context.OR() != null || context.ORKEYWORD() != null)
+            {
+                if (Expression.GetBoolValue(left.Value))
                 {
-                    return result / signed_unary_num_expr;
+                    return left;
                 }
-                // Else MOD
-                return result % signed_unary_num_expr;
+                var rightComp = (Expression)Visit(context.expression(1))!;
+                return rightComp;
             }
 
-            return (Expression)this.VisitSigned_unary_numeric_expression(context.signed_unary_numeric_expression());
+            var right = (Expression)Visit(context.expression(1))!;
+
+            if (context.EQ() != null || (context.ISKEYWORD() != null && context.NOTKEYWORD() == null))
+            {
+                return new Expression(left == right);
+            }
+
+            if (context.NE() != null || (context.ISKEYWORD() != null && context.NOTKEYWORD() != null))
+            {
+                return new Expression(left != right);
+            }
+
+            if (context.LT() != null)
+            {
+                return new Expression(left < right);
+            }
+
+            if (context.GT() != null)
+            {
+                return new Expression(left > right);
+            }
+
+            if (context.LE() != null)
+            {
+                return new Expression(left <= right);
+            }
+
+            if (context.GE() != null)
+            {
+                return new Expression(left >= right);
+            }
+
+            throw new Exception("Unknown comparison operator");
         }
 
-        public override object VisitSigned_unary_numeric_expression([NotNull] ArcscriptParser.Signed_unary_numeric_expressionContext context) {
-            Expression unary_num_expr = (Expression)this.VisitUnary_numeric_expression(context.unary_numeric_expression());
-            ArcscriptParser.SignContext sign = context.sign();
-
-            if ( sign != null ) {
-                if ( sign.ADD() != null ) {
-                    return unary_num_expr;
-                }
-                // Else MINUS
-                return -unary_num_expr;
+        public override object VisitUnaryExpression(ArcscriptParser.UnaryExpressionContext context)
+        {
+            if (context.NOTKEYWORD() != null || context.NEG() != null)
+            {
+                return !(Expression)Visit(context.expression())!;
             }
-            return unary_num_expr;
+
+            if (context.ADD() != null)
+            {
+                return Visit(context.expression())!;
+            }
+
+            if (context.SUB() != null)
+            {
+                return -(Expression)Visit(context.expression())!;
+            }
+            throw new Exception("Unknown unary operator");
         }
 
-        public override object VisitUnary_numeric_expression([NotNull] ArcscriptParser.Unary_numeric_expressionContext context) {
-            if ( context.FLOAT() != null ) {
-                return new Expression(double.Parse(context.FLOAT().GetText(), CultureInfo.InvariantCulture));
+        public override object VisitMultiplicativeExpression(ArcscriptParser.MultiplicativeExpressionContext context)
+        {
+            var left = (Expression)Visit(context.expression(0))!;
+            var right = (Expression)Visit(context.expression(1))!;
+            if (context.MUL() != null)
+            {
+                return left * right;
             }
-            if ( context.INTEGER() != null ) {
-                return new Expression(int.Parse(context.INTEGER().GetText()));
+
+            if (context.DIV() != null)
+            {
+                return left / right;
+            }
+
+            if (context.MOD() != null)
+            {
+                return left % right;
+            }
+            throw new Exception("Unknown multiplicative operator");
+        }
+
+        public override object VisitAdditiveExpression(ArcscriptParser.AdditiveExpressionContext context)
+        {
+            var left = (Expression)Visit(context.expression(0))!;
+            var right = (Expression)Visit(context.expression(1))!;
+            if (context.ADD() != null)
+            {
+                return left + right;
+            }
+
+            if (context.SUB() != null)
+            {
+                return left - right;
+            }
+            throw new Exception("Unknown additive operator");
+        }
+
+        public override object VisitParenthesizedExpression(ArcscriptParser.ParenthesizedExpressionContext context)
+        {
+            return Visit(context.expression())!;
+        }
+
+        public override object VisitIdentifierExpression(ArcscriptParser.IdentifierExpressionContext context)
+        {
+            var identifier = (IdentifierDef)VisitIdentifier(context.identifier());
+            return new Expression(this.state.GetVarValue(identifier.Name, identifier.Scope));
+        }
+
+        public override object VisitLiteralExpression(ArcscriptParser.LiteralExpressionContext context)
+        {
+            return VisitLiteral(context.literal());
+        }
+
+        public override object VisitFunctionCallExpression(ArcscriptParser.FunctionCallExpressionContext context)
+        {
+            return new Expression(VisitFunction_call(context.function_call()));
+        }
+
+        public override object VisitLiteral(ArcscriptParser.LiteralContext context)
+        {
+            if (context.BOOLEAN() != null)
+            {
+                if (context.BOOLEAN().GetText() == "true")
+                {
+                    return new Expression(true);
+                }
+                return new Expression(false);
             }
 
             if (context.STRING() != null)
@@ -334,100 +347,91 @@ namespace Arcweave.Interpreter
                 result = result.Substring(1, result.Length - 2);
                 return new Expression(result);
             }
-
-            if (context.BOOLEAN() != null)
-            {
-                return new Expression(context.BOOLEAN().GetText() == "true");
-            }
-            if ( context.VARIABLE() != null ) {
-                string variableName = context.VARIABLE().GetText();
-                return new Expression(this.state.GetVarValue(variableName));
-            }
-
-            if ( context.function_call() != null )
-            {
-                object functionResult = this.VisitFunction_call(context.function_call());
-                if (functionResult.GetType() == typeof(Expression))
-                {
-                    return functionResult;
-                }
-                return new Expression(functionResult);
-            }
-            return this.VisitCompound_condition_or(context.compound_condition_or());
+            return VisitNumeric_literal(context.numeric_literal());
         }
-        public override object VisitVoid_function_call([NotNull] ArcscriptParser.Void_function_callContext context)
+
+        public override object VisitNumeric_literal(ArcscriptParser.Numeric_literalContext context)
         {
-            string fname = "";
-            IList<object>? argument_list_result = null;
-            if (context.VFNAME() != null)
+            if (context.FLOAT() != null)
             {
-                fname = context.VFNAME().GetText();
-                if (context.argument_list() != null)
-                {
-                    argument_list_result = (IList<object>)this.VisitArgument_list(context.argument_list());
-                }
+                return new Expression(double.Parse(context.FLOAT().GetText(), CultureInfo.InvariantCulture));
             }
-            if (context.VFNAMEVARS() != null)
-            {
-                fname = context.VFNAMEVARS().GetText();
-                if (context.variable_list() != null)
-                {
-                    argument_list_result = (IList<object>)this.VisitVariable_list(context.variable_list());
-                }
-            }
-
-            object returnValue = this._functions.functions[fname](argument_list_result);
-
-            return returnValue;
+            return new Expression(int.Parse(context.INTEGER().GetText()));
         }
 
         public override object VisitFunction_call([NotNull] ArcscriptParser.Function_callContext context) {
             IList<object>? argument_list_result = null;
+            string fname = context.FNAME().GetText();
+
             if ( context.argument_list() != null ) {
                 argument_list_result = (IList<object>)this.VisitArgument_list(context.argument_list());
             }
 
-            string fname = context.FNAME().GetText();
+            if (context.identifier_list() != null)
+            {
+                argument_list_result = (IList<object>)this.VisitIdentifier_list(context.identifier_list());
+                if (Functions.FunctionDefinitions.ContainsKey(fname))
+                {
+                    if (Functions.FunctionDefinitions[fname].ArgumentsType == typeof(Variable))
+                    {
+                        for (int i = 0; i < argument_list_result.Count; i++)
+                        {
+                            IdentifierDef identifierDef = (IdentifierDef)argument_list_result[i];
+                            argument_list_result[i] = this.state.GetVariable(identifierDef.Name, identifierDef.Scope);
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < argument_list_result.Count; i++)
+                        {
+                            IdentifierDef identifierDef = (IdentifierDef)argument_list_result[i];
+                            argument_list_result[i] = new Expression(this.state.GetVarValue(identifierDef.Name, identifierDef.Scope));
+                        }
+                    }
+                }
+            }
 
-            Type resultType = this._functions.returnTypes[fname];
             object returnValue = this._functions.functions[fname](argument_list_result);
 
             return returnValue;
         }
 
-        public override object VisitVariable_list([NotNull] ArcscriptParser.Variable_listContext context)
+        public override object VisitArgument_list([NotNull] ArcscriptParser.Argument_listContext context)
         {
-            List<object> variables = new List<object>();
-            foreach (ITerminalNode variable in context.VARIABLE())
-            {
-                var varObject = this.state.GetVariable(variable.GetText());
-                if (varObject != null)
-                {
-                    variables.Add(varObject);
-                }
-            }
-            return variables;
-        }
-
-        public override object VisitArgument_list([NotNull] ArcscriptParser.Argument_listContext context) {
-            List<object> argumentList = new List<object>();
-            foreach ( ArcscriptParser.ArgumentContext argument in context.argument() ) {
-                argumentList.Add(this.VisitArgument(argument));
-            }
-            return argumentList;
+            return context.argument().Select(this.VisitArgument).ToList();
         }
 
         public override object VisitArgument([NotNull] ArcscriptParser.ArgumentContext context) {
-            if ( context.STRING() != null ) {
-                string result = context.STRING().GetText();
-                result = result.Substring(1, result.Length - 2);
-                return new Expression(result);
+            if (context.expression() != null)
+            {
+                return Visit(context.expression())!;
             }
             if ( context.mention() != null ) {
                 Mention mention_result = (Mention)this.VisitMention(context.mention());
                 return mention_result;
             }
-            return this.VisitAdditive_numeric_expression(context.additive_numeric_expression());
+            throw new Exception("Unknown argument");
+        }
+
+        public override object VisitIdentifier_list(ArcscriptParser.Identifier_listContext context)
+        {
+            return context.identifier().Select(this.VisitIdentifier).ToList();
+        }
+
+        public override object VisitIdentifier(ArcscriptParser.IdentifierContext context)
+        {
+            string name = "";
+            string? scope = null;
+            if (context.IDENTIFIER().Length == 1)
+            {
+                name = context.IDENTIFIER(0).GetText();
+            }
+            else
+            {
+                scope = context.IDENTIFIER(0).GetText();
+                name = context.IDENTIFIER(1).GetText();
+            }
+            return new IdentifierDef(name, scope);
         }
 
         public override object VisitMention([NotNull] ArcscriptParser.MentionContext context) {
@@ -486,6 +490,13 @@ namespace Arcweave.Interpreter
             public object Script;
 
             public ConditionalSection(bool clause, object script) { Clause = clause; Script = script; }
+        }
+
+        public struct IdentifierDef
+        {
+            public readonly string Name;
+            public readonly string? Scope;
+            public IdentifierDef(string name, string? scope = null) { Name = name; Scope = scope; }
         }
     }
 }

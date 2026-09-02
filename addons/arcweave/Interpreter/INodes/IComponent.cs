@@ -1,6 +1,6 @@
 ﻿namespace Arcweave.Interpreter.INodes
 {
-    public interface IComponent : IHasAttributes
+    public interface IComponent : IHasAttributes, IHasVariables
     {
     }
 }
