@@ -15,11 +15,12 @@ const POLL_SECONDS = 0.1
 const IMPORT_TIMEOUT_SECONDS = 120
 const MAX_IMPORT_SCANS = 3
 const SCAN_START_SECONDS = 0.5
-# Leaves room for the unique suffix and the hash the editor appends to imported files
-const MAX_NAME_LENGTH = 100
+# File systems limit names to 255 bytes, so this leaves room for the extension, the unique suffix and the hash the
+# editor appends to imported files
+const MAX_NAME_BYTES = 100
 const INVALID_CHARACTERS = "<>:\"/\\|?*"
 const RESERVED_NAMES = ["CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-	"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"]
+	"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9", "COM¹", "COM²", "COM³", "LPT¹", "LPT²", "LPT³"]
 
 ## True once canceled. The remaining downloads are skipped.
 var canceled : bool = false
@@ -307,9 +308,11 @@ static func _file_name(asset_name : String) -> String:
 	var file_name = _sanitize(asset_name)
 	var extension = file_name.get_extension()
 	var stem = file_name.get_basename() if not extension.is_empty() else file_name
-	if stem.length() > MAX_NAME_LENGTH:
-		# Trimmed again, since shortening can leave a trailing dot or space
-		stem = _sanitize(stem.substr(0, MAX_NAME_LENGTH))
+	if stem.to_utf8_buffer().size() > MAX_NAME_BYTES:
+		# Shortened by whole characters, then trimmed again, since shortening can leave a trailing dot or space
+		while stem.to_utf8_buffer().size() > MAX_NAME_BYTES:
+			stem = stem.left(-1)
+		stem = _sanitize(stem)
 	return stem + ("." + extension if not extension.is_empty() else "")
 
 ## Makes a file name safe on every platform, so a name can never leave the media folder
