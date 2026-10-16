@@ -36,6 +36,7 @@ signal project_updated(project_settings)
 @export_storage var media_folder : String = ""
 # Detects duplicated resources, which must not manage the original resource's media
 @export_storage var media_owner : String = ""
+@export_storage var media_owner_path : String = ""
 
 ## True while the media of this resource is being downloaded
 var is_downloading_media : bool = false
