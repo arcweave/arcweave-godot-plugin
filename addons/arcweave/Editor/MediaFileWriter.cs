@@ -58,6 +58,17 @@ public partial class MediaFileWriter : RefCounted
 		}
 	}
 
+	/// <summary>
+	/// Returns the name in Unicode normalization form C, so names that file systems such as APFS treat as the same, like
+	/// a composed "é" and an "e" followed by a combining accent, also compare as the same.
+	/// </summary>
+	/// <param name="name">The file name</param>
+	/// <returns>The normalized name</returns>
+	public string Normalize(string name)
+	{
+		return name.Normalize(System.Text.NormalizationForm.FormC);
+	}
+
 	private static void TryMove(string source, string destination)
 	{
 		try

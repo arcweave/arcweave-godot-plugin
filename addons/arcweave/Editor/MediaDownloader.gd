@@ -168,7 +168,7 @@ func _save_media(asset : ArcweaveAsset, media : Dictionary, downloads : Dictiona
 	var replaced = PackedStringArray()
 	var writer = load("res://addons/arcweave/Editor/MediaFileWriter.cs").new()
 	for id in downloads:
-		var file_name = _file_name(media[id].name)
+		var file_name = _file_name(writer.Normalize(media[id].name))
 		var previous_path : String = previous_paths.get(id, "")
 		var path = previous_path
 		# A file keeps its path once it is downloaded, even when its asset is renamed in Arcweave, so the scenes that use
@@ -187,7 +187,7 @@ func _save_media(asset : ArcweaveAsset, media : Dictionary, downloads : Dictiona
 				asset.media_folder = folder
 			# Named after the asset, or "name 2.ext" when the name is taken, so files the downloader does not own, or that
 			# belong to other assets, are never overwritten
-			path = _unique_path(folder.path_join(file_name.get_basename()), file_name.get_extension())
+			path = _unique_path(folder.path_join(file_name.get_basename()), file_name.get_extension(), writer)
 		var bytes : PackedByteArray = downloads[id]
 		var sha256 = _sha256(bytes)
 		if owned.get(path) != sha256:
@@ -442,21 +442,26 @@ static func _delete_file(path : String) -> Error:
 	return error
 
 ## Returns base + "." + extension, or "base 2.extension", "base 3.extension"... if it already exists
-static func _unique_path(base : String, extension : String) -> String:
+## Names are compared after normalizing them with the writer, when there is one
+static func _unique_path(base : String, extension : String, writer = null) -> String:
 	var suffix = "" if extension.is_empty() else "." + extension
-	# Compared ignoring case, so the project also works on Windows and macOS when it was made on Linux
+	# Compared ignoring case and Unicode normalization, so the project also works on Windows and macOS when it was made on
+	# Linux, and a name never overwrites a file that macOS stores with a decomposed accent
 	var taken = {}
 	var directory = DirAccess.open(base.get_base_dir())
 	if directory != null:
 		directory.include_hidden = true
 		for entry in Array(directory.get_files()) + Array(directory.get_directories()):
-			taken[entry.to_lower()] = true
+			taken[_compare_key(entry, writer)] = true
 	var path = base + suffix
 	var number = 2
-	while taken.has(path.get_file().to_lower()) or FileAccess.file_exists(path) or DirAccess.dir_exists_absolute(path):
+	while taken.has(_compare_key(path.get_file(), writer)) or FileAccess.file_exists(path) or DirAccess.dir_exists_absolute(path):
 		path = "%s %d%s" % [base, number, suffix]
 		number += 1
 	return path
+
+static func _compare_key(file_name : String, writer) -> String:
+	return (writer.Normalize(file_name) if writer != null else file_name).to_lower()
 
 ## Identifies the resource file across moves and renames by its uid when it has one, otherwise by its path
 static func _owner_id(asset_path : String) -> String:
