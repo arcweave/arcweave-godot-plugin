@@ -15,6 +15,8 @@ const POLL_SECONDS = 0.1
 const IMPORT_TIMEOUT_SECONDS = 120
 const MAX_IMPORT_SCANS = 3
 const SCAN_START_SECONDS = 0.5
+# Leaves room for the unique suffix and the hash the editor appends to imported files
+const MAX_NAME_LENGTH = 100
 const INVALID_CHARACTERS = "<>:\"/\\|?*"
 const RESERVED_NAMES = ["CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
 	"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"]
@@ -24,8 +26,6 @@ var canceled : bool = false
 var arcweave_asset : ArcweaveAsset
 var _api_request : APIRequest
 var _http_request : HTTPRequest
-# The Arcweave folder of each asset and folder id
-var _parents : Dictionary = {}
 
 func _init(object : ArcweaveAsset):
 	arcweave_asset = object
@@ -86,7 +86,7 @@ func download(project_settings : Dictionary):
 		asset.is_downloading_media = false
 		return
 	var saved = _save_media(asset, media, downloads)
-	await _link_resources(asset, saved.written, saved.replaced, saved.moved_from)
+	await _link_resources(asset, saved.written, saved.replaced)
 	asset.is_downloading_media = false
 
 ## Deletes the media the project no longer uses and returns true if any was deleted. Call it once the ArcweaveAsset is
@@ -111,13 +111,12 @@ func delete_unused_media() -> bool:
 		return false
 	asset.owned_media = owned
 	asset.emit_changed()
-	var removed_folders = _remove_empty_folders(Array(deleted), asset.media_folder)
 	if Engine.is_editor_hint() and Engine.has_singleton("EditorInterface"):
 		var filesystem = Engine.get_singleton("EditorInterface").get_resource_filesystem()
-		# A scan forgets the deleted files and folders. It is skipped while the editor imports, which would crash it,
-		# and the editor's next scan updates the FileSystem dock instead.
+		# A scan forgets the deleted files. It is skipped while the editor imports, which would crash it, and the
+		# editor's next scan updates the FileSystem dock instead.
 		if not _is_busy(filesystem):
-			filesystem.scan_sources()
+			filesystem.scan()
 	return true
 
 ## Writes the downloaded media and returns { written, replaced }: the paths written, and those of them that replaced
@@ -166,16 +165,14 @@ func _save_media(asset : ArcweaveAsset, media : Dictionary, downloads : Dictiona
 	var saved = 0
 	var written = PackedStringArray()
 	var replaced = PackedStringArray()
-	var moved_from = PackedStringArray()
 	var writer = load("res://addons/arcweave/Editor/MediaFileWriter.cs").new()
 	for id in downloads:
-		var relative_path = _relative_path(media[id])
+		var file_name = _file_name(media[id].name)
 		var previous_path : String = previous_paths.get(id, "")
 		var path = previous_path
-		var same_extension = not previous_path.is_empty() \
-			and previous_path.get_extension().to_lower() == relative_path.get_extension().to_lower()
-		# A file the user moved out of the media folder stays where they put it
-		if not same_extension or previous_path.begins_with(folder + "/"):
+		# A file keeps its path once it is downloaded, even when its asset is renamed in Arcweave, so the scenes that use
+		# it keep working. Only a changed extension needs a new file.
+		if previous_path.is_empty() or previous_path.get_extension().to_lower() != file_name.get_extension().to_lower():
 			# The folder is only created when a file needs a new path
 			if folder.is_empty() or not DirAccess.dir_exists_absolute(folder):
 				if folder_failed:
@@ -187,54 +184,34 @@ func _save_media(asset : ArcweaveAsset, media : Dictionary, downloads : Dictiona
 					folder_failed = true
 					continue
 				asset.media_folder = folder
-			# The file mirrors the asset's Arcweave folders and name. A unique path is used when it is taken, so files the
-			# downloader does not own, or that belong to other assets, are never overwritten.
-			var desired = folder.path_join(relative_path)
-			if not same_extension:
-				path = _unique_path(desired.get_basename(), desired.get_extension())
-			elif not _is_name_of(previous_path, desired):
-				# Renamed or moved in Arcweave, or named by its id by an earlier version. Moving the file keeps its uid, so
-				# the scenes that reference it keep working.
-				var target = _unique_path(desired.get_basename(), desired.get_extension())
-				var move_error = _move_file(previous_path, target)
-				if move_error == OK:
-					owned[target] = owned[previous_path]
-					owned.erase(previous_path)
-					moved_from.append(previous_path)
-					written.append(target)
-					path = target
-				else:
-					push_warning("[Arcweave] Could not move %s to %s: %s" % [previous_path, target, error_string(move_error)])
+			# Named after the asset, or "name 2.ext" when the name is taken, so files the downloader does not own, or that
+			# belong to other assets, are never overwritten
+			path = _unique_path(folder.path_join(file_name.get_basename()), file_name.get_extension())
 		var bytes : PackedByteArray = downloads[id]
 		var sha256 = _sha256(bytes)
 		if owned.get(path) != sha256:
 			var replacing = FileAccess.file_exists(path)
-			# The Arcweave folders of the asset
-			DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 			var error : String = writer.Write(path, bytes)
 			if not error.is_empty():
 				# Eg. a read-only file checked in to version control
 				push_warning("[Arcweave] Could not save '%s' to %s: %s" % [media[id].name, path, error])
-				_remove_empty_folders([path], folder)
 				continue
 			owned[path] = sha256
-			if not path in written:
-				written.append(path)
+			written.append(path)
 			if replacing:
 				replaced.append(path)
 		paths[id] = path
 		saved += 1
-	_remove_empty_folders(Array(moved_from), folder)
 
 	asset.downloaded_media = paths
 	asset.owned_media = owned
 	asset.emit_changed()
 	print("[Arcweave] Downloaded %d of %d media files for %s" % [saved, media.size(), asset_path.get_file()])
-	return { "written": written, "replaced": replaced, "moved_from": moved_from }
+	return { "written": written, "replaced": replaced }
 
 ## Imports the written files in one go and links the imported resources to the ArcweaveAsset.
 ## Outside the editor the files can't be imported, so the resources are left as they are.
-func _link_resources(asset : ArcweaveAsset, written_paths : PackedStringArray, replaced_paths : PackedStringArray, moved_from : PackedStringArray):
+func _link_resources(asset : ArcweaveAsset, written_paths : PackedStringArray, replaced_paths : PackedStringArray):
 	if not (Engine.is_editor_hint() and Engine.has_singleton("EditorInterface")):
 		return
 	var filesystem = Engine.get_singleton("EditorInterface").get_resource_filesystem()
@@ -255,7 +232,7 @@ func _link_resources(asset : ArcweaveAsset, written_paths : PackedStringArray, r
 				if scans == MAX_IMPORT_SCANS:
 					push_warning("[Arcweave] The editor did not import %s. Media in hidden or ignored folders can't be imported." % ", ".join(pending))
 					break
-				filesystem.scan_sources()
+				filesystem.scan()
 				scans += 1
 				# Gives the scan time to start, so a scan request that was ignored is retried
 				await get_tree().create_timer(SCAN_START_SECONDS).timeout
@@ -280,18 +257,11 @@ func _link_resources(asset : ArcweaveAsset, written_paths : PackedStringArray, r
 	asset.media_resources = resources
 	asset.emit_changed()
 
-## Collects the images and audio the project uses, as Arcweave asset id -> { name, type, folders }, where folders are
-## the names of the Arcweave folders the asset is in, from the outermost one.
+## Collects the images and audio the project uses, as Arcweave asset id -> { name, type }.
 ## These are the element and component covers, the element audio and the assets of asset list attributes.
 func _collect_media(project_settings : Dictionary) -> Dictionary:
 	var media = {}
 	var assets = _dictionary(project_settings.get("assets"))
-	_parents = {}
-	for folder_id in assets:
-		var children = _dictionary(assets[folder_id]).get("children")
-		if children is Array:
-			for child in children:
-				_parents[child] = folder_id
 	for element in _dictionary(project_settings.get("elements")).values():
 		_add_cover(media, assets, element)
 		var audio = _dictionary(_dictionary(element).get("assets")).get("audio")
@@ -329,28 +299,20 @@ func _add_media(media : Dictionary, assets : Dictionary, id, type : String):
 				type = "audio"
 			_:
 				return
-	media[id] = { "name": asset_name, "type": type, "folders": _folders(assets, id) }
+	media[id] = { "name": asset_name, "type": type }
 
-## Returns the names of the Arcweave folders the asset is in, from the outermost one, without the root folder
-func _folders(assets : Dictionary, id : String) -> PackedStringArray:
-	var folders = PackedStringArray()
-	var folder_id = _parents.get(id)
-	# Bounded, so a malformed tree with a cycle can't loop forever
-	while folder_id != null and folders.size() < 64:
-		var folder = _dictionary(assets.get(folder_id))
-		if folder.get("root") == true:
-			break
-		folders.insert(0, str(folder.get("name", "")))
-		folder_id = _parents.get(folder_id)
-	return folders
+## Returns the file name of an asset: its Arcweave name made safe on every platform, and shortened so the files the
+## editor generates for it stay within file name limits
+static func _file_name(asset_name : String) -> String:
+	var file_name = _sanitize(asset_name)
+	var extension = file_name.get_extension()
+	var stem = file_name.get_basename() if not extension.is_empty() else file_name
+	if stem.length() > MAX_NAME_LENGTH:
+		# Trimmed again, since shortening can leave a trailing dot or space
+		stem = _sanitize(stem.substr(0, MAX_NAME_LENGTH))
+	return stem + ("." + extension if not extension.is_empty() else "")
 
-## Returns the path of the media relative to the media folder, eg. "Images/door.jpeg", mirroring the Arcweave folders
-static func _relative_path(entry : Dictionary) -> String:
-	var segments = Array(entry.folders).map(func(folder): return _sanitize(folder))
-	segments.append(_sanitize(entry.name))
-	return "/".join(segments)
-
-## Makes a folder or file name safe on every platform, so a name can never leave the media folder
+## Makes a file name safe on every platform, so a name can never leave the media folder
 static func _sanitize(segment : String) -> String:
 	var sanitized = ""
 	for character in segment:
@@ -367,52 +329,6 @@ static func _sanitize(segment : String) -> String:
 	if stem.to_upper() in RESERVED_NAMES:
 		sanitized = stem + "_" + sanitized.substr(stem.length())
 	return sanitized
-
-## Returns true if path is desired, or a unique variant of it such as "door 2.jpeg" for "door.jpeg"
-static func _is_name_of(path : String, desired : String) -> bool:
-	if path.get_base_dir() != desired.get_base_dir() or path.get_extension().to_lower() != desired.get_extension().to_lower():
-		return false
-	var stem = desired.get_file().get_basename().to_lower()
-	var file_stem = path.get_file().get_basename().to_lower()
-	if file_stem == stem:
-		return true
-	return file_stem.begins_with(stem + " ") and file_stem.substr(stem.length() + 1).is_valid_int()
-
-## Moves a downloaded file with the files the editor created for it. Moving the .import file along keeps the file's
-## uid, so the scenes that reference it keep working.
-static func _move_file(from : String, to : String) -> Error:
-	var error = DirAccess.make_dir_recursive_absolute(to.get_base_dir())
-	if error == OK:
-		error = DirAccess.rename_absolute(from, to)
-	if error != OK:
-		return error
-	for extra in [".import", ".uid"]:
-		if FileAccess.file_exists(from + extra):
-			error = DirAccess.rename_absolute(from + extra, to + extra)
-			if error != OK:
-				# Moved back, so the file never loses its uid
-				DirAccess.rename_absolute(to, from)
-				return error
-	return OK
-
-## Deletes the empty folders the paths were in, up to the media folder, which is kept
-static func _remove_empty_folders(paths : Array, media_folder : String) -> bool:
-	var removed = false
-	for path in paths:
-		var folder : String = path.get_base_dir()
-		while folder.begins_with(media_folder + "/") and _is_empty_folder(folder):
-			if DirAccess.remove_absolute(folder) != OK:
-				break
-			removed = true
-			folder = folder.get_base_dir()
-	return removed
-
-static func _is_empty_folder(folder : String) -> bool:
-	var directory = DirAccess.open(folder)
-	if directory == null:
-		return false
-	directory.include_hidden = true
-	return directory.get_files().is_empty() and directory.get_directories().is_empty()
 
 ## Downloads a file, waiting and retrying while rate limited. Returns null if the download fails or is canceled.
 func _fetch(url : String, headers : PackedStringArray, asset_name : String, info : String, value : float):
@@ -525,9 +441,16 @@ static func _delete_file(path : String) -> Error:
 ## Returns base + "." + extension, or "base 2.extension", "base 3.extension"... if it already exists
 static func _unique_path(base : String, extension : String) -> String:
 	var suffix = "" if extension.is_empty() else "." + extension
+	# Compared ignoring case, so the project also works on Windows and macOS when it was made on Linux
+	var taken = {}
+	var directory = DirAccess.open(base.get_base_dir())
+	if directory != null:
+		directory.include_hidden = true
+		for entry in Array(directory.get_files()) + Array(directory.get_directories()):
+			taken[entry.to_lower()] = true
 	var path = base + suffix
 	var number = 2
-	while FileAccess.file_exists(path) or DirAccess.dir_exists_absolute(path):
+	while taken.has(path.get_file().to_lower()) or FileAccess.file_exists(path) or DirAccess.dir_exists_absolute(path):
 		path = "%s %d%s" % [base, number, suffix]
 		number += 1
 	return path
