@@ -119,7 +119,8 @@ When importing from the API, you can also download the images and audio your pro
 
 - Supported files are `.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`, `.bmp`, `.tga` images and `.mp3`, `.ogg`, `.wav` audio. Other files, such as `.gif`, are skipped with a warning.
 - Initializing again only rewrites the files that changed, and deletes the files your project no longer uses. Media that fails to download keeps its previous copy.
-- The plugin only replaces or deletes the files it downloaded, so your own files are never overwritten. A duplicated resource downloads its own media.
+- The plugin only replaces or deletes the files it downloaded, while they still have the contents it downloaded. Your own files, and downloaded files you edited, are never overwritten or deleted. A duplicated resource downloads its own media.
+- The resource references the downloaded media, so the media is loaded with the resource, included when you export it, and stays linked when you move the files. Disabling **Download Media** and initializing again unlinks it, keeping the files.
 - Downloads happen in the editor only. Initializing from the API during runtime keeps the media downloaded in the editor.
 
 **Download Media** is disabled by default. The downloaded media is linked to the project's assets through `Asset.LocalPath`, and `Asset.LoadResource()` loads it, for example as a `Texture2D` for images or an `AudioStream` for audio:

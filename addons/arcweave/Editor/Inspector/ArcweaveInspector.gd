@@ -30,6 +30,10 @@ func on_project_updated(new_project_settings, object: ArcweaveAsset):
 		return
 	if object.download_media and object.receive_method == "WebAPI":
 		await download_media(object, new_project_settings)
+	elif not object.download_media:
+		# The project no longer uses the downloaded media, so the resource stops loading and exporting it.
+		# The files are kept, and deleted by a later download if the project doesn't use them anymore.
+		object.media_resources = {}
 	var error = ResourceSaver.save(object, object.resource_path)
 	if error != OK:
 		printerr("[Arcweave] Error saving resource!")
