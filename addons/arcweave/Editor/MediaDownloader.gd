@@ -13,6 +13,8 @@ const MAX_RETRY_SECONDS = 60
 const REQUEST_TIMEOUT_SECONDS = 120
 const POLL_SECONDS = 0.1
 const IMPORT_TIMEOUT_SECONDS = 120
+const MAX_IMPORT_SCANS = 3
+const SCAN_START_SECONDS = 0.5
 
 ## True once canceled. The remaining downloads are skipped.
 var canceled : bool = false
@@ -34,11 +36,18 @@ func cancel():
 
 ## Downloads the media the project uses and links it to the ArcweaveAsset. The node must be inside the tree.
 ## Never fails: media that cannot be downloaded or saved keeps its previous copy and a warning is printed.
+## Media the project no longer uses is only deleted by delete_unused_media(), once the ArcweaveAsset is saved.
 func download(project_settings : Dictionary):
 	var asset = arcweave_asset
 	if not _is_saved(asset):
 		push_warning("[Arcweave] Skipping media download because the ArcweaveAsset is not saved as a file.")
 		return
+	# The resource must be saved with the new media, so nothing is downloaded if it can't be
+	var file = FileAccess.open(asset.resource_path, FileAccess.READ_WRITE)
+	if file == null:
+		push_warning("[Arcweave] Skipping media download because %s cannot be written: %s" % [asset.resource_path, error_string(FileAccess.get_open_error())])
+		return
+	file.close()
 	asset.is_downloading_media = true
 
 	var media = _collect_media(project_settings)
@@ -70,17 +79,43 @@ func download(project_settings : Dictionary):
 	if canceled:
 		push_warning("[Arcweave] Media download canceled. Media that was not downloaded keeps its previous copy.")
 
-	# Nothing awaits until the files are written and deleted, so the paths resolved there are still current.
+	# Nothing awaits until the files are written, so the paths resolved there are still current.
 	if not _is_saved(asset):
 		push_warning("[Arcweave] Skipping media update because the ArcweaveAsset was deleted during the download.")
 		asset.is_downloading_media = false
 		return
-	var changed_paths = _save_media(asset, media, downloads)
-	await _link_resources(asset, changed_paths)
+	var saved = _save_media(asset, media, downloads)
+	await _link_resources(asset, saved.written, saved.replaced)
 	asset.is_downloading_media = false
 
-## Writes the downloaded media, deletes the media the project no longer uses and returns the paths that changed
-func _save_media(asset : ArcweaveAsset, media : Dictionary, downloads : Dictionary) -> PackedStringArray:
+## Deletes the media the project no longer uses and returns true if any was deleted. Call it once the ArcweaveAsset is
+## saved, so a resource that failed to save never references deleted media.
+func delete_unused_media() -> bool:
+	var asset = arcweave_asset
+	var linked_paths = asset.downloaded_media.values()
+	var owned = asset.owned_media.duplicate()
+	var deleted = false
+	for path in owned.keys():
+		# Only files that still have the contents the downloader wrote are deleted
+		if path in linked_paths or not _is_owned(path, owned[path]):
+			continue
+		var error = _delete_file(path)
+		if error != OK:
+			# Still owned, so a later initialization tries again
+			push_warning("[Arcweave] Could not delete unused media file %s: %s" % [path, error_string(error)])
+			continue
+		owned.erase(path)
+		deleted = true
+		if Engine.is_editor_hint() and Engine.has_singleton("EditorInterface"):
+			Engine.get_singleton("EditorInterface").get_resource_filesystem().update_file(path)
+	if deleted:
+		asset.owned_media = owned
+		asset.emit_changed()
+	return deleted
+
+## Writes the downloaded media and returns { written, replaced }: the paths written, and those of them that replaced
+## a previous file. The media the project no longer uses stays owned, so delete_unused_media() can delete it.
+func _save_media(asset : ArcweaveAsset, media : Dictionary, downloads : Dictionary) -> Dictionary:
 	var asset_path = asset.resource_path
 	# A duplicated ArcweaveAsset starts with its own media instead of managing the original's
 	var owner_id = _owner_id(asset_path)
@@ -119,7 +154,8 @@ func _save_media(asset : ArcweaveAsset, media : Dictionary, downloads : Dictiona
 	var folder = asset.media_folder
 	var folder_failed = false
 	var saved = 0
-	var changed_paths = PackedStringArray()
+	var written = PackedStringArray()
+	var replaced = PackedStringArray()
 	var writer = load("res://addons/arcweave/Editor/MediaFileWriter.cs").new()
 	for id in downloads:
 		# Overwrite the previous file in place when possible, so references to it are kept.
@@ -143,63 +179,57 @@ func _save_media(asset : ArcweaveAsset, media : Dictionary, downloads : Dictiona
 		var bytes : PackedByteArray = downloads[id]
 		var sha256 = _sha256(bytes)
 		if owned.get(path) != sha256:
+			var replacing = FileAccess.file_exists(path)
 			var error : String = writer.Write(path, bytes)
 			if not error.is_empty():
 				# Eg. a read-only file checked in to version control
 				push_warning("[Arcweave] Could not save '%s' to %s: %s" % [media[id].name, path, error])
 				continue
 			owned[path] = sha256
-			changed_paths.append(path)
+			written.append(path)
+			if replacing:
+				replaced.append(path)
 		paths[id] = path
 		saved += 1
-
-	var linked_paths = paths.values()
-	for path in owned.keys():
-		if path in linked_paths:
-			continue
-		var error = _delete_file(path)
-		if error != OK:
-			# Still owned, so a later initialization tries again
-			push_warning("[Arcweave] Could not delete unused media file %s: %s" % [path, error_string(error)])
-		else:
-			owned.erase(path)
-			changed_paths.append(path)
 
 	asset.downloaded_media = paths
 	asset.owned_media = owned
 	asset.emit_changed()
 	print("[Arcweave] Downloaded %d of %d media files for %s" % [saved, media.size(), asset_path.get_file()])
-	return changed_paths
+	return { "written": written, "replaced": replaced }
 
-## Updates the editor's FileSystem with the written and deleted files and imports the written ones in one go.
-## Then links the imported resources to the ArcweaveAsset. Outside the editor the files can't be imported, so the
-## resources are left as they are.
-func _link_resources(asset : ArcweaveAsset, changed_paths : PackedStringArray):
+## Imports the written files in one go and links the imported resources to the ArcweaveAsset.
+## Outside the editor the files can't be imported, so the resources are left as they are.
+func _link_resources(asset : ArcweaveAsset, written_paths : PackedStringArray, replaced_paths : PackedStringArray):
 	if not (Engine.is_editor_hint() and Engine.has_singleton("EditorInterface")):
 		return
 	var filesystem = Engine.get_singleton("EditorInterface").get_resource_filesystem()
-	if not changed_paths.is_empty():
+	if not written_paths.is_empty():
 		progress_changed.emit("Importing media...", 1.0)
-		var written_paths = Array(changed_paths).filter(func(path): return FileAccess.file_exists(path))
-		var deleted_paths = Array(changed_paths).filter(func(path): return not FileAccess.file_exists(path))
-		# Files the editor already imported are reimported explicitly below, which also catches files replaced within
-		# the same second that a scan misses because their modified time is unchanged
-		var known_paths = written_paths.filter(func(path): return _is_imported(filesystem, path))
-		for path in deleted_paths:
-			filesystem.update_file(path)
-		# Waits until the FileSystem has imported every new file and forgotten every deleted one, instead of waiting for
-		# a scan signal, since a scan that was already running may finish without seeing them
+		# Checks that the FileSystem imported the files instead of waiting for a scan signal, since a scan that was
+		# already running may finish without seeing them. Files that are still not imported after a few scans, eg. in
+		# a hidden or .gdignore folder, can't be imported, so the wait ends instead of rescanning.
 		var deadline = Time.get_ticks_msec() + IMPORT_TIMEOUT_SECONDS * 1000
-		while Time.get_ticks_msec() < deadline:
+		var scans = 0
+		while not canceled and Time.get_ticks_msec() < deadline:
 			if not filesystem.is_scanning():
-				var pending = written_paths.any(func(path): return not _is_imported(filesystem, path)) \
-					or deleted_paths.any(func(path): return _is_indexed(filesystem, path))
-				if not pending:
+				var pending = Array(written_paths).filter(func(path): return not _is_imported(filesystem, path))
+				if pending.is_empty():
+					break
+				if scans == MAX_IMPORT_SCANS:
+					push_warning("[Arcweave] The editor did not import %s. Media in hidden or ignored folders can't be imported." % ", ".join(pending))
 					break
 				filesystem.scan()
+				scans += 1
+				# Gives the scan time to start, so a scan request that was ignored is retried
+				await get_tree().create_timer(SCAN_START_SECONDS).timeout
 			await get_tree().create_timer(POLL_SECONDS).timeout
-		if not known_paths.is_empty():
-			filesystem.reimport_files(PackedStringArray(known_paths))
+		# Files replaced in place are reimported explicitly, since a scan misses files replaced within the same second,
+		# which keep their modified time. They are tracked when written, because the FileSystem can't be queried while
+		# it scans.
+		var reimport_paths = Array(replaced_paths).filter(func(path): return _is_imported(filesystem, path))
+		if not reimport_paths.is_empty() and not filesystem.is_scanning():
+			filesystem.reimport_files(PackedStringArray(reimport_paths))
 
 	var resources = {}
 	for id in asset.downloaded_media:

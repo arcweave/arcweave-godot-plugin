@@ -28,20 +28,31 @@ func pressed(object: ArcweaveAsset):
 func on_project_updated(new_project_settings, object: ArcweaveAsset):
 	if new_project_settings == null:
 		return
+	var downloader = null
 	if object.download_media and object.receive_method == "WebAPI":
-		await download_media(object, new_project_settings)
+		downloader = await download_media(object, new_project_settings)
 	elif not object.download_media:
 		# The project no longer uses the downloaded media, so the resource stops loading and exporting it.
 		# The files are kept, and deleted by a later download if the project doesn't use them anymore.
 		object.media_resources = {}
+	var error = _save_resource(object)
+	if downloader != null:
+		# Unused media is deleted once the resource no longer references it, so a failed save never leaves the resource
+		# referencing deleted media
+		if error == OK and downloader.delete_unused_media():
+			_save_resource(object)
+		downloader.queue_free()
+
+func _save_resource(object: ArcweaveAsset) -> Error:
 	var error = ResourceSaver.save(object, object.resource_path)
 	if error != OK:
 		printerr("[Arcweave] Error saving resource!")
 		printerr(error)
+	return error
 
-## Downloads the media of the project with a cancelable progress dialog.
-## Both are added to the editor's base control, so they outlive this inspector when another object is selected.
-func download_media(object: ArcweaveAsset, project_settings: Dictionary):
+## Downloads the media of the project with a cancelable progress dialog and returns the downloader, which the caller
+## frees. Both are added to the editor's base control, so they outlive this inspector when another object is selected.
+func download_media(object: ArcweaveAsset, project_settings: Dictionary) -> ArcweaveMediaDownloader:
 	var downloader = ArcweaveMediaDownloader.new(object)
 	var dialog = AcceptDialog.new()
 	dialog.title = "Arcweave"
@@ -67,4 +78,4 @@ func download_media(object: ArcweaveAsset, project_settings: Dictionary):
 	dialog.popup_centered()
 	await downloader.download(project_settings)
 	dialog.queue_free()
-	downloader.queue_free()
+	return downloader
