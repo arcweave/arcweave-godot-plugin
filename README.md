@@ -13,6 +13,7 @@ The Arcweave Godot Export feature is available to all Arcweave users, including 
     - [API Import](#api-import)
   - [Creating an ArcweaveAsset](#creating-an-arcweaveasset)
     - [Loading the Project Data](#loading-the-project-data)
+    - [Downloading Media](#downloading-media)
     - [Using the ArcweaveAsset](#using-the-arcweaveasset)
       - [Use ArcweaveNode](#use-arcweavenode)
       - [Create your own Node](#create-your-own-node)
@@ -111,6 +112,23 @@ Open the newly created resource's inspector. You will see two options for select
 - **Importing from API**: Fill the **API key** and **Project Hash** values.
 
 Then click on **Initialize Arcweave Asset** button. This will either load the project from the file, or fetch the data from the API and store it's info in the Resource.
+
+### Downloading Media
+
+When importing from the API, you can also download the images and audio your project uses. Enable **Download Media** in the API Settings of the resource and click on **Initialize Arcweave Asset**. The plugin downloads the element and component covers, the element audio and the assets of asset list attributes into a `<Resource Name> Media` folder next to the resource, showing the progress in a dialog where you can cancel the download.
+
+- Supported files are `.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`, `.bmp`, `.tga` images and `.mp3`, `.ogg`, `.wav` audio. Other files, such as `.gif`, are skipped with a warning.
+- Initializing again only rewrites the files that changed, and deletes the files your project no longer uses. Media that fails to download keeps its previous copy.
+- The plugin only replaces or deletes the files it downloaded, so your own files are never overwritten. A duplicated resource downloads its own media.
+- Downloads happen in the editor only. Initializing from the API during runtime keeps the media downloaded in the editor.
+
+**Download Media** is disabled by default. The downloaded media is linked to the project's assets through `Asset.LocalPath`, and `Asset.LoadResource()` loads it, for example as a `Texture2D` for images or an `AudioStream` for audio:
+
+```csharp
+var cover = element.Cover?.LoadResource() as Texture2D;
+```
+
+If you create the Story yourself, pass the downloaded media to it with `new Story(projectSettings, (Dictionary)ArcweaveAsset.Call("get_media_paths"))`.
 
 ### Using the ArcweaveAsset
 
@@ -347,7 +365,9 @@ func option_button_pressed(path):
 | Method Name                                | Description                                 |
 | :----------------------------------------- | :------------------------------------------ |
 | `Story(Dictionary projectData)`            | Initializes a Story with the project data   |
+| `Story(Dictionary projectData, Dictionary mediaPaths)` | Initializes a Story with the project data and its downloaded media |
 | `void UpdateStory(Dictionary projectData)` | Updates the story with the new project data |
+| `void UpdateStory(Dictionary projectData, Dictionary mediaPaths)` | Updates the story with the new project data and its downloaded media |
 | `void SetCurrentElement(string id)`        | Sets the current element                    |
 | `void SetCurrentElement(IElement element)` | Sets the current element                    |
 | `string GenerateCurrentRuntimeContent()`   | Returns the current element's content       |

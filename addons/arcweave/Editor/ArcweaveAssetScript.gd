@@ -10,6 +10,10 @@ signal project_updated(project_settings)
 @export var api_key : String
 ## The Project Hash
 @export var project_hash : String
+## Download the images and audio the project uses into a "<Resource Name> Media" folder next to this resource when
+## initializing from the WebAPI in the editor, and link them to the project's assets.
+## Disabled by default. When disabled, assets only have their Arcweave folder path.
+@export var download_media : bool = false
 
 @export_group("")
 ## The retrieve method to use
@@ -20,10 +24,32 @@ signal project_updated(project_settings)
 ## The retrieved Project Settings
 @export var project_settings : Dictionary
 
+# Media downloaded by WebAPI initializations, as Arcweave asset id -> res:// path. Only these files, and the stale
+# ones that could not be deleted yet, are ever replaced or deleted by the downloader.
+# The owner detects duplicated resources, which must not manage the original resource's media.
+@export_storage var downloaded_media : Dictionary = {}
+@export_storage var stale_media : PackedStringArray = PackedStringArray()
+@export_storage var media_folder : String = ""
+@export_storage var media_owner : String = ""
+
+## True while the media of this resource is being downloaded
+var is_downloading_media : bool = false
+
 func _init(_project_settings = {}, _api_key = "", _project_hash = ""):
 	project_settings = _project_settings
 	api_key = _api_key
 	project_hash = _project_hash
+
+## Returns the downloaded media that still exists, as Arcweave asset id -> res:// path.
+## Empty when download_media is disabled, so the project never relies on media it no longer downloads.
+func get_media_paths() -> Dictionary:
+	var paths = {}
+	if not download_media:
+		return paths
+	for asset_id in downloaded_media:
+		if ResourceLoader.exists(downloaded_media[asset_id]):
+			paths[asset_id] = downloaded_media[asset_id]
+	return paths
 
 func refresh_project(api_request: APIRequest):
 	if receive_method == "WebAPI":
