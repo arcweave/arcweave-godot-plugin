@@ -19,6 +19,7 @@ const FAST_CONNECT_ATTEMPTS = 2
 const CONNECT_TIMEOUT_SECONDS = 90
 ## How long a request may go without receiving anything before it is retried
 const STALL_TIMEOUT_SECONDS = 20
+const CHUNKED_STALL_TIMEOUT_SECONDS = 120
 const IDLE_POLL_MSEC = 1
 const RETRY_CODES = [500, 502, 503, 504, 520, 521, 522, 523, 524]
 const RETRY_RESULTS = [HTTPRequest.RESULT_CANT_CONNECT, HTTPRequest.RESULT_CANT_RESOLVE, HTTPRequest.RESULT_CONNECTION_ERROR,
@@ -59,10 +60,12 @@ func _init(object : ArcweaveAsset):
 	add_child(_api_request)
 
 func _notification(what):
-	# The worker thread must not outlive the downloader
-	if what == NOTIFICATION_PREDELETE and _task_id != -1:
+	# The download needs the tree, so it is canceled when the downloader leaves it, and the worker thread never outlives
+	# the downloader
+	if (what == NOTIFICATION_EXIT_TREE or what == NOTIFICATION_PREDELETE) and _task_id != -1:
 		cancel()
 		WorkerThreadPool.wait_for_task_completion(_task_id)
+		_task_id = -1
 
 ## Cancels the download. Media that was not downloaded keeps its previous copy.
 func cancel():
@@ -91,6 +94,9 @@ func download(project_settings : Dictionary):
 	var ids = media.keys()
 	var api_url = _api_request.get_api_url()
 	var headers = _api_request.get_headers()
+	# Like HTTPRequest, accepts compressed responses, which are decompressed when they arrive
+	if not Array(headers).any(func(header : String): return header.to_lower().begins_with("accept-encoding:")):
+		headers.append("Accept-Encoding: gzip, deflate")
 	var project_hash = asset.project_hash
 	for i in ids.size():
 		if canceled:
@@ -412,9 +418,7 @@ func _request(url : String, headers : PackedStringArray, report : Callable) -> A
 		var location = _header(response[2], "Location")
 		if response[0] != HTTPRequest.RESULT_SUCCESS or not response[1] in [301, 302, 303, 307, 308] or location.is_empty():
 			return response
-		if location.begins_with("/") and not location.begins_with("//"):
-			location = target.origin + location
-		var next = _parse_url(location)
+		var next = _parse_url(_resolve_url(target, location))
 		# The API key is only sent to the server it belongs to
 		if not next.is_empty() and next.origin != target.origin:
 			headers = PackedStringArray(Array(headers).filter(func(header : String): return not header.to_lower().begins_with("authorization:")))
@@ -427,9 +431,11 @@ func _request(url : String, headers : PackedStringArray, report : Callable) -> A
 func _send(target : Dictionary, headers : PackedStringArray, report : Callable) -> Array:
 	var response = []
 	_set_status("", 0.0)
-	_task_id = WorkerThreadPool.add_task(func(): response.append_array(_send_blocking(target, headers)), false, "Arcweave media download")
+	var task_id = WorkerThreadPool.add_task(func(): response.append_array(_send_blocking(target, headers)), false, "Arcweave media download")
+	_task_id = task_id
 	var reported = ""
-	while not WorkerThreadPool.is_task_completed(_task_id):
+	# The task is waited for elsewhere if the downloader leaves the tree
+	while _task_id == task_id and not WorkerThreadPool.is_task_completed(task_id):
 		_mutex.lock()
 		var status = _status
 		var fraction = _status_fraction
@@ -438,9 +444,10 @@ func _send(target : Dictionary, headers : PackedStringArray, report : Callable) 
 			reported = status
 			report.call(status, fraction)
 		await get_tree().process_frame
-	WorkerThreadPool.wait_for_task_completion(_task_id)
-	_task_id = -1
-	return response
+	if _task_id == task_id:
+		WorkerThreadPool.wait_for_task_completion(task_id)
+		_task_id = -1
+	return response if not response.is_empty() else _response(HTTPRequest.RESULT_REQUEST_FAILED)
 
 ## Sends a GET request and blocks until it ends. The connection stays open for the next request, unless it fails or
 ## the server closes it.
@@ -484,6 +491,7 @@ func _send_blocking(target : Dictionary, headers : PackedStringArray) -> Array:
 	var response_code = 0
 	var response_headers = PackedStringArray()
 	var length = -1
+	var chunked = false
 	var body = PackedByteArray()
 	var last_activity = Time.get_ticks_msec()
 	while true:
@@ -497,6 +505,7 @@ func _send_blocking(target : Dictionary, headers : PackedStringArray) -> Array:
 			response_code = client.get_response_code()
 			response_headers = client.get_response_headers()
 			length = client.get_response_body_length()
+			chunked = client.is_response_chunked()
 			progressed = true
 		if status == HTTPClient.STATUS_BODY:
 			var chunk = client.read_response_body_chunk()
@@ -506,13 +515,20 @@ func _send_blocking(target : Dictionary, headers : PackedStringArray) -> Array:
 			# Checked before polling again, which would see that a server that sent Connection: close closed it
 			status = client.get_status()
 		if status != HTTPClient.STATUS_REQUESTING and status != HTTPClient.STATUS_BODY:
-			# A body without a length ends when the server closes the connection
+			# A body without a length or chunks ends when the server closes the connection. A chunked body only ends with
+			# its last chunk, so one cut short is never saved.
 			var complete = response_code != 0 and (status == HTTPClient.STATUS_CONNECTED
-				or (length >= 0 and body.size() == length) or (status == HTTPClient.STATUS_DISCONNECTED and length < 0))
+				or (length >= 0 and body.size() == length) or (status == HTTPClient.STATUS_DISCONNECTED and length < 0 and not chunked))
 			if not complete or status != HTTPClient.STATUS_CONNECTED or _header(response_headers, "Connection").to_lower() == "close":
 				_close_client()
 			if not complete:
 				return _response(_result(status, response_code != 0), response_code, response_headers)
+			var encoding = _header(response_headers, "Content-Encoding").to_lower()
+			if not encoding in ["", "identity"] and not body.is_empty():
+				var mode = { "gzip": FileAccess.COMPRESSION_GZIP, "x-gzip": FileAccess.COMPRESSION_GZIP, "deflate": FileAccess.COMPRESSION_DEFLATE }.get(encoding, -1)
+				body = body.decompress_dynamic(-1, mode) if mode != -1 else PackedByteArray()
+				if body.is_empty():
+					return _response(HTTPRequest.RESULT_BODY_DECOMPRESS_FAILED, response_code, response_headers)
 			return [HTTPRequest.RESULT_SUCCESS, response_code, response_headers, body]
 
 		var now = Time.get_ticks_msec()
@@ -523,7 +539,9 @@ func _send_blocking(target : Dictionary, headers : PackedStringArray) -> Array:
 				var fraction = float(body.size()) / length if length > 0 else 0.0
 				_set_status(received + " of " + String.humanize_size(length) if length >= 0 else received, fraction)
 		else:
-			if now - last_activity > STALL_TIMEOUT_SECONDS * 1000:
+			# The editor only returns a chunk once all of it arrived, so a large chunk on a slow connection looks stalled
+			var stall_timeout = CHUNKED_STALL_TIMEOUT_SECONDS if chunked else STALL_TIMEOUT_SECONDS
+			if now - last_activity > stall_timeout * 1000:
 				_close_client()
 				return _response(HTTPRequest.RESULT_TIMEOUT, response_code, response_headers)
 			OS.delay_msec(IDLE_POLL_MSEC)
@@ -562,10 +580,24 @@ static func _result(status : int, responded : bool) -> int:
 static func _response(result : int, response_code : int = 0, headers : PackedStringArray = PackedStringArray()) -> Array:
 	return [result, response_code, headers, PackedByteArray()]
 
-## Splits an http or https URL into { tls, host, port, path, origin }. Returns {} if it is not one.
+## Resolves the Location of a redirect against the URL that was requested
+static func _resolve_url(target : Dictionary, location : String) -> String:
+	if location.to_lower().begins_with("http://") or location.to_lower().begins_with("https://"):
+		return location
+	if location.begins_with("//"):
+		return ("https:" if target.tls else "http:") + location
+	var path = location.get_slice("?", 0)
+	var query = location.substr(path.length())
+	if not path.begins_with("/"):
+		# Relative to the folder of the requested path
+		path = target.path.get_slice("?", 0).get_base_dir().path_join(path)
+	return target.origin + path.simplify_path() + query
+
+## Splits an http or https URL into { tls, host, port, path, origin }. The origin has the lowercase host and the port,
+## so URLs of the same server always have the same origin. Returns {} if it is not an http or https URL.
 static func _parse_url(url : String) -> Dictionary:
-	var tls = url.begins_with("https://")
-	if not tls and not url.begins_with("http://"):
+	var tls = url.to_lower().begins_with("https://")
+	if not tls and not url.to_lower().begins_with("http://"):
 		return {}
 	var rest = url.substr(8 if tls else 7)
 	var slash = rest.find("/")
@@ -580,10 +612,11 @@ static func _parse_url(url : String) -> Dictionary:
 			return {}
 		port = authority.substr(colon + 1).to_int()
 		host = authority.left(colon)
-	host = host.trim_prefix("[").trim_suffix("]")
+	host = host.trim_prefix("[").trim_suffix("]").to_lower()
 	if host.is_empty():
 		return {}
-	return { "tls": tls, "host": host, "port": port, "path": path, "origin": ("https://" if tls else "http://") + authority }
+	var origin = "%s://%s:%d" % ["https" if tls else "http", "[%s]" % host if host.contains(":") else host, port]
+	return { "tls": tls, "host": host, "port": port, "path": path, "origin": origin }
 
 ## Returns how long to wait before retrying a request, or -1 if it succeeded or retrying would not help
 static func _retry_delay_seconds(response : Array, attempt : int) -> float:
@@ -614,6 +647,8 @@ static func _describe(response : Array) -> String:
 			return "the server stopped responding"
 		HTTPRequest.RESULT_REDIRECT_LIMIT_REACHED:
 			return "too many redirects"
+		HTTPRequest.RESULT_BODY_DECOMPRESS_FAILED:
+			return "could not decompress the response"
 	return "error %d" % response[0]
 
 ## Returns how long to wait before retrying a rate limited request, from its Retry-After header in seconds or as a date,
