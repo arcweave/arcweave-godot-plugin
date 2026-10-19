@@ -2,15 +2,31 @@
 class_name ArcweaveMediaDownloader extends Node
 ## Downloads the images and audio of a project initialized from the WebAPI and links them to its ArcweaveAsset.
 
-## Emitted before each download and while waiting to retry a rate limited download
+## Emitted as each download progresses and while waiting to retry a failed download
 signal progress_changed(info: String, value: float)
-signal _fetch_finished(response: Array)
 
 const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "svg", "bmp", "tga"]
 const AUDIO_EXTENSIONS = ["mp3", "ogg", "wav"]
 const MAX_ATTEMPTS = 5
 const MAX_RETRY_SECONDS = 60
-const REQUEST_TIMEOUT_SECONDS = 120
+const MAX_BACKOFF_SECONDS = 8
+const MAX_REDIRECTS = 5
+# A connection that drops, eg. over a flaky IPv6 route, is retried after a short wait, since a new one usually connects
+const FAST_CONNECT_TIMEOUT_SECONDS = 10
+const FAST_CONNECT_ATTEMPTS = 2
+# Connecting may try each address of the server in turn, eg. an IPv6 address that never answers before an IPv4 one, and
+# the editor waits up to network/limits/tcp/connect_timeout_seconds for each
+const CONNECT_TIMEOUT_SECONDS = 90
+## How long a request may go without receiving anything before it is retried
+const STALL_TIMEOUT_SECONDS = 20
+const IDLE_POLL_MSEC = 1
+const RETRY_CODES = [500, 502, 503, 504, 520, 521, 522, 523, 524]
+const RETRY_RESULTS = [HTTPRequest.RESULT_CANT_CONNECT, HTTPRequest.RESULT_CANT_RESOLVE, HTTPRequest.RESULT_CONNECTION_ERROR,
+	HTTPRequest.RESULT_NO_RESPONSE, HTTPRequest.RESULT_TIMEOUT]
+# Failures that would fail every other download too, so the remaining downloads are skipped
+const UNREACHABLE_RESULTS = [HTTPRequest.RESULT_CANT_CONNECT, HTTPRequest.RESULT_CANT_RESOLVE,
+	HTTPRequest.RESULT_CONNECTION_ERROR, HTTPRequest.RESULT_NO_RESPONSE, HTTPRequest.RESULT_TIMEOUT,
+	HTTPRequest.RESULT_TLS_HANDSHAKE_ERROR]
 const POLL_SECONDS = 0.1
 const IMPORT_TIMEOUT_SECONDS = 120
 const MAX_IMPORT_SCANS = 3
@@ -26,19 +42,33 @@ const RESERVED_NAMES = ["CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM
 var canceled : bool = false
 var arcweave_asset : ArcweaveAsset
 var _api_request : APIRequest
-var _http_request : HTTPRequest
+# Every download reuses one connection, instead of connecting to the server for each file. Requests run on a worker
+# thread, which is the only one using the connection while a request runs.
+var _client : HTTPClient
+var _client_origin : String
+var _connect_timeouts = 0
+var _task_id = -1
+# Guards canceled and the progress of the request in flight, which the worker thread shares with the main thread
+var _mutex = Mutex.new()
+var _status : String
+var _status_fraction : float
 
 func _init(object : ArcweaveAsset):
 	arcweave_asset = object
 	_api_request = APIRequest.new(object)
 	add_child(_api_request)
 
+func _notification(what):
+	# The worker thread must not outlive the downloader
+	if what == NOTIFICATION_PREDELETE and _task_id != -1:
+		cancel()
+		WorkerThreadPool.wait_for_task_completion(_task_id)
+
 ## Cancels the download. Media that was not downloaded keeps its previous copy.
 func cancel():
+	_mutex.lock()
 	canceled = true
-	if _http_request != null:
-		_http_request.cancel_request()
-		_fetch_finished.emit([HTTPRequest.RESULT_REQUEST_FAILED, 0, PackedStringArray(), PackedByteArray()])
+	_mutex.unlock()
 
 ## Downloads the media the project uses and links it to the ArcweaveAsset. The node must be inside the tree.
 ## Never fails: media that cannot be downloaded or saved keeps its previous copy and a warning is printed.
@@ -75,9 +105,17 @@ func download(project_settings : Dictionary):
 
 		var url = api_url + project_hash.uri_encode() + "/asset/" + id.uri_encode() + "/file"
 		var info = "Downloading media %d/%d: %s" % [i + 1, ids.size(), asset_name]
-		var bytes = await _fetch(url, headers, asset_name, info, float(i) / ids.size())
-		if bytes != null:
-			downloads[id] = bytes
+		var response = await _fetch(url, headers, info, float(i) / ids.size(), 1.0 / ids.size())
+		if canceled:
+			break
+		if response[0] == HTTPRequest.RESULT_SUCCESS and response[1] == 200:
+			downloads[id] = response[3]
+			continue
+		push_warning("[Arcweave] Could not download '%s': %s." % [asset_name, _describe(response)])
+		if response[0] in UNREACHABLE_RESULTS or response[1] == 401:
+			push_warning("[Arcweave] Skipping the remaining media downloads. Media that was not downloaded keeps its previous copy.")
+			break
+	_close_client()
 	if canceled:
 		push_warning("[Arcweave] Media download canceled. Media that was not downloaded keeps its previous copy.")
 
@@ -333,55 +371,254 @@ static func _sanitize(segment : String) -> String:
 		sanitized = stem + "_" + sanitized.substr(stem.length())
 	return sanitized
 
-## Downloads a file, waiting and retrying while rate limited. Returns null if the download fails or is canceled.
-func _fetch(url : String, headers : PackedStringArray, asset_name : String, info : String, value : float):
+## Downloads a file, retrying when rate limited, when the connection fails and on server errors.
+## Returns the last response, as [result, response_code, headers, body].
+func _fetch(url : String, headers : PackedStringArray, info : String, value : float, step : float) -> Array:
+	var response = _response(HTTPRequest.RESULT_REQUEST_FAILED)
 	for attempt in range(1, MAX_ATTEMPTS + 1):
 		if canceled:
-			return null
+			break
 		progress_changed.emit(info, value)
-		var response = await _request(url, headers)
+		var start = Time.get_ticks_msec()
+		response = await _request(url, headers, func(status : String, fraction : float):
+			progress_changed.emit("%s (%s)" % [info, status], value + fraction * step))
 		if canceled:
-			return null
-		var result : int = response[0]
-		var response_code : int = response[1]
-		if result == HTTPRequest.RESULT_SUCCESS and response_code == 200:
-			return response[3]
-
-		if response_code == 429 and attempt < MAX_ATTEMPTS:
-			var retry_at = Time.get_ticks_msec() + int(_retry_delay_seconds(_header(response[2], "Retry-After")) * 1000)
-			while Time.get_ticks_msec() < retry_at:
-				if canceled:
-					return null
-				var seconds = ceili((retry_at - Time.get_ticks_msec()) / 1000.0)
-				progress_changed.emit("%s (rate limited, retrying in %ds)" % [info, seconds], value)
-				await get_tree().create_timer(POLL_SECONDS).timeout
-			if canceled:
-				return null
-			continue
-
-		push_warning("[Arcweave] Could not download '%s' (code = %d, result = %d)" % [asset_name, response_code, result])
-		return null
-	return null
-
-## Sends a GET request and returns [result, response_code, headers, body]
-func _request(url : String, headers : PackedStringArray) -> Array:
-	var http_request = HTTPRequest.new()
-	http_request.timeout = REQUEST_TIMEOUT_SECONDS
-	add_child(http_request)
-	_http_request = http_request
-	http_request.request_completed.connect(func(result, response_code, response_headers, body):
-		if _http_request == http_request:
-			_fetch_finished.emit([result, response_code, response_headers, body]))
-	var response = [HTTPRequest.RESULT_CANT_CONNECT, 0, PackedStringArray(), PackedByteArray()]
-	if http_request.request(url, headers) == OK:
-		response = await _fetch_finished
-	_http_request = null
-	http_request.queue_free()
+			break
+		print_verbose("[Arcweave] GET %s: %s in %d ms" % [url, _describe(response), Time.get_ticks_msec() - start])
+		var delay = _retry_delay_seconds(response, attempt)
+		if delay < 0 or attempt == MAX_ATTEMPTS:
+			break
+		var reason = _describe(response)
+		var retry_at = Time.get_ticks_msec() + int(delay * 1000)
+		while Time.get_ticks_msec() < retry_at and not canceled:
+			var seconds = ceili((retry_at - Time.get_ticks_msec()) / 1000.0)
+			progress_changed.emit("%s (%s, retrying in %ds)" % [info, reason, seconds], value)
+			await get_tree().create_timer(POLL_SECONDS).timeout
 	return response
+
+## Sends a GET request, following redirects, and returns [result, response_code, headers, body]. report(status, fraction)
+## is called as the request progresses.
+func _request(url : String, headers : PackedStringArray, report : Callable) -> Array:
+	var target = _parse_url(url)
+	for _redirect in MAX_REDIRECTS + 1:
+		if target.is_empty():
+			return _response(HTTPRequest.RESULT_CANT_CONNECT)
+		var reused = _client != null and _client_origin == target.origin
+		var response = await _send(target, headers, report)
+		# The server may close a connection while it waits between requests, so a reused connection that fails before
+		# responding is tried again on a new one
+		if reused and not canceled and response[1] == 0 and response[0] in [HTTPRequest.RESULT_CONNECTION_ERROR, HTTPRequest.RESULT_NO_RESPONSE]:
+			response = await _send(target, headers, report)
+		var location = _header(response[2], "Location")
+		if response[0] != HTTPRequest.RESULT_SUCCESS or not response[1] in [301, 302, 303, 307, 308] or location.is_empty():
+			return response
+		if location.begins_with("/") and not location.begins_with("//"):
+			location = target.origin + location
+		var next = _parse_url(location)
+		# The API key is only sent to the server it belongs to
+		if not next.is_empty() and next.origin != target.origin:
+			headers = PackedStringArray(Array(headers).filter(func(header : String): return not header.to_lower().begins_with("authorization:")))
+		target = next
+	return _response(HTTPRequest.RESULT_REDIRECT_LIMIT_REACHED)
+
+## Sends a GET request over the open connection, connecting first if there is none, and returns
+## [result, response_code, headers, body]. The request runs on a worker thread, so it doesn't depend on the editor's
+## frame rate, which drops to 10 frames a second when the editor is in the background.
+func _send(target : Dictionary, headers : PackedStringArray, report : Callable) -> Array:
+	var response = []
+	_set_status("", 0.0)
+	_task_id = WorkerThreadPool.add_task(func(): response.append_array(_send_blocking(target, headers)), false, "Arcweave media download")
+	var reported = ""
+	while not WorkerThreadPool.is_task_completed(_task_id):
+		_mutex.lock()
+		var status = _status
+		var fraction = _status_fraction
+		_mutex.unlock()
+		if status != reported and not status.is_empty():
+			reported = status
+			report.call(status, fraction)
+		await get_tree().process_frame
+	WorkerThreadPool.wait_for_task_completion(_task_id)
+	_task_id = -1
+	return response
+
+## Sends a GET request and blocks until it ends. The connection stays open for the next request, unless it fails or
+## the server closes it.
+func _send_blocking(target : Dictionary, headers : PackedStringArray) -> Array:
+	if _client != null:
+		_client.poll()
+		if _client_origin != target.origin or _client.get_status() != HTTPClient.STATUS_CONNECTED:
+			_close_client()
+	var client = _client
+	if client == null:
+		client = HTTPClient.new()
+		_client = client
+		_client_origin = target.origin
+		if client.connect_to_host(target.host, target.port, TLSOptions.client() if target.tls else null) != OK:
+			_close_client()
+			return _response(HTTPRequest.RESULT_CANT_CONNECT)
+		_set_status("connecting to %s" % target.host, 0.0)
+		var timeout = FAST_CONNECT_TIMEOUT_SECONDS if _connect_timeouts < FAST_CONNECT_ATTEMPTS else CONNECT_TIMEOUT_SECONDS
+		var deadline = Time.get_ticks_msec() + timeout * 1000
+		while true:
+			if _is_canceled():
+				_close_client()
+				return _response(HTTPRequest.RESULT_REQUEST_FAILED)
+			client.poll()
+			var status = client.get_status()
+			if status == HTTPClient.STATUS_CONNECTED:
+				break
+			if status != HTTPClient.STATUS_RESOLVING and status != HTTPClient.STATUS_CONNECTING:
+				_close_client()
+				return _response(_result(status, false))
+			if Time.get_ticks_msec() > deadline:
+				_connect_timeouts += 1
+				_close_client()
+				return _response(HTTPRequest.RESULT_TIMEOUT)
+			OS.delay_msec(IDLE_POLL_MSEC)
+
+	if client.request(HTTPClient.METHOD_GET, target.path, headers) != OK:
+		_close_client()
+		return _response(HTTPRequest.RESULT_CONNECTION_ERROR)
+	_set_status("waiting for the server", 0.0)
+	var response_code = 0
+	var response_headers = PackedStringArray()
+	var length = -1
+	var body = PackedByteArray()
+	var last_activity = Time.get_ticks_msec()
+	while true:
+		if _is_canceled():
+			_close_client()
+			return _response(HTTPRequest.RESULT_REQUEST_FAILED)
+		client.poll()
+		var status = client.get_status()
+		var progressed = false
+		if response_code == 0 and client.has_response():
+			response_code = client.get_response_code()
+			response_headers = client.get_response_headers()
+			length = client.get_response_body_length()
+			progressed = true
+		if status == HTTPClient.STATUS_BODY:
+			var chunk = client.read_response_body_chunk()
+			if not chunk.is_empty():
+				body.append_array(chunk)
+				progressed = true
+			# Checked before polling again, which would see that a server that sent Connection: close closed it
+			status = client.get_status()
+		if status != HTTPClient.STATUS_REQUESTING and status != HTTPClient.STATUS_BODY:
+			# A body without a length ends when the server closes the connection
+			var complete = response_code != 0 and (status == HTTPClient.STATUS_CONNECTED
+				or (length >= 0 and body.size() == length) or (status == HTTPClient.STATUS_DISCONNECTED and length < 0))
+			if not complete or status != HTTPClient.STATUS_CONNECTED or _header(response_headers, "Connection").to_lower() == "close":
+				_close_client()
+			if not complete:
+				return _response(_result(status, response_code != 0), response_code, response_headers)
+			return [HTTPRequest.RESULT_SUCCESS, response_code, response_headers, body]
+
+		var now = Time.get_ticks_msec()
+		if progressed:
+			last_activity = now
+			if response_code != 0:
+				var received = String.humanize_size(body.size())
+				var fraction = float(body.size()) / length if length > 0 else 0.0
+				_set_status(received + " of " + String.humanize_size(length) if length >= 0 else received, fraction)
+		else:
+			if now - last_activity > STALL_TIMEOUT_SECONDS * 1000:
+				_close_client()
+				return _response(HTTPRequest.RESULT_TIMEOUT, response_code, response_headers)
+			OS.delay_msec(IDLE_POLL_MSEC)
+	return _response(HTTPRequest.RESULT_REQUEST_FAILED)
+
+func _set_status(status : String, fraction : float):
+	_mutex.lock()
+	_status = status
+	_status_fraction = fraction
+	_mutex.unlock()
+
+func _is_canceled() -> bool:
+	_mutex.lock()
+	var result = canceled
+	_mutex.unlock()
+	return result
+
+func _close_client():
+	if _client != null:
+		_client.close()
+		_client = null
+
+## Returns the HTTPRequest result of a request that ended with the connection status
+static func _result(status : int, responded : bool) -> int:
+	match status:
+		HTTPClient.STATUS_CANT_RESOLVE:
+			return HTTPRequest.RESULT_CANT_RESOLVE
+		HTTPClient.STATUS_CANT_CONNECT:
+			return HTTPRequest.RESULT_CANT_CONNECT
+		HTTPClient.STATUS_TLS_HANDSHAKE_ERROR:
+			return HTTPRequest.RESULT_TLS_HANDSHAKE_ERROR
+		HTTPClient.STATUS_DISCONNECTED:
+			return HTTPRequest.RESULT_CONNECTION_ERROR if responded else HTTPRequest.RESULT_NO_RESPONSE
+	return HTTPRequest.RESULT_CONNECTION_ERROR
+
+static func _response(result : int, response_code : int = 0, headers : PackedStringArray = PackedStringArray()) -> Array:
+	return [result, response_code, headers, PackedByteArray()]
+
+## Splits an http or https URL into { tls, host, port, path, origin }. Returns {} if it is not one.
+static func _parse_url(url : String) -> Dictionary:
+	var tls = url.begins_with("https://")
+	if not tls and not url.begins_with("http://"):
+		return {}
+	var rest = url.substr(8 if tls else 7)
+	var slash = rest.find("/")
+	var authority = rest if slash < 0 else rest.left(slash)
+	var path = "/" if slash < 0 else rest.substr(slash)
+	var host = authority
+	var port = 443 if tls else 80
+	# The port follows the last colon, unless the colon is part of an IPv6 address such as [::1]
+	var colon = authority.rfind(":")
+	if colon > authority.rfind("]"):
+		if not authority.substr(colon + 1).is_valid_int():
+			return {}
+		port = authority.substr(colon + 1).to_int()
+		host = authority.left(colon)
+	host = host.trim_prefix("[").trim_suffix("]")
+	if host.is_empty():
+		return {}
+	return { "tls": tls, "host": host, "port": port, "path": path, "origin": ("https://" if tls else "http://") + authority }
+
+## Returns how long to wait before retrying a request, or -1 if it succeeded or retrying would not help
+static func _retry_delay_seconds(response : Array, attempt : int) -> float:
+	var result : int = response[0]
+	var response_code : int = response[1]
+	if result == HTTPRequest.RESULT_SUCCESS and response_code == 429:
+		return _retry_after_seconds(_header(response[2], "Retry-After"))
+	if (result == HTTPRequest.RESULT_SUCCESS and response_code in RETRY_CODES) or result in RETRY_RESULTS:
+		return mini(1 << (attempt - 1), MAX_BACKOFF_SECONDS)
+	return -1
+
+## Describes the outcome of a request, eg. for a warning
+static func _describe(response : Array) -> String:
+	match response[0]:
+		HTTPRequest.RESULT_SUCCESS:
+			return "rate limited" if response[1] == 429 else "HTTP %d" % response[1]
+		HTTPRequest.RESULT_CANT_RESOLVE:
+			return "could not resolve the server's address"
+		HTTPRequest.RESULT_CANT_CONNECT:
+			return "could not connect to the server"
+		HTTPRequest.RESULT_TLS_HANDSHAKE_ERROR:
+			return "the TLS handshake failed"
+		HTTPRequest.RESULT_NO_RESPONSE:
+			return "the server closed the connection without responding"
+		HTTPRequest.RESULT_CONNECTION_ERROR:
+			return "the connection was lost"
+		HTTPRequest.RESULT_TIMEOUT:
+			return "the server stopped responding"
+		HTTPRequest.RESULT_REDIRECT_LIMIT_REACHED:
+			return "too many redirects"
+	return "error %d" % response[0]
 
 ## Returns how long to wait before retrying a rate limited request, from its Retry-After header in seconds or as a date,
 ## capped so a download never waits for long.
-static func _retry_delay_seconds(retry_after : String) -> float:
+static func _retry_after_seconds(retry_after : String) -> float:
 	var seconds = float(MAX_RETRY_SECONDS)
 	if retry_after.is_valid_int():
 		seconds = retry_after.to_int()

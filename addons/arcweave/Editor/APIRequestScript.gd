@@ -12,6 +12,9 @@ var arcweave_asset: ArcweaveAsset
 func _init(object : ArcweaveAsset):
 	arcweave_asset = object
 	http_request = HTTPRequest.new()
+	# In the editor, reads the response as it arrives instead of a chunk per frame, since the editor processes only 10
+	# frames a second while it is in the background
+	http_request.use_threads = Engine.is_editor_hint()
 	add_child(http_request)
 	http_request.request_completed.connect(_on_request_completed)
 
