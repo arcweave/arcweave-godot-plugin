@@ -69,6 +69,46 @@ public partial class MediaFileWriter : RefCounted
 		return name.Normalize(System.Text.NormalizationForm.FormC);
 	}
 
+	/// <summary>
+	/// Decompresses a response body the server encoded with gzip or deflate. Unlike PackedByteArray.decompress_dynamic(),
+	/// it handles gzip bodies made of several members and never loops on unexpected trailing bytes.
+	/// </summary>
+	/// <param name="bytes">The response body</param>
+	/// <param name="encoding">The Content-Encoding of the response, in lowercase</param>
+	/// <returns>The decompressed body, or an empty array if it can't be decompressed</returns>
+	public byte[] Decompress(byte[] bytes, string encoding)
+	{
+		try
+		{
+			using var input = new MemoryStream(bytes);
+			using Stream decoder = encoding switch
+			{
+				"gzip" or "x-gzip" => new System.IO.Compression.GZipStream(input, System.IO.Compression.CompressionMode.Decompress),
+				"deflate" => new System.IO.Compression.ZLibStream(input, System.IO.Compression.CompressionMode.Decompress),
+				_ => throw new InvalidDataException($"Unsupported encoding {encoding}"),
+			};
+			using var output = new MemoryStream();
+			var buffer = new byte[81920];
+			int read;
+			while ((read = decoder.Read(buffer, 0, buffer.Length)) > 0)
+			{
+				output.Write(buffer, 0, read);
+				if (output.Length > MaxDecompressedBytes)
+				{
+					throw new InvalidDataException("The decompressed body is too large");
+				}
+			}
+			return output.ToArray();
+		}
+		catch (Exception e)
+		{
+			GD.PushWarning($"[Arcweave] Could not decompress a {encoding} response: {e.Message}");
+			return Array.Empty<byte>();
+		}
+	}
+
+	private const long MaxDecompressedBytes = 256L * 1024 * 1024;
+
 	private static void TryMove(string source, string destination)
 	{
 		try

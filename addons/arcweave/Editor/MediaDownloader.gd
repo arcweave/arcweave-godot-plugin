@@ -53,6 +53,8 @@ var _task_id = -1
 var _mutex = Mutex.new()
 var _status : String
 var _status_fraction : float
+# Decompresses compressed responses on the worker thread
+var _decompressor : RefCounted
 
 func _init(object : ArcweaveAsset):
 	arcweave_asset = object
@@ -62,10 +64,11 @@ func _init(object : ArcweaveAsset):
 func _notification(what):
 	# The download needs the tree, so it is canceled when the downloader leaves it, and the worker thread never outlives
 	# the downloader
-	if (what == NOTIFICATION_EXIT_TREE or what == NOTIFICATION_PREDELETE) and _task_id != -1:
+	if what == NOTIFICATION_EXIT_TREE or what == NOTIFICATION_PREDELETE:
 		cancel()
-		WorkerThreadPool.wait_for_task_completion(_task_id)
-		_task_id = -1
+		if _task_id != -1:
+			WorkerThreadPool.wait_for_task_completion(_task_id)
+			_task_id = -1
 
 ## Cancels the download. Media that was not downloaded keeps its previous copy.
 func cancel():
@@ -94,6 +97,7 @@ func download(project_settings : Dictionary):
 	var ids = media.keys()
 	var api_url = _api_request.get_api_url()
 	var headers = _api_request.get_headers()
+	_decompressor = load("res://addons/arcweave/Editor/MediaFileWriter.cs").new()
 	# Like HTTPRequest, accepts compressed responses, which are decompressed when they arrive
 	if not Array(headers).any(func(header : String): return header.to_lower().begins_with("accept-encoding:")):
 		headers.append("Accept-Encoding: gzip, deflate")
@@ -281,6 +285,9 @@ func _link_resources(asset : ArcweaveAsset, written_paths : PackedStringArray, r
 				scans += 1
 				# Gives the scan time to start, so a scan request that was ignored is retried
 				await get_tree().create_timer(SCAN_START_SECONDS).timeout
+				# Canceled, also when the downloader left the tree
+				if canceled:
+					break
 			await get_tree().create_timer(POLL_SECONDS).timeout
 		# Files replaced in place are reimported explicitly, since a scan misses files replaced within the same second,
 		# which keep their modified time. They are tracked when written, because the FileSystem can't be queried while
@@ -525,8 +532,7 @@ func _send_blocking(target : Dictionary, headers : PackedStringArray) -> Array:
 				return _response(_result(status, response_code != 0), response_code, response_headers)
 			var encoding = _header(response_headers, "Content-Encoding").to_lower()
 			if not encoding in ["", "identity"] and not body.is_empty():
-				var mode = { "gzip": FileAccess.COMPRESSION_GZIP, "x-gzip": FileAccess.COMPRESSION_GZIP, "deflate": FileAccess.COMPRESSION_DEFLATE }.get(encoding, -1)
-				body = body.decompress_dynamic(-1, mode) if mode != -1 else PackedByteArray()
+				body = _decompressor.Decompress(body, encoding)
 				if body.is_empty():
 					return _response(HTTPRequest.RESULT_BODY_DECOMPRESS_FAILED, response_code, response_headers)
 			return [HTTPRequest.RESULT_SUCCESS, response_code, response_headers, body]
@@ -580,18 +586,39 @@ static func _result(status : int, responded : bool) -> int:
 static func _response(result : int, response_code : int = 0, headers : PackedStringArray = PackedStringArray()) -> Array:
 	return [result, response_code, headers, PackedByteArray()]
 
-## Resolves the Location of a redirect against the URL that was requested
+## Resolves the Location of a redirect against the URL that was requested,
+## following RFC 3986. Fragments are dropped, since they are never sent.
 static func _resolve_url(target : Dictionary, location : String) -> String:
+	location = location.get_slice("#", 0)
 	if location.to_lower().begins_with("http://") or location.to_lower().begins_with("https://"):
 		return location
 	if location.begins_with("//"):
 		return ("https:" if target.tls else "http:") + location
+	var base_path = target.path.get_slice("?", 0)
+	if location.begins_with("?"):
+		return target.origin + base_path + location
 	var path = location.get_slice("?", 0)
 	var query = location.substr(path.length())
 	if not path.begins_with("/"):
-		# Relative to the folder of the requested path
-		path = target.path.get_slice("?", 0).get_base_dir().path_join(path)
-	return target.origin + path.simplify_path() + query
+		# Relative to the folder of the requested path, which is everything up to its last slash
+		path = base_path.left(base_path.rfind("/") + 1) + path
+	return target.origin + _remove_dot_segments(path) + query
+
+## Removes the "." and ".." segments of an absolute URL path, keeping empty segments and the trailing slash
+static func _remove_dot_segments(path : String) -> String:
+	var segments = path.split("/")
+	var output = PackedStringArray()
+	for i in segments.size():
+		var segment = segments[i]
+		if segment == "." or segment == "..":
+			# The first segment is the empty one before the leading slash, which ".." never removes
+			if segment == ".." and output.size() > 1:
+				output.remove_at(output.size() - 1)
+			if i == segments.size() - 1:
+				output.append("")
+			continue
+		output.append(segment)
+	return "/".join(output)
 
 ## Splits an http or https URL into { tls, host, port, path, origin }. The origin has the lowercase host and the port,
 ## so URLs of the same server always have the same origin. Returns {} if it is not an http or https URL.
@@ -599,10 +626,17 @@ static func _parse_url(url : String) -> Dictionary:
 	var tls = url.to_lower().begins_with("https://")
 	if not tls and not url.to_lower().begins_with("http://"):
 		return {}
-	var rest = url.substr(8 if tls else 7)
-	var slash = rest.find("/")
-	var authority = rest if slash < 0 else rest.left(slash)
-	var path = "/" if slash < 0 else rest.substr(slash)
+	# The fragment is never sent
+	var rest = url.get_slice("#", 0).substr(8 if tls else 7)
+	# The authority ends at the path or, without one, at the query
+	var end = rest.length()
+	for separator in ["/", "?"]:
+		if rest.find(separator) >= 0:
+			end = mini(end, rest.find(separator))
+	var authority = rest.left(end)
+	var path = rest.substr(end)
+	if not path.begins_with("/"):
+		path = "/" + path
 	var host = authority
 	var port = 443 if tls else 80
 	# The port follows the last colon, unless the colon is part of an IPv6 address such as [::1]
