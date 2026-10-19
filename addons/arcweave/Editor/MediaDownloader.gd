@@ -43,17 +43,17 @@ const RESERVED_NAMES = ["CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM
 var canceled : bool = false
 var arcweave_asset : ArcweaveAsset
 var _api_request : APIRequest
-# Every download reuses one connection, instead of connecting to the server for each file. Requests run on a worker
-# thread, which is the only one using the connection while a request runs.
+# Every download reuses one connection, instead of connecting to the server for each file. Requests run on a thread,
+# which is the only one using the connection while a request runs.
 var _client : HTTPClient
 var _client_origin : String
 var _connect_timeouts = 0
-var _task_id = -1
-# Guards canceled and the progress of the request in flight, which the worker thread shares with the main thread
+var _thread : Thread
+# Guards canceled and the progress of the request in flight, which the request thread shares with the main thread
 var _mutex = Mutex.new()
 var _status : String
 var _status_fraction : float
-# Decompresses compressed responses on the worker thread
+# Decompresses compressed responses on the request thread
 var _decompressor : RefCounted
 
 func _init(object : ArcweaveAsset):
@@ -62,13 +62,13 @@ func _init(object : ArcweaveAsset):
 	add_child(_api_request)
 
 func _notification(what):
-	# The download needs the tree, so it is canceled when the downloader leaves it, and the worker thread never outlives
+	# The download needs the tree, so it is canceled when the downloader leaves it, and the request thread never outlives
 	# the downloader
 	if what == NOTIFICATION_EXIT_TREE or what == NOTIFICATION_PREDELETE:
 		cancel()
-		if _task_id != -1:
-			WorkerThreadPool.wait_for_task_completion(_task_id)
-			_task_id = -1
+		if _thread != null:
+			_thread.wait_to_finish()
+			_thread = null
 
 ## Cancels the download. Media that was not downloaded keeps its previous copy.
 func cancel():
@@ -98,9 +98,10 @@ func download(project_settings : Dictionary):
 	var api_url = _api_request.get_api_url()
 	var headers = _api_request.get_headers()
 	_decompressor = load("res://addons/arcweave/Editor/MediaFileWriter.cs").new()
-	# Like HTTPRequest, accepts compressed responses, which are decompressed when they arrive
+	# Media is already compressed, so it is requested as is. Responses compressed anyway, eg. when env.json asks for it,
+	# are decompressed when they arrive.
 	if not Array(headers).any(func(header : String): return header.to_lower().begins_with("accept-encoding:")):
-		headers.append("Accept-Encoding: gzip, deflate")
+		headers.append("Accept-Encoding: identity")
 	var project_hash = asset.project_hash
 	for i in ids.size():
 		if canceled:
@@ -126,6 +127,7 @@ func download(project_settings : Dictionary):
 			push_warning("[Arcweave] Skipping the remaining media downloads. Media that was not downloaded keeps its previous copy.")
 			break
 	_close_client()
+	_decompressor = null
 	if canceled:
 		push_warning("[Arcweave] Media download canceled. Media that was not downloaded keeps its previous copy.")
 
@@ -413,9 +415,9 @@ func _fetch(url : String, headers : PackedStringArray, info : String, value : fl
 ## is called as the request progresses.
 func _request(url : String, headers : PackedStringArray, report : Callable) -> Array:
 	var target = _parse_url(url)
+	if target.is_empty():
+		return _response(HTTPRequest.RESULT_CANT_CONNECT)
 	for _redirect in MAX_REDIRECTS + 1:
-		if target.is_empty():
-			return _response(HTTPRequest.RESULT_CANT_CONNECT)
 		var reused = _client != null and _client_origin == target.origin
 		var response = await _send(target, headers, report)
 		# The server may close a connection while it waits between requests, so a reused connection that fails before
@@ -423,26 +425,31 @@ func _request(url : String, headers : PackedStringArray, report : Callable) -> A
 		if reused and not canceled and response[1] == 0 and response[0] in [HTTPRequest.RESULT_CONNECTION_ERROR, HTTPRequest.RESULT_NO_RESPONSE]:
 			response = await _send(target, headers, report)
 		var location = _header(response[2], "Location")
-		if response[0] != HTTPRequest.RESULT_SUCCESS or not response[1] in [301, 302, 303, 307, 308] or location.is_empty():
+		if canceled or response[0] != HTTPRequest.RESULT_SUCCESS or not response[1] in [301, 302, 303, 307, 308] or location.is_empty():
 			return response
 		var next = _parse_url(_resolve_url(target, location))
+		# A redirect the downloader can't follow, eg. to another scheme, fails like any other unexpected response
+		if next.is_empty():
+			return response
 		# The API key is only sent to the server it belongs to
-		if not next.is_empty() and next.origin != target.origin:
+		if next.origin != target.origin:
 			headers = PackedStringArray(Array(headers).filter(func(header : String): return not header.to_lower().begins_with("authorization:")))
 		target = next
 	return _response(HTTPRequest.RESULT_REDIRECT_LIMIT_REACHED)
 
 ## Sends a GET request over the open connection, connecting first if there is none, and returns
-## [result, response_code, headers, body]. The request runs on a worker thread, so it doesn't depend on the editor's
-## frame rate, which drops to 10 frames a second when the editor is in the background.
+## [result, response_code, headers, body]. The request runs on its own thread, so it doesn't depend on the editor's
+## frame rate, which drops to 10 frames a second when the editor is in the background. The thread is not one of the
+## WorkerThreadPool's, which the editor shares and may block on while this request waits.
 func _send(target : Dictionary, headers : PackedStringArray, report : Callable) -> Array:
-	var response = []
 	_set_status("", 0.0)
-	var task_id = WorkerThreadPool.add_task(func(): response.append_array(_send_blocking(target, headers)), false, "Arcweave media download")
-	_task_id = task_id
+	var thread = Thread.new()
+	if thread.start(_send_blocking.bind(target, headers)) != OK:
+		return _response(HTTPRequest.RESULT_REQUEST_FAILED)
+	_thread = thread
 	var reported = ""
-	# The task is waited for elsewhere if the downloader leaves the tree
-	while _task_id == task_id and not WorkerThreadPool.is_task_completed(task_id):
+	# The thread is waited for elsewhere if the downloader leaves the tree
+	while _thread == thread and thread.is_alive():
 		_mutex.lock()
 		var status = _status
 		var fraction = _status_fraction
@@ -451,10 +458,10 @@ func _send(target : Dictionary, headers : PackedStringArray, report : Callable) 
 			reported = status
 			report.call(status, fraction)
 		await get_tree().process_frame
-	if _task_id == task_id:
-		WorkerThreadPool.wait_for_task_completion(task_id)
-		_task_id = -1
-	return response if not response.is_empty() else _response(HTTPRequest.RESULT_REQUEST_FAILED)
+	if _thread != thread:
+		return _response(HTTPRequest.RESULT_REQUEST_FAILED)
+	_thread = null
+	return thread.wait_to_finish()
 
 ## Sends a GET request and blocks until it ends. The connection stays open for the next request, unless it fails or
 ## the server closes it.
@@ -523,15 +530,19 @@ func _send_blocking(target : Dictionary, headers : PackedStringArray) -> Array:
 			status = client.get_status()
 		if status != HTTPClient.STATUS_REQUESTING and status != HTTPClient.STATUS_BODY:
 			# A body without a length or chunks ends when the server closes the connection. A chunked body only ends with
-			# its last chunk, so one cut short is never saved.
+			# its last chunk, so one cut short is never saved. A compressed body must have a length or chunks, since .NET
+			# decompresses a truncated body without failing.
+			var encoding = _header(response_headers, "Content-Encoding").to_lower()
+			var compressed = not encoding in ["", "identity"]
 			var complete = response_code != 0 and (status == HTTPClient.STATUS_CONNECTED
-				or (length >= 0 and body.size() == length) or (status == HTTPClient.STATUS_DISCONNECTED and length < 0 and not chunked))
+				or (length >= 0 and body.size() == length)
+				or (status == HTTPClient.STATUS_DISCONNECTED and length < 0 and not chunked and not compressed))
 			if not complete or status != HTTPClient.STATUS_CONNECTED or _header(response_headers, "Connection").to_lower() == "close":
 				_close_client()
 			if not complete:
 				return _response(_result(status, response_code != 0), response_code, response_headers)
-			var encoding = _header(response_headers, "Content-Encoding").to_lower()
-			if not encoding in ["", "identity"] and not body.is_empty():
+			# Only the media is decompressed, so a failed decompression never hides a response that is retried or followed
+			if compressed and response_code == 200:
 				body = _decompressor.Decompress(body, encoding)
 				if body.is_empty():
 					return _response(HTTPRequest.RESULT_BODY_DECOMPRESS_FAILED, response_code, response_headers)
@@ -590,8 +601,13 @@ static func _response(result : int, response_code : int = 0, headers : PackedStr
 ## following RFC 3986. Fragments are dropped, since they are never sent.
 static func _resolve_url(target : Dictionary, location : String) -> String:
 	location = location.get_slice("#", 0)
-	if location.to_lower().begins_with("http://") or location.to_lower().begins_with("https://"):
-		return location
+	if location.is_empty():
+		return target.origin + target.path
+	var scheme = RegEx.create_from_string("^[A-Za-z][A-Za-z0-9+.-]*:").search(location)
+	if scheme != null:
+		# Other schemes, eg. ftp: or mailto:, return an empty URL, which can't be parsed
+		var name = scheme.get_string().to_lower()
+		return location if name == "http:" or name == "https:" else ""
 	if location.begins_with("//"):
 		return ("https:" if target.tls else "http:") + location
 	var base_path = target.path.get_slice("?", 0)
@@ -620,7 +636,8 @@ static func _remove_dot_segments(path : String) -> String:
 		output.append(segment)
 	return "/".join(output)
 
-## Splits an http or https URL into { tls, host, port, path, origin }. The origin has the lowercase host and the port,
+## Splits an http or https URL into { tls, host, port, path, origin }, without its fragment and with the "." and ".."
+## segments of its path removed. The origin has the lowercase host and the port,
 ## so URLs of the same server always have the same origin. Returns {} if it is not an http or https URL.
 static func _parse_url(url : String) -> Dictionary:
 	var tls = url.to_lower().begins_with("https://")
@@ -637,6 +654,11 @@ static func _parse_url(url : String) -> Dictionary:
 	var path = rest.substr(end)
 	if not path.begins_with("/"):
 		path = "/" + path
+	var path_end = path.find("?") if path.contains("?") else path.length()
+	path = _remove_dot_segments(path.left(path_end)) + path.substr(path_end)
+	# Credentials in the URL are not supported
+	if authority.contains("@"):
+		return {}
 	var host = authority
 	var port = 443 if tls else 80
 	# The port follows the last colon, unless the colon is part of an IPv6 address such as [::1]
