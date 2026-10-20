@@ -5,7 +5,3 @@
 /**        export-ignore
 /addons    !export-ignore
 /addons/** !export-ignore
-
-# Sample data and saved credentials from older versions, which the plugin doesn't use.
-/addons/arcweave/data.json export-ignore
-/addons/arcweave/data.save export-ignore

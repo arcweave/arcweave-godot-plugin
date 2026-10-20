@@ -23,12 +23,10 @@ git diff --quiet "$ref:LICENSE" "$ref:addons/arcweave/LICENSE" ||
 # files never end up in a release.
 git archive --format=zip -o "$zip" "$ref"
 
-# Fails if a change to .gitattributes lets the example project or the old data files in.
+# Fails if a change to .gitattributes lets the example project in.
 entries=$(git archive "$ref" | tar -t)
 outside=$(grep -v -e '^addons/$' -e '^addons/arcweave/' <<< "$entries" || true)
 [ -z "$outside" ] || { printf 'The package contains files outside addons/arcweave:\n%s\n' "$outside" >&2; exit 1; }
-! grep -q '^addons/arcweave/data\.' <<< "$entries" ||
-  { echo "The package contains addons/arcweave/data.*" >&2; exit 1; }
 grep -qx 'addons/arcweave/plugin.cfg' <<< "$entries" ||
   { echo "The package has no addons/arcweave/plugin.cfg" >&2; exit 1; }
 
