@@ -48,3 +48,42 @@ jobs:
         with:
           name: ArcweaveForGodot
           path: dist/
+
+  notify:
+    # Posts to the Slack releases channel after the package is attached, so the download link works.
+    if: github.event_name == 'release'
+    needs: package
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Create Slack payload
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
+          DOWNLOAD_URL: https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/ArcweaveForGodot.zip
+        run: |
+          jq --null-input \
+            --arg tag "$TAG" \
+            --arg release_url "$RELEASE_URL" \
+            --arg release_body "$RELEASE_BODY" \
+            --arg prerelease "$PRERELEASE" \
+            --arg download_url "$DOWNLOAD_URL" \
+            'def escape: gsub("\r"; "") | gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;");
+            {
+              text: (
+                "*<\($release_url)|Arcweave Godot Plugin \($tag)>*" +
+                (if $prerelease == "true" then " (pre-release)" else "" end) + "\n" +
+                "<\($download_url)|Download ArcweaveForGodot.zip>" +
+                (if $release_body == "" then "" else "\n```\($release_body | escape)```" end)
+              )
+            }' > slack-payload.json
+
+      - name: Send release notes to Slack
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_RELEASES_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          errors: true
+          payload-file-path: slack-payload.json
