@@ -26,10 +26,16 @@ namespace Arcweave
 		public VariableChanges VariableChanges;
 
 		public Story() {}
-		public Story(Dictionary projectData)
+		public Story(Dictionary projectData) : this(projectData, null) {}
+		/// <param name="projectData">The project data</param>
+		/// <param name="mediaPaths">
+		/// The res:// paths of the media downloaded from Arcweave's web API by asset ID, as returned by
+		/// ArcweaveAsset.get_media_paths(). They set the LocalPath of the project's assets.
+		/// </param>
+		public Story(Dictionary projectData, Dictionary mediaPaths)
 		{
 			ProjectData = projectData;
-			ProjectMaker projectMaker = new ProjectMaker(projectData);
+			ProjectMaker projectMaker = new ProjectMaker(projectData, mediaPaths);
 			Project = projectMaker.MakeProject();
 			VariableChanges = new VariableChanges();
 			foreach (var variable in Project.GetAllVariables())
@@ -57,9 +63,21 @@ namespace Arcweave
 		/// <returns>The story instance</returns>
 		public Story UpdateStory(Dictionary projectData)
 		{
+			return UpdateStory(projectData, null);
+		}
+
+		/// <summary>
+		/// Updates the current story instance like <see cref="UpdateStory(Dictionary)"/>, linking the downloaded media
+		/// to the project's assets.
+		/// </summary>
+		/// <param name="projectData">The dictionary containing the new project data</param>
+		/// <param name="mediaPaths">The res:// paths of the downloaded media by Arcweave asset ID</param>
+		/// <returns>The story instance</returns>
+		public Story UpdateStory(Dictionary projectData, Dictionary mediaPaths)
+		{
 			// Create the new project
 			ProjectData = projectData;
-			ProjectMaker projectMaker = new ProjectMaker(projectData);
+			ProjectMaker projectMaker = new ProjectMaker(projectData, mediaPaths);
 			var newProject = projectMaker.MakeProject();
 			
 			// Merge the old project with the new one

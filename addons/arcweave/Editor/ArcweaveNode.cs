@@ -34,7 +34,7 @@ public partial class ArcweaveNode : Node
 	/// <param name="projectSettings"></param>
 	private void OnProjectUpdate(Dictionary projectSettings)
 	{
-		Story = Story.UpdateStory(projectSettings);
+		Story = Story.UpdateStory(projectSettings, GetMediaPaths());
 		EmitSignal(SignalName.ProjectUpdated);
 	}
 
@@ -45,6 +45,16 @@ public partial class ArcweaveNode : Node
 	public Story CreateStory()
 	{
 		Dictionary projectSettings = (Dictionary)ArcweaveAsset.Get("project_settings");
-		return new Story(projectSettings);
+		return new Story(projectSettings, GetMediaPaths());
+	}
+
+	/// <summary>
+	/// Returns the media downloaded from Arcweave's web API by asset ID.
+	/// </summary>
+	private Dictionary GetMediaPaths()
+	{
+		return ArcweaveAsset.HasMethod("get_media_paths")
+			? ArcweaveAsset.Call("get_media_paths").AsGodotDictionary()
+			: new Dictionary();
 	}
 }

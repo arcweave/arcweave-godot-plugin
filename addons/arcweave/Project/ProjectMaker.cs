@@ -33,10 +33,14 @@ namespace Arcweave.Project
 		private readonly Dictionary<string, Variable> _variablesById;
 		private readonly Dictionary<string, Note> _notes;
 		private readonly Dictionary<string, Asset> _assets;
+		private readonly Dictionary _mediaPaths;
 
-		public ProjectMaker(Dictionary projectData)
+		/// <param name="projectData">The project data</param>
+		/// <param name="mediaPaths">The res:// paths of the downloaded media by Arcweave asset ID</param>
+		public ProjectMaker(Dictionary projectData, Dictionary mediaPaths = null)
 		{
 			_projectData = projectData;
+			_mediaPaths = mediaPaths ?? new Dictionary();
 			_boardsDict = _projectData["boards"].AsGodotDictionary();
 			_attributesDict = _projectData["attributes"].AsGodotDictionary();
 			_componentsDict = _projectData["components"].AsGodotDictionary();
@@ -520,6 +524,10 @@ namespace Arcweave.Project
 					};
 					string assetName = asset["name"].AsString();
 					_assets[assetId] = new Asset(assetId, assetName, path + '/' + assetName, type);
+					if (_mediaPaths.TryGetValue(assetId, out var localPath))
+					{
+						_assets[assetId].LocalPath = localPath.AsString();
+					}
 				}
 			}
 		}
