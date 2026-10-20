@@ -1,0 +1,50 @@
+name: Release package
+
+# Attaches ArcweaveForGodot.zip to every published release.
+# The README links to it through
+# https://github.com/arcweave/arcweave-godot-plugin/releases/latest/download/ArcweaveForGodot.zip,
+# which serves the file of the release marked as Latest, so keep the file name stable.
+#
+# Running the workflow manually builds the package from the selected branch and uploads
+# it as a workflow artifact, without touching any release.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check the plugin version matches the release
+        if: github.event_name == 'release'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version=$(sed -n 's/^version="\(.*\)"$/\1/p' addons/arcweave/plugin.cfg)
+          [ "v$version" = "$TAG" ] ||
+            { echo "addons/arcweave/plugin.cfg has version $version, but the release is $TAG" >&2; exit 1; }
+
+      - name: Build package
+        run: bash .github/scripts/build-release-package.sh HEAD dist
+
+      - name: Attach package to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: >-
+          gh release upload "$TAG" dist/ArcweaveForGodot.zip
+          --repo "$GITHUB_REPOSITORY" --clobber
+
+      - name: Upload package as a workflow artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ArcweaveForGodot
+          path: dist/

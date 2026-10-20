@@ -36,9 +36,9 @@ The Arcweave Godot Export feature is available to all Arcweave users, including 
 
 In order to use the plugin, you will need the **.NET** version of **Godot Engine** which you can find [here](https://godotengine.org/).
 
-Download the plugin and add the `addons/arcweave` folder in your project's `addons` folder.
+Download [`ArcweaveForGodot.zip`](https://github.com/arcweave/arcweave-godot-plugin/releases/latest/download/ArcweaveForGodot.zip) from the latest [GitHub release](https://github.com/arcweave/arcweave-godot-plugin/releases/latest) and extract it in your project's root folder. This adds the plugin as `addons/arcweave`. When upgrading, delete the previous `addons/arcweave` folder first, so files removed from the plugin don't stay behind.
 
-> Note: Downloading this plugin from the "Download ZIP" button, will only download the `addons` folder. If you want to download our test project as well, you have to either clone the repo or find the `arcweave-godot-plugin.zip` file in releases which contains all the files of this repo.
+> Note: The zip only contains the plugin. If you want our test project as well, clone this repo.
 
 If you haven't already, create a C# solution for your project, through `Project` -> `Tools` -> `C#` -> `Create C# Solution`. This will create two files in your root folder with the name of your project and with extensions `.csproj` and `.sln`.
 
