@@ -309,6 +309,8 @@ During the initialization, the data is loaded, the starting_element is set and t
 
 If you have a text container (here, a RichTextLabel node saved as `text_window`) you can use the `story.GetCurrentRuntimeContent()` function to get the text of the current element and set it. In our Demo project, we have a function called `repaint()` that updates our TextContainer with the new content.
 
+Element content, connection labels, rich text attributes and notes are converted to BBCode, so enable `bbcode_enabled` on the RichTextLabel. Bold, italic, underline and strikethrough become `[b]`, `[i]`, `[u]` and `[s]`, line breaks and paragraphs become new lines, and code blocks are colored. Other tags are removed, and HTML entities such as `&amp;` are decoded. Square brackets are passed through unchanged, so BBCode you write in Arcweave text, such as `[color=red]…[/color]` or `[wave]…[/wave]`, is rendered.
+
 ```gdscript
 func repaint():
 	text_window.text = story.GetCurrentRuntimeContent()
