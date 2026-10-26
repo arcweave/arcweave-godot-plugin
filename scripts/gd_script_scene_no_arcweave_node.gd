@@ -17,7 +17,7 @@ func _ready():
 	api_request = APIRequest.new(arcweave_asset)
 	arcweave_asset.project_updated.connect(_on_project_updated)
 	add_child(api_request)
-	story = Story.new(arcweave_asset.project_settings)
+	story = Story.new(arcweave_asset.project_settings, arcweave_asset.get_media_paths())
 	
 	menu_button.pressed.connect(_on_menu_pressed)
 	var popup = menu_button.get_popup()
@@ -65,7 +65,7 @@ func _on_project_updated(project_settings):
 	# null when the refresh failed: keep the current story
 	if project_settings == null:
 		return
-	story.UpdateStory(project_settings)
+	story.UpdateStory(project_settings, arcweave_asset.get_media_paths())
 	repaint()
 
 
