@@ -14,7 +14,7 @@ public partial class ArcweaveNode : Node
 	{
 		var requestScript = GD.Load<GDScript>("res://addons/arcweave/Editor/APIRequestScript.gd");
 		ApiRequest = (Node)requestScript.New(ArcweaveAsset);
-		ArcweaveAsset.Connect("project_updated", Callable.From((Dictionary projectSettings) => OnProjectUpdate(projectSettings)));
+		ArcweaveAsset.Connect("project_updated", Callable.From((Variant projectSettings) => OnProjectUpdate(projectSettings)));
 		Story = CreateStory();
 		AddChild(ApiRequest);
 	}
@@ -29,12 +29,18 @@ public partial class ArcweaveNode : Node
 	}
 
 	/// <summary>
-	/// Signal handler for "project_updated" signal from ArcweaveAsset.
+	/// Signal handler for "project_updated" signal from ArcweaveAsset. A failed update sends null instead of the
+	/// project data; the current story is then kept as it is and "ProjectUpdated" is not emitted.
 	/// </summary>
-	/// <param name="projectSettings"></param>
-	private void OnProjectUpdate(Dictionary projectSettings)
+	/// <param name="projectSettings">The new project data, or null if the update failed</param>
+	private void OnProjectUpdate(Variant projectSettings)
 	{
-		Story = Story.UpdateStory(projectSettings, GetMediaPaths());
+		if (projectSettings.VariantType != Variant.Type.Dictionary)
+		{
+			GD.PushWarning("[Arcweave] Project update failed, keeping the current story");
+			return;
+		}
+		Story = Story.UpdateStory(projectSettings.AsGodotDictionary(), GetMediaPaths());
 		EmitSignal(SignalName.ProjectUpdated);
 	}
 

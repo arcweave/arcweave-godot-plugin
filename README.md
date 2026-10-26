@@ -303,7 +303,15 @@ func _ready():
 
 	story = Story.new(arcweave_asset.project_settings)
 
+func _on_project_updated(project_settings):
+	# null when the refresh failed: keep the current story
+	if project_settings == null:
+		return
+	story.UpdateStory(project_settings)
+
 ```
+
+Calling `arcweave_asset.refresh_project(api_request)` reloads the project and emits `project_updated` with the new project settings, or with `null` if the refresh failed (for example because of a wrong API key or a missing project file). On failure, the asset keeps its previous project settings. ArcweaveNode handles this for you: it only updates its Story and emits `ProjectUpdated` when the refresh succeeds.
 
 During the initialization, the data is loaded, the starting_element is set and the Element Options are generated.
 

@@ -22,7 +22,10 @@ func pressed(object: ArcweaveAsset):
 	if object.is_downloading_media:
 		push_warning("[Arcweave] Wait for the media download to finish before initializing again.")
 		return
-	object.project_updated.connect(on_project_updated.bind(object), CONNECT_ONE_SHOT)
+	var on_updated := on_project_updated.bind(object)
+	# Still connected while an earlier request is pending
+	if not object.project_updated.is_connected(on_updated):
+		object.project_updated.connect(on_updated, CONNECT_ONE_SHOT)
 	object.refresh_project(api_request)
 
 func on_project_updated(new_project_settings, object: ArcweaveAsset):

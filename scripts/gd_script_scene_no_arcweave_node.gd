@@ -62,6 +62,9 @@ func _on_option_button_pressed(path):
 
 
 func _on_project_updated(project_settings):
+	# null when the refresh failed: keep the current story
+	if project_settings == null:
+		return
 	story.UpdateStory(project_settings)
 	repaint()
 
