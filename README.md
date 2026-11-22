@@ -9,7 +9,7 @@ The Arcweave Godot Export feature is available to all Arcweave users, including 
 - [Arcweave Godot Plugin](#arcweave-godot-plugin)
   - [Installing the Plugin](#installing-the-plugin)
   - [Getting data from Arcweave](#getting-data-from-arcweave)
-    - [Folder Import](#folder-import)
+    - [JSON File Import](#json-file-import)
     - [API Import](#api-import)
   - [Creating an ArcweaveAsset](#creating-an-arcweaveasset)
     - [Loading the Project Data](#loading-the-project-data)
@@ -75,9 +75,9 @@ Then:
 
 You can import your project in two ways, using our API or by downloading the Godot Export and selecting the exported file
 
-### Folder Import
+### JSON File Import
 
-To use the Folder Import you will have to download the Godot Engine Export for your Arcweave Project.
+To use the JSON File Import, you will have to download the Godot Engine Export for your Arcweave Project.
 
 In your Arcweave Project select the Export Option from the top right corner
 
@@ -87,7 +87,7 @@ Then Select the Engine Tab and Download the Export file for Godot.
 
 ![Arcweave Export Tab](docs/images/aw_export_tab.png)
 
-Save the exported file.
+Save the exported file. Without **Include assets**, the download is a single `project.json` file. With **Include assets**, it is a `.zip` file: extract `project.json` from it.
 
 ### API Import
 
@@ -108,7 +108,7 @@ Either way, to import your data into Godot, you must create an **ArcweaveAsset**
 
 Open the newly created resource's inspector. You will see two options for selecting either a file or use the Arcweave API to retrieve the data.
 
-- **Importing from JSON**: Click on **Select Project File**, find your downloaded export file and select it.
+- **Importing from JSON**: Click on **Select Project File**, find your `project.json` file and select it.
 - **Importing from API**: Fill the **API key** and **Project Hash** values.
 
 Then click on **Initialize Arcweave Asset** button. This will either load the project from the file, or fetch the data from the API and store it's info in the Resource.
