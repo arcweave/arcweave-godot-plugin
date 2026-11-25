@@ -8,6 +8,7 @@ extends SceneTree
 const TEST_SUITES = [
 	"res://tests/PluginTests.cs",
 	"res://tests/api_key_tests.gd",
+	"res://tests/refresh_tests.gd",
 ]
 
 func _initialize():

@@ -148,6 +148,25 @@ func get_media_paths() -> Dictionary:
 			paths[asset_id] = path
 	return paths
 
+## The project data keys that hold collections (see ProjectMaker.cs)
+const PROJECT_COLLECTION_KEYS = ["boards", "attributes", "components", "conditions", "connections", "elements",
+	"jumpers", "branches", "variables", "notes", "assets"]
+
+## Returns true if data has the shape of an Arcweave project export, so it can be used as project_settings.
+## Like the importer, it accepts exports that omit empty collections or the starting element, but it needs the
+## project's name and elements, so data that isn't a project, eg. an API response that wraps it, is rejected.
+static func is_valid_project(data) -> bool:
+	if not data is Dictionary or not data.get("name") is String or not data.get("elements") is Dictionary:
+		return false
+	for key in PROJECT_COLLECTION_KEYS:
+		var collection = data.get(key)
+		if collection != null and not collection is Dictionary:
+			return false
+	var starting_element = data.get("startingElement")
+	return starting_element == null or starting_element is String
+
+## Reloads project_settings from the WebAPI or the project file, depending on receive_method, and then emits
+## project_updated: with the new project settings on success, or with null on failure, keeping the previous ones.
 ## [param api_key] is the API key refreshes from the WebAPI use. When empty, the key is found like in
 ## [method resolve_api_key].
 func refresh_project(api_request: APIRequest, api_key := ""):
@@ -159,7 +178,10 @@ func refresh_project(api_request: APIRequest, api_key := ""):
 	_refresh_from_file()
 
 func _refresh_from_api(api_request: APIRequest, api_key := ""):
-	api_request.project_updated.connect(_on_project_updated.bind(api_request), CONNECT_ONE_SHOT)
+	var on_updated := _on_project_updated.bind(api_request)
+	# Still connected while an earlier request is pending
+	if not api_request.project_updated.is_connected(on_updated):
+		api_request.project_updated.connect(on_updated, CONNECT_ONE_SHOT)
 	api_request.request(api_key)
 
 func _on_project_updated(new_project_settings, api_request : APIRequest):
@@ -174,9 +196,19 @@ func _on_project_updated(new_project_settings, api_request : APIRequest):
 func _refresh_from_file():
 	if not FileAccess.file_exists(project_file):
 		printerr("[Arcweave] Project File not found in path: \"" + project_file + "\"")
+		project_updated.emit(null)
+		return
 	var file = FileAccess.open(project_file, FileAccess.READ)
-	var data = file.get_as_text()
+	if file == null:
+		printerr("[Arcweave] Could not open Project File \"" + project_file + "\" (error " + str(FileAccess.get_open_error()) + ")")
+		project_updated.emit(null)
+		return
+	var data = JSON.parse_string(file.get_as_text())
 	file.close()
-	project_settings = JSON.parse_string(data)
+	if not is_valid_project(data):
+		printerr("[Arcweave] Project File is not a valid Arcweave export: \"" + project_file + "\"")
+		project_updated.emit(null)
+		return
+	project_settings = data
 	print("[Arcweave] Successfully refreshed from File!")
 	project_updated.emit(project_settings)
