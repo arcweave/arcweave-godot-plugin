@@ -22,10 +22,21 @@ public partial class ArcweaveNode : Node
 	/// <summary>
 	/// Calls for an update through API for the project settings. When the project settings are updated, a
 	/// "ProjectUpdated" signal is emitted. 
+	/// The API key is the one saved in the ArcweaveAsset inspector, otherwise the ARCWEAVE_API_KEY environment variable.
 	/// </summary>
 	public void UpdateStory()
 	{
-		ArcweaveAsset.Call("refresh_project", ApiRequest);
+		UpdateStoryWithApiKey("");
+	}
+
+	/// <summary>
+	/// Like <see cref="UpdateStory()"/>, refreshing from the WebAPI with the given API key, eg. in an exported game.
+	/// An empty key finds the key like <see cref="UpdateStory()"/>.
+	/// </summary>
+	/// <param name="apiKey">The API key</param>
+	public void UpdateStoryWithApiKey(string apiKey)
+	{
+		ArcweaveAsset.Call("refresh_project", ApiRequest, apiKey ?? "");
 	}
 
 	/// <summary>

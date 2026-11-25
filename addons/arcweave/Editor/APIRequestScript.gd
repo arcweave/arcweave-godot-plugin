@@ -8,6 +8,8 @@ var project_hash : String
 var env_vars : Dictionary
 var default_domain = "https://arcweave.com/"
 var arcweave_asset: ArcweaveAsset
+# The API key passed to request(), used instead of the one the asset finds
+var _explicit_api_key : String = ""
 
 func _init(object : ArcweaveAsset):
 	arcweave_asset = object
@@ -18,7 +20,11 @@ func _init(object : ArcweaveAsset):
 	add_child(http_request)
 	http_request.request_completed.connect(_on_request_completed)
 
-func request():
+## Requests the project. [param key] is the API key to use; when empty, the key is found like in
+## ArcweaveAsset.resolve_api_key().
+func request(key := ""):
+	_explicit_api_key = key
+	arcweave_asset.resolve_api_key(key, true)
 	var request_url = get_api_url() + project_hash + "/godot"
 	var headers = get_headers()
 	print("[Arcweave] Retrieving: " + request_url)
@@ -51,13 +57,17 @@ func get_headers() -> PackedStringArray:
 	return headers
 
 func _update_settings():
-	api_key = arcweave_asset.api_key
+	api_key = arcweave_asset.resolve_api_key(_explicit_api_key)
 	project_hash = arcweave_asset.project_hash
 	_update_env_vars()
 
 func _on_request_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray):
 	if response_code == 401:
-		printerr("[Arcweave] Your API key is invalid")
+		if api_key.is_empty():
+			printerr("[Arcweave] No API key found. Enter it in the ArcweaveAsset inspector, set the "
+				+ ArcweaveUserSettings.API_KEY_ENVIRONMENT_VARIABLE + " environment variable or pass it to refresh_project()")
+		else:
+			printerr("[Arcweave] Your API key is invalid")
 		project_updated.emit(null)
 		return
 	if response_code == 403:

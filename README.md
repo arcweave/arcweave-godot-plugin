@@ -17,6 +17,8 @@ The Arcweave Godot Export feature is available to all Arcweave users, including 
     - [Using the ArcweaveAsset](#using-the-arcweaveasset)
       - [Use ArcweaveNode](#use-arcweavenode)
       - [Create your own Node](#create-your-own-node)
+    - [Your API Key](#your-api-key)
+      - [Upgrading from 3.1 and older](#upgrading-from-31-and-older)
   - [Our Implementation](#our-implementation)
   - [Using the Plugin](#using-the-plugin)
     - [Scoped variables](#scoped-variables)
@@ -109,7 +111,7 @@ Either way, to import your data into Godot, you must create an **ArcweaveAsset**
 Open the newly created resource's inspector. You will see two options for selecting either a file or use the Arcweave API to retrieve the data.
 
 - **Importing from JSON**: Click on **Select Project File**, find your downloaded export file and select it.
-- **Importing from API**: Fill the **API key** and **Project Hash** values.
+- **Importing from API**: Fill the **API Key** and **Project Hash** values. The API key isn't saved in the resource, see [Your API Key](#your-api-key).
 
 Then click on **Initialize Arcweave Asset** button. This will either load the project from the file, or fetch the data from the API and store it's info in the Resource.
 
@@ -162,6 +164,25 @@ the Arcweave API for requesting and retrieving the updated Arcweave Project.
 You can also create your own nodes and interact with the ArcweaveAsset. 
 
 In order to update during runtime though, you would have to add the node `APIRequest.gd` inside your scene. This will insert an HTTPRequest node in your scene and you will be able to make requests. You can see how we implemented owr own [`ArcweaveNode.cs`](./addons/arcweave/Editor/ArcweaveNode.cs) for C# or [`gd_script_scene_no_arcweave_node.gd`](./scripts/gd_script_scene_no_arcweave_node.gd) for GDScript and follow a similar pattern.
+
+### Your API Key
+
+The **API Key** field in the ArcweaveAsset inspector isn't saved in the resource, since the resource is committed to version control and included in your exported game. It is saved for you only, in `user://arcweave_settings.cfg`, your Godot project's user data folder, which is outside the project folder. Each developer enters their own key, and it is used by all the ArcweaveAssets of the project.
+
+Refreshes from the WebAPI use, in this order:
+
+1. The key passed to the refresh, with `ArcweaveNode.UpdateStoryWithApiKey(apiKey)` or `arcweave_asset.refresh_project(api_request, api_key)`.
+2. The key saved in the inspector.
+3. The `ARCWEAVE_API_KEY` environment variable, for example on a build server.
+4. A key saved in the resource by an older version of the plugin (see below).
+
+A game run from the editor reads the same user data folder, so refreshing the story at runtime works without passing a key. An exported game on another computer doesn't have your key, so pass one to the refresh if it should refresh from the WebAPI. Initializing the ArcweaveAsset in the editor before exporting means the game doesn't need to refresh at all.
+
+#### Upgrading from 3.1 and older
+
+Older versions of the plugin saved the API key in the ArcweaveAsset resource. The plugin still reads and uses that key, and keeps it in the resource until you move it, so it isn't lost. The ArcweaveAsset inspector shows a warning with a **Move API Key Out of Resource** button, which moves the key to your user settings and saves the resource without it. If you already have a key in your user settings or the `ARCWEAVE_API_KEY` environment variable, that key is kept and the one in the resource is removed.
+
+Exporting a game that includes an ArcweaveAsset that still contains a key shows a warning. The key also stays in your version control history, so consider generating a new key in Arcweave if the repository is shared.
 
 ## Our Implementation
 
@@ -396,3 +417,15 @@ func option_button_pressed(path):
 | Method Name | Description |
 | :---------- | :---------- |
 |             |             |
+
+## Running the Tests
+
+The tests in [`tests`](./tests) run in headless Godot, since the plugin's classes need the engine. With the .NET version of Godot 4.4 and the .NET 8 SDK, run from the repository folder:
+
+```bash
+dotnet build CSharp_Plugin.csproj
+godot --headless --path . --import
+godot --headless --path . --script res://tests/run_tests.gd
+```
+
+The last command prints each test and exits with the number of failed tests. The tests aren't part of the plugin package.
