@@ -409,7 +409,7 @@ namespace Arcweave.Project
 
 			project.Set(_startingElement, _boards, _components, _variables, _elements, _assets);
 			// Keeps the ID from the project data also when no element has it, so errors can name it
-			project.StartingElementId = GetString(_projectData, "startingElement");
+			project.SetStartingElementId(GetString(_projectData, "startingElement"));
 			return project;
 		}
 

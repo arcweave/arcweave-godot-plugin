@@ -19,8 +19,9 @@ The notable changes of each release of the Arcweave Godot Plugin. Earlier releas
   your ArcweaveAssets use different keys, pass each one's key to `refresh_project(api_request, api_key)` or
   `ArcweaveNode.UpdateStoryWithApiKey(apiKey)`. The order the key is found in is described in
   [Your API Key](README.md#your-api-key).
-- Code that sets `arcweave_asset.api_key` still works, but the key is then saved in the resource again. Pass the key to
-  the refresh instead.
+- Setting `arcweave_asset.api_key` from code sets a key saved in the resource, like older versions did: it is saved with
+  the resource, logs a warning when used, and is only used when there is no key in the inspector or the
+  `ARCWEAVE_API_KEY` environment variable. Pass the key to the refresh instead.
 
 ### Added
 

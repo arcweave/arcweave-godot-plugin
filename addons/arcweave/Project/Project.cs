@@ -18,7 +18,7 @@ namespace Arcweave.Project
         /// <summary>
         /// The ID of the starting element in the project data, also when no element has it. Empty if none is set.
         /// </summary>
-        public string StartingElementId { get; internal set; } = "";
+        [Export] public string StartingElementId { get; private set; } = "";
         
         public Project() : this("") {}
 
@@ -38,6 +38,14 @@ namespace Arcweave.Project
             StartingElementId = startingElement?.Id ?? "";
         }
         
+        /// <summary>
+        /// Sets the starting element's ID from the project data, also when no element has it, so errors can name it.
+        /// </summary>
+        internal void SetStartingElementId(string id)
+        {
+            StartingElementId = id ?? "";
+        }
+
         /// <summary>
         /// Returns an element based on it's ID
         /// </summary>

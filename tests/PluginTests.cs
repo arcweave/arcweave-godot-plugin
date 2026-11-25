@@ -195,7 +195,7 @@ public partial class PluginTests : RefCounted
 
 		Assert(story.GetCurrentElement() == start, "the current element doesn't change");
 		AreEqual(visits, start.Visits, "visits of the current element");
-		AreEqual("<p>Hello</p>".Replace("<p>", "").Replace("</p>", ""), story.GetCurrentRuntimeContent(), "runtime content");
+		AreEqual("Hello", story.GetCurrentRuntimeContent(), "runtime content");
 
 		// The story still works
 		var options = story.GenerateCurrentOptions();
@@ -203,6 +203,16 @@ public partial class PluginTests : RefCounted
 		AreEqual("end", story.GetCurrentElement().Id, "story element after the branch");
 		story.SetCurrentElementById("start");
 		AreEqual("start", story.GetCurrentElement().Id, "story element set by id");
+
+		// A path with a target but no connections
+		story.SelectPath(new Path { TargetElement = story.GetProject().ElementWithId("end") });
+		AreEqual("end", story.GetCurrentElement().Id, "story element after a path without connections");
+
+		// Without a current element, rejected calls keep none
+		var noStart = new Story(Parse(OmittedListsProjectJson(false).Replace("\"startingElement\": \"start\",", "")));
+		noStart.SetCurrentElementById("unknown");
+		noStart.SelectPath(null);
+		Assert(noStart.GetCurrentElement() == null, "the story without a starting element still has no current element");
 	}
 
 	private void MissingStartingElementKeepsItsId()

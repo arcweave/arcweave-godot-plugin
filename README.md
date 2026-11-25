@@ -31,6 +31,10 @@ The Arcweave Godot Export feature is available to all Arcweave users, including 
     - [Project class](#project-class)
       - [Properties](#properties-1)
       - [Methods](#methods-1)
+    - [ArcweaveNode class](#arcweavenode-class)
+    - [ArcweaveAsset class (GDScript)](#arcweaveasset-class-gdscript)
+    - [APIRequest class (GDScript)](#apirequest-class-gdscript)
+  - [Running the Tests](#running-the-tests)
 
 ---
 
@@ -147,23 +151,22 @@ in your game.
 
 Add an **ArcweaveNode** as a child node in your scene and use the Inspector tab connect it to your resource that you created earlier.
 
-This Node has 3 properties:
+This Node has 2 properties:
 
 - ArcweaveAsset
 - Story
-- ApiRequest
 
 The **Story** is the class that handles the Arcweave Project. It stores all the info regarding your project and it's
 the way we are interacting with it.
 
-**ApiRequest** is an instance of a Node that is being added as a child of ArcweaveNode. It handles the connection to
-the Arcweave API for requesting and retrieving the updated Arcweave Project.
+ArcweaveNode also adds an **APIRequest** node as its child. It handles the connection to the Arcweave API for requesting
+and retrieving the updated Arcweave Project.
 
 #### Create your own Node
 
 You can also create your own nodes and interact with the ArcweaveAsset. 
 
-In order to update during runtime though, you would have to add an [`APIRequest`](./addons/arcweave/Editor/APIRequestScript.gd) node to your scene, created with `APIRequest.new(arcweave_asset)`. It adds an HTTPRequest node to your scene to make the requests. You can see how we implemented owr own [`ArcweaveNode.cs`](./addons/arcweave/Editor/ArcweaveNode.cs) for C# or [`gd_script_scene_no_arcweave_node.gd`](./scripts/gd_script_scene_no_arcweave_node.gd) for GDScript and follow a similar pattern.
+In order to update during runtime though, you would have to add an [`APIRequest`](./addons/arcweave/Editor/APIRequestScript.gd) node to your scene, created with `APIRequest.new(arcweave_asset)`. It adds an HTTPRequest node to your scene to make the requests. You can see how we implemented our own [`ArcweaveNode.cs`](./addons/arcweave/Editor/ArcweaveNode.cs) for C# or [`gd_script_scene_no_arcweave_node.gd`](./scripts/gd_script_scene_no_arcweave_node.gd) for GDScript and follow a similar pattern.
 
 ### Your API Key
 
@@ -218,7 +221,7 @@ Variable saves and `Story.GetVariableChanges()` use stable IDs as keys so repeat
 
 <br/>
 
-The main Class that the user should use is the [**Story**](#story) class of the plugin. This has most of the functionalities needed to traverse through a Project. Story is stored as a property inside our ArcweaveNode so our examples are based on that.
+The main Class that the user should use is the [**Story**](#story-class) class of the plugin. This has most of the functionalities needed to traverse through a Project. Story is stored as a property inside our ArcweaveNode so our examples are based on that.
 
 To start a Project's Story you have to initialize a Story instance with it's project settings, as well as an instance of APIRequest to be able to update your project on runtime. ArcweaveNode handles that in it's `_Ready` function, so if you are using this Node Type, you don't have to do it.
 
@@ -306,7 +309,7 @@ private void OptionButtonPressed(IPath path)
 
 <br/>
 
-The main Class that the user should use is the [**Story**](#story) class of the plugin. This has most of the functionalities needed to traverse through a Project. Story is stored as a property inside our ArcweaveNode so our examples are based on that.
+The main Class that the user should use is the [**Story**](#story-class) class of the plugin. This has most of the functionalities needed to traverse through a Project. Story is stored as a property inside our ArcweaveNode so our examples are based on that.
 
 To start a Project's Story you have to initialize a Story instance with it's project settings, as well as an instance of APIRequest to be able to update your project on runtime. ArcweaveNode handles that in its `_ready` function, so if you are using this Node Type, you don't have to do it.
 
@@ -375,7 +378,7 @@ func option_button_pressed(path):
 
 ## API Documentation
 
-The tables list the public API that games use. The Story and Project classes are in C# (namespaces `Arcweave` and `Arcweave.Project`); ArcweaveAsset and APIRequest are GDScript classes.
+The tables list the public API that games use. `Story`, `Project` and `ArcweaveNode` are C# classes (namespaces `Arcweave`, `Arcweave.Project` and `Arcweave.Editor`); `ArcweaveAsset` and `APIRequest` are GDScript classes.
 
 ### Story class
 
@@ -385,7 +388,7 @@ A Story plays an Arcweave project: it keeps the current element, the element vis
 
 | Property                          | Description                                                                     |
 | :-------------------------------- | :------------------------------------------------------------------------------ |
-| `VariableChanges VariableChanges` | Tracks the variable changes of the last element. `GetVariableChanges()` returns them |
+| `VariableChanges VariableChanges` | Tracks the variable changes of the current element and the connection labels that led to it. `GetVariableChanges()` returns them |
 
 Use `GetProject()` and `GetCurrentElement()` to get the project and the current element.
 
@@ -401,11 +404,11 @@ Use `GetProject()` and `GetCurrentElement()` to get the project and the current 
 | `void SetCurrentElementById(string id)` | Goes to the element with the ID. If there is none, reports an error and stays on the current element |
 | `void SetCurrentElement(Element element)` | Goes to the element. If it is null, reports an error and stays on the current element |
 | `Element GetCurrentElement()` | Returns the current element, or null if the project has no starting element and none was set. Use it to check whether the story has a current element |
-| `string GetCurrentRuntimeContent()` | Returns the current element's content as BBCode, after running its scripts. Without a current element it returns null in C#, which GDScript receives as `""` |
-| `Options GenerateCurrentOptions()` | Returns the current element's options. Their `Paths` is null if the element has no outputs. Null without a current element |
-| `void SelectPath(Path path)` | Runs the path's connection labels and goes to its target element. If the path has no target element, reports an error and stays on the current element |
+| `string GetCurrentRuntimeContent()` | Returns the current element's content as BBCode, after running its scripts. Without a current element, or if the element has no content, it returns null in C#, which GDScript receives as `""` |
+| `Options GenerateCurrentOptions()` | Returns the current element's options. Their `Paths` is null if the element has no valid paths, for example no outputs or no matching branch condition. Null without a current element |
+| `void SelectPath(Path path)` | Runs the path's connection labels and goes to its target element. If the path is null or has no target element, reports an error and stays on the current element |
 | `Project GetProject()` | Returns the project |
-| `Dictionary<string, Dictionary<string, Variant>> GetVariableChanges()` | Returns the variables the last element changed, by stable variable ID, each with its `"oldValue"` and `"newValue"` |
+| `Dictionary<string, Dictionary<string, Variant>> GetVariableChanges()` | Returns the variables that the current element and the connection labels that led to it changed, by stable variable ID, each with its `"oldValue"` and `"newValue"` |
 | `Dictionary<string, Variant> GetSave()` | Returns a save of the current element ID (`"currentElement"`), the variable values (`"variables"`) and the visits (`"visits"`) |
 | `void LoadSave(Dictionary<string, Variant> save)` | Loads a save made with `GetSave()` |
 
@@ -449,9 +452,9 @@ Use `GetProject()` and `GetCurrentElement()` to get the project and the current 
 | `GodotObject ArcweaveAsset` | The ArcweaveAsset the node plays |
 | `Story Story` | The node's Story, created when the node is ready |
 | `signal ProjectUpdated()` | Emitted after a refresh updated the Story |
-| `void UpdateStory()` | Refreshes the project with the ArcweaveAsset's receive method. A WebAPI refresh uses the API key saved in the inspector, otherwise the `ARCWEAVE_API_KEY` environment variable |
-| `void UpdateStoryWithApiKey(string apiKey)` | Like `UpdateStory()`, refreshing from the WebAPI with the API key, eg. in an exported game. An empty key finds the key like `UpdateStory()` |
-| `Story CreateStory()` | Creates a new Story from the ArcweaveAsset's project settings |
+| `void UpdateStory()` | Refreshes the project with the ArcweaveAsset's receive method. A WebAPI refresh finds the API key as described in [Your API Key](#your-api-key) |
+| `void UpdateStoryWithApiKey(string apiKey)` | Like `UpdateStory()`, using the API key for a WebAPI refresh, eg. in an exported game. A file refresh doesn't use it. An empty key finds the key like `UpdateStory()` |
+| `Story CreateStory()` | Creates a new Story from the ArcweaveAsset's project settings and downloaded media |
 
 ### ArcweaveAsset class (GDScript)
 
@@ -464,8 +467,8 @@ Use `GetProject()` and `GetCurrentElement()` to get the project and the current 
 | `String project_hash` | The project's hash, for the `"WebAPI"` method |
 | `bool download_media` | Download the project's media when initializing from the WebAPI in the editor |
 | `refresh_project(api_request: APIRequest, api_key := "")` | Reloads the project from the file or the WebAPI and emits `project_updated`. `api_key` is the key a WebAPI refresh uses. When empty, the key is found as described in [Your API Key](#your-api-key) |
-| `Dictionary get_media_paths()` | Returns the downloaded media that still exists, by Arcweave asset ID |
-| `bool has_legacy_api_key()` | Returns true if the resource contains an API key saved by an older version of the plugin |
+| `get_media_paths() -> Dictionary` | Returns the downloaded media that still exists, by Arcweave asset ID |
+| `has_legacy_api_key() -> bool` | Returns true if the resource contains an API key saved by an older version of the plugin |
 
 ### APIRequest class (GDScript)
 
