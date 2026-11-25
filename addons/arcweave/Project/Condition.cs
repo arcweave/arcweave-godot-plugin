@@ -54,7 +54,12 @@ namespace Arcweave.Project
                     _ => false
                 };
             }
-            return Interpreter.Expression.GetBoolValue(result);
+            return result switch
+            {
+                float f => f > 0,
+                long l => l > 0,
+                _ => Interpreter.Expression.GetBoolValue(result)
+            };
         }
 
         public Path ResolvePath(Path path)

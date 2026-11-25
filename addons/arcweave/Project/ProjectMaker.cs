@@ -89,7 +89,7 @@ namespace Arcweave.Project
 			foreach (string key in _componentsDict.Keys)
 			{
 				Dictionary comp = _componentsDict[key].AsGodotDictionary();
-				if (comp.ContainsKey("children"))
+				if (IsFolder(comp))
 				{
 					continue;
 				}
@@ -104,7 +104,7 @@ namespace Arcweave.Project
 				{
 					coverAsset = _assets[GetString(cover, "id")];
 				}
-				string customId = comp.ContainsKey("customId") ? comp["customId"].AsString() : null;
+				string customId = GetStringOrNull(comp, "customId");
 				_components[key] = new Component(key, customId, GetString(comp, "name"), coverAsset);
 				foreach (string attrId in GetStringList(comp, "attributes"))
 				{
@@ -182,7 +182,7 @@ namespace Arcweave.Project
 					"boards" => IAttribute.ContainerType.Board,
 					_ => IAttribute.ContainerType.Undefined
 				};
-				string customId = attr.ContainsKey("customId") ? attr["customId"].AsString() : null;
+				string customId = GetStringOrNull(attr, "customId");
 
 				_attributes[key].Set(key, customId, GetString(attr, "name"), attrType, data, containerType, GetString(attr, "cId"));
 			}
@@ -244,9 +244,10 @@ namespace Arcweave.Project
 				Dictionary cond = _conditionsDict[key].AsGodotDictionary();
 				Connection condOutput = null;
 				string script = null;
-				if (cond.ContainsKey("output") && cond["output"].VariantType != Variant.Type.Nil)
+				string outputId = GetString(cond, "output");
+				if (outputId.Length > 0)
 				{
-					condOutput = _connections[cond["output"].AsString()];
+					condOutput = _connections[outputId];
 				}
 				if (cond.ContainsKey("script") && cond["script"].VariantType != Variant.Type.Nil)
 				{
@@ -325,7 +326,7 @@ namespace Arcweave.Project
 			foreach (string key in _boardsDict.Keys)
 			{
 				Dictionary board = _boardsDict[key].AsGodotDictionary();
-				if (board.ContainsKey("children"))
+				if (IsFolder(board))
 				{
 					continue;
 				}
@@ -361,7 +362,7 @@ namespace Arcweave.Project
 					boardNotes.Add(_notes[noteKey]);
 				}
 
-				string customId = board.ContainsKey("customId") ? board["customId"].AsString() : null;
+				string customId = GetStringOrNull(board, "customId");
 
 				_boards[key] = new Board(key, GetString(board, "name"), customId, boardElements, boardConnections, boardJumpers, boardBranches, boardNotes);
 				foreach (string attributeId in GetStringList(board, "attributes"))
@@ -376,7 +377,7 @@ namespace Arcweave.Project
 			foreach (string key in _variablesDict.Keys)
 			{
 				Dictionary variable = _variablesDict[key].AsGodotDictionary();
-				if (variable.ContainsKey("children")) continue;
+				if (IsFolder(variable)) continue;
 				if (!TryGetVariableValue(variable, out var value))
 				{
 					continue;
@@ -427,6 +428,21 @@ namespace Arcweave.Project
 			return dict.TryGetValue(key, out var value) && value.VariantType == Variant.Type.Dictionary
 				? value.AsGodotDictionary()
 				: new Dictionary();
+		}
+
+		/// <summary>
+		/// Returns true for folders, including the root folder. An empty folder's children may be omitted or null, so the
+		/// key is checked instead of its value.
+		/// </summary>
+		private static bool IsFolder(Dictionary dict)
+		{
+			return dict.ContainsKey("children") || (dict.TryGetValue("root", out var root) && root.VariantType == Variant.Type.Bool && root.AsBool());
+		}
+
+		/// <summary>Returns the string under key, or null if it is missing or null.</summary>
+		private static string GetStringOrNull(Dictionary dict, string key)
+		{
+			return dict.TryGetValue(key, out var value) && value.VariantType != Variant.Type.Nil ? value.AsString() : null;
 		}
 
 		/// <summary>Returns the string under key, or an empty string if it is missing or null.</summary>
@@ -515,7 +531,8 @@ namespace Arcweave.Project
 			foreach (var assetId in assetIds)
 			{
 				var asset = _assetsDict[assetId].AsGodotDictionary();
-				if (asset.ContainsKey("children") && asset["children"].VariantType != Variant.Type.Nil)
+				// An empty folder may omit its children, but assets always have a type
+				if (IsFolder(asset) || !asset.ContainsKey("type"))
 				{
 					string assetName = asset.ContainsKey("root") && asset["root"].AsBool()
 						? ""

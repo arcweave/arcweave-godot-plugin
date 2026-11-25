@@ -111,13 +111,15 @@ static func move_api_key_out_of_asset(asset: ArcweaveAsset, discard_different_ke
 static func find_assets_with_api_key(path: String) -> Array[ArcweaveAsset]:
 	var assets : Array[ArcweaveAsset] = []
 	var extension = path.get_extension()
+	extension = extension.to_lower()
 	if not extension in ["tres", "res", "tscn", "scn"]:
 		return assets
 	# A text file only contains an ArcweaveAsset if it references its script, so other files aren't loaded
 	var asset_script = "res://addons/arcweave/Editor/ArcweaveAssetScript.gd"
 	if extension in ["tres", "tscn"] and not FileAccess.get_file_as_string(path).contains(asset_script):
 		return assets
-	var resource = ResourceLoader.load(path)
+	# Read from the file, not a cached copy whose key may have been removed without saving
+	var resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE)
 	var visited = {}
 	if resource is PackedScene:
 		var state : SceneState = resource.get_state()

@@ -14,7 +14,6 @@ namespace Arcweave.Tests;
 public partial class PluginTests : RefCounted
 {
 	private int _failures;
-	private string _currentTest;
 
 	public int Run()
 	{
@@ -26,12 +25,13 @@ public partial class PluginTests : RefCounted
 		Test(nameof(ResetAllWithArgumentsKeepsTheGivenVariables), ResetAllWithArgumentsKeepsTheGivenVariables);
 		Test(nameof(ConditionResultsArePositiveNumbersAndNonEmptyStrings), ConditionResultsArePositiveNumbersAndNonEmptyStrings);
 		Test(nameof(ConditionsEvaluateWithTheProjectVariables), ConditionsEvaluateWithTheProjectVariables);
+		Test(nameof(ResetAllWithoutVariables), ResetAllWithoutVariables);
+		Test(nameof(FoldersWithOmittedChildrenAreNotImported), FoldersWithOmittedChildrenAreNotImported);
 		return _failures;
 	}
 
 	private void Test(string name, Action test)
 	{
-		_currentTest = name;
 		try
 		{
 			test();
@@ -147,8 +147,8 @@ public partial class PluginTests : RefCounted
 	// Matches GetBoolValue in the C# and the valueToBool in the C++ reference interpreters
 	private void ConditionResultsArePositiveNumbersAndNonEmptyStrings()
 	{
-		object[] truthy = { true, 1, 2.5, "text", Variant.From(true), Variant.From(3), Variant.From(0.5), Variant.From("a") };
-		object[] falsy = { false, 0, -1, 0.0, -2.5, "", null, new object(), Variant.From(-1), Variant.From(-0.5), Variant.From(""), new Variant() };
+		object[] truthy = { true, 1, 2.5, 2.5f, 1L, "text", Variant.From(true), Variant.From(3), Variant.From(0.5), Variant.From("a") };
+		object[] falsy = { false, 0, -1, 0.0, -2.5, -2.5f, -1L, "", null, new object(), Variant.From(-1), Variant.From(-0.5), Variant.From(""), new Variant() };
 		foreach (var value in truthy) Assert(Condition.IsTruthy(value), $"{Describe(value)} is true");
 		foreach (var value in falsy) Assert(!Condition.IsTruthy(value), $"{Describe(value)} is false");
 	}
@@ -166,11 +166,36 @@ public partial class PluginTests : RefCounted
 			("health - 200", false),
 			("-health", false),
 			("health / 3.0", true),
+			// Not a condition: the result isn't a bool, which used to throw
+			("health = 10", false),
 		};
 		foreach (var (script, expected) in cases)
 		{
 			AreEqual(expected, new Condition("c", project, script, null).Evaluate(), $"'{script}'");
 		}
+	}
+
+	private void ResetAllWithoutVariables()
+	{
+		var project = new ProjectMaker(Parse(VariablesProjectJson.Replace("\"variables\": {", "\"unused\": {"))).MakeProject();
+		var output = new AwInterpreter(project).RunScript("<pre><code>resetAll()</code></pre>");
+		AreEqual(0, output.Changes.Count, "variable changes");
+	}
+
+	// Empty folders may omit their children, or have null children
+	private void FoldersWithOmittedChildrenAreNotImported()
+	{
+		var json = OmittedListsProjectJson(false)
+			.Replace("\"boards\": {", "\"boards\": { \"boards-root\": { \"root\": true, \"name\": \"Root\" },")
+			.Replace("\"components\": {", "\"components\": { \"components-root\": { \"root\": true, \"name\": \"Root\" },")
+			.Replace("\"assets\": {}", "\"assets\": { \"assets-root\": { \"root\": true, \"children\": [\"folder\", \"empty\"] }, "
+				+ "\"folder\": { \"name\": \"Folder\", \"children\": null }, \"empty\": { \"name\": \"Empty\" } }")
+			.Replace("\"conditions\": { \"if\":", "\"conditions\": { \"unconnected\": { \"output\": \"\", \"script\": \"false\" }, \"if\":");
+		var project = new ProjectMaker(Parse(json)).MakeProject();
+		AreEqual(1, project.Boards.Count, "boards");
+		AreEqual(1, project.Components.Count, "components");
+		AreEqual(0, project.Assets.Count, "assets");
+		Assert(json.Contains("unconnected"), "the test project has the unconnected condition");
 	}
 
 	private static string Describe(object value) => value switch

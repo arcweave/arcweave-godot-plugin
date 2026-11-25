@@ -8,7 +8,6 @@ func _get_name() -> String:
 	return "Arcweave"
 
 func _export_file(path: String, type: String, features: PackedStringArray):
-	for asset in ArcweaveUserSettings.find_assets_with_api_key(path):
-		var what = "\"" + path + "\"" if asset.resource_path == path else "an ArcweaveAsset saved in \"" + path + "\""
-		push_warning("[Arcweave] The export includes " + what + ", which contains an API key. Select the "
-			+ "ArcweaveAsset and use \"Move API Key Out of Resource\" in its inspector to remove the key from it.")
+	if not ArcweaveUserSettings.find_assets_with_api_key(path).is_empty():
+		push_warning("[Arcweave] The export includes \"" + path + "\", which contains an ArcweaveAsset with an API key. "
+			+ "Select the ArcweaveAsset and use \"Move API Key Out of Resource\" in its inspector to remove the key from it.")

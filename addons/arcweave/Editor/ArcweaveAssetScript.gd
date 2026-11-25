@@ -68,7 +68,8 @@ func _init(_project_settings = {}, _api_key = "", _project_hash = ""):
 # Older versions of the plugin saved the API key in an exported "api_key" property. Loading such a resource sets it here,
 # and it is saved again only while it isn't empty.
 func _get_property_list():
-	if _legacy_api_key.is_empty():
+	# A key of only whitespace is dropped too, since it isn't a key
+	if not has_legacy_api_key():
 		return []
 	return [{"name": "api_key", "type": TYPE_STRING, "usage": PROPERTY_USAGE_STORAGE}]
 

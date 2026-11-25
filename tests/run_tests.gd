@@ -1,4 +1,4 @@
-## Runs the plugin's tests in headless Godot and exits with the number of failed tests.
+## Runs the plugin's tests in headless Godot and exits with 1 if any test fails.
 ## Build the C# project and import the project first, so the plugin's classes are known, then run from the project folder:
 ##   dotnet build CSharp_Plugin.csproj
 ##   godot --headless --path . --import
@@ -24,4 +24,5 @@ func _initialize():
 		print("All tests passed")
 	else:
 		printerr(str(failures) + " test(s) failed")
-	quit(failures)
+	# Exit codes wrap around at 256
+	quit(1 if failures > 0 else 0)

@@ -27,6 +27,8 @@ func request(key := ""):
 	arcweave_asset.resolve_api_key(key, true)
 	var request_url = get_api_url() + project_hash + "/godot"
 	var headers = get_headers()
+	# Later calls, eg. get_headers(), find the key again instead of keeping the one passed here
+	_explicit_api_key = ""
 	print("[Arcweave] Retrieving: " + request_url)
 	var error = http_request.request(request_url, headers)
 	if error != OK:

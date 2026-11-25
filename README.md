@@ -428,4 +428,4 @@ godot --headless --path . --import
 godot --headless --path . --script res://tests/run_tests.gd
 ```
 
-The last command prints each test and exits with the number of failed tests. The tests aren't part of the plugin package.
+The last command prints each test and exits with 1 if any test fails. The tests aren't part of the plugin package.

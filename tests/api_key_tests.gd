@@ -5,6 +5,7 @@ const TEST_DIR = "user://arcweave_tests"
 const ENV = ArcweaveUserSettings.API_KEY_ENVIRONMENT_VARIABLE
 
 var _failures := 0
+var _current_test := ""
 var _settings_path : String
 var _env_key : String
 
@@ -31,11 +32,12 @@ func Run() -> int:
 		"test_runtime_scripts_do_not_need_the_user_settings_script",
 	]:
 		_reset()
+		_current_test = test
 		var failures_before = _failures
 		# Each test returns true at its end, so a test that stops on a script error fails
 		var finished = call(test)
 		if finished != true:
-			_check(false, test + " stopped before its end")
+			_check(false, "stopped before its end")
 		elif _failures == failures_before:
 			print("  PASS ", test)
 	_reset()
@@ -58,7 +60,7 @@ func _set_env(value: String):
 func _check(condition: bool, message: String):
 	if not condition:
 		_failures += 1
-		printerr("  FAIL ", message)
+		printerr("  FAIL ", _current_test, ": ", message)
 
 func _check_eq(expected, actual, what: String):
 	_check(expected == actual, what + ": expected \"" + str(expected) + "\", got \"" + str(actual) + "\"")
@@ -172,9 +174,11 @@ func test_refresh_uses_the_explicit_key():
 	var api_request = APIRequest.new(asset)
 	# Not in the tree, so the HTTP request itself isn't sent
 	api_request.request("explicit-key")
-	_check("Authorization: Bearer explicit-key" in api_request.get_headers(), "explicit key in the headers")
+	_check_eq("explicit-key", api_request.api_key, "key the request used")
+	# The explicit key isn't kept for later requests
+	_check("Authorization: Bearer user-key" in api_request.get_headers(), "user key in later headers")
 	api_request.request()
-	_check("Authorization: Bearer user-key" in api_request.get_headers(), "user key in the headers")
+	_check_eq("user-key", api_request.api_key, "key a request without a key used")
 	api_request.free()
 	return true
 
