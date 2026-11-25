@@ -186,11 +186,7 @@ Exporting a game that includes an ArcweaveAsset that still contains a key, in it
 
 ## Our Implementation
 
-Most of our implementation, except ArcweaveAsset and some editor GDScript classes, are written in C#. This means that not all of the API is available in GDScript, because of type compatibility issues. The reason is that the interpreter we are using for **arcscript** is written in C# and uses built in types. 
-
-Using functions with the name pattern `GetGodot*` will retrieve the appropriate instance properties in Godot types but doing this will require copying and typecasting, so the experience might be slower.
-
-We are planning to integrate Godot types in our interpreter in the near future that will speed up this process.
+Most of our implementation, except ArcweaveAsset and some editor GDScript classes, is written in C#. The project classes use Godot types (`Godot.Collections.Dictionary`, `Godot.Collections.Array` and `Variant`), so GDScript can use them directly, for example `story.GenerateCurrentOptions().Paths`. Members that use plain C# types, like `Project.GetAllVariables()`, are easier to use from C#.
 
 ## Using the Plugin
 
@@ -350,7 +346,7 @@ func add_options():
 		option.queue_free()
 	
 	var options = story.GenerateCurrentOptions()
-	var paths = options.GetPaths()
+	var paths = options.Paths if options != null else null
 	if paths != null:
 		for path in paths:
 			if path.IsValid:
@@ -375,50 +371,101 @@ func option_button_pressed(path):
 
 ## API Documentation
 
+The tables list the public API that games use. The Story and Project classes are in C# (namespaces `Arcweave` and `Arcweave.Project`); ArcweaveAsset and APIRequest are GDScript classes.
 
 ### Story class
 
-#### Properties
-
-| Property                  | Description                       |
-| :------------------------ | :-------------------------------- |
-| `Project project`         | The Project instance of the story |
-| `Dictionary ProjectData`  | The starting ProjectData          |
-| `IElement CurrentElement` | The current element of the story  |
-
-#### Methods
-
-| Method Name                                | Description                                 |
-| :----------------------------------------- | :------------------------------------------ |
-| `Story(Dictionary projectData)`            | Initializes a Story with the project data   |
-| `Story(Dictionary projectData, Dictionary mediaPaths)` | Initializes a Story with the project data and its downloaded media |
-| `void UpdateStory(Dictionary projectData)` | Updates the story with the new project data |
-| `void UpdateStory(Dictionary projectData, Dictionary mediaPaths)` | Updates the story with the new project data and its downloaded media |
-| `void SetCurrentElement(string id)`        | Sets the current element                    |
-| `void SetCurrentElement(IElement element)` | Sets the current element                    |
-| `string GenerateCurrentRuntimeContent()`   | Returns the current element's content       |
-| `Options GenerateCurrentOptions()`         | Returns the current element's options       |
-| `Element GetCurrentElement()`              | Returns the current element                 |
-| `void SelectPath(Path path)`               | Selects a path/option                       |
-
-### Project class
+A Story plays an Arcweave project: it keeps the current element, the element visits and the variable values.
 
 #### Properties
 
-| Property                                    | Description                         |
-| :------------------------------------------ | :---------------------------------- |
-| `string Name`                               | The Project's name                  |
-| `Dictionary<string, IBoard> Boards`         | The Boards of the Project           |
-| `Dictionary<string, IComponent> Components` | The Components of the Project       |
-| `Dictionary<string, IVariable> Variables`   | The Variables of the Project        |
-| `Dictionary<string, IElement> Elements`     | The Elements of the Project         |
-| `IElement StartingElement`                  | The starting element of the Project |
+| Property                          | Description                                                                     |
+| :-------------------------------- | :------------------------------------------------------------------------------ |
+| `VariableChanges VariableChanges` | Tracks the variable changes of the last element. `GetVariableChanges()` returns them |
+
+Use `GetProject()` and `GetCurrentElement()` to get the project and the current element.
 
 #### Methods
 
 | Method Name | Description |
 | :---------- | :---------- |
-|             |             |
+| `Story(Dictionary projectData)` | Creates a Story from the project data and goes to the starting element |
+| `Story(Dictionary projectData, Dictionary mediaPaths)` | Like the above, linking the downloaded media (`ArcweaveAsset.get_media_paths()`) to the project's assets |
+| `Story UpdateStory(Dictionary projectData)` | Updates the story with new project data, keeping the variable values, the visits and the current element if it still exists. Returns the story |
+| `Story UpdateStory(Dictionary projectData, Dictionary mediaPaths)` | Like the above, linking the downloaded media |
+| `void ResetStory()` | Resets the variables to their default values and the visits to 0, and goes to the starting element |
+| `void SetCurrentElementById(string id)` | Goes to the element with the ID. If there is none, reports an error and stays on the current element |
+| `void SetCurrentElement(Element element)` | Goes to the element. If it is null, reports an error and stays on the current element |
+| `Element GetCurrentElement()` | Returns the current element, or null if the project has no starting element and none was set |
+| `string GetCurrentRuntimeContent()` | Returns the current element's content as BBCode, after running its scripts. Null without a current element |
+| `Options GenerateCurrentOptions()` | Returns the current element's options. Their `Paths` is null if the element has no outputs. Null without a current element |
+| `void SelectPath(Path path)` | Runs the path's connection labels and goes to its target element. If the path has no target element, reports an error and stays on the current element |
+| `Project GetProject()` | Returns the project |
+| `Dictionary<string, Dictionary<string, Variant>> GetVariableChanges()` | Returns the variables the last element changed, by stable variable ID, each with its `"oldValue"` and `"newValue"` |
+| `Dictionary<string, Variant> GetSave()` | Returns a save of the current element ID (`"currentElement"`), the variable values (`"variables"`) and the visits (`"visits"`) |
+| `void LoadSave(Dictionary<string, Variant> save)` | Loads a save made with `GetSave()` |
+
+### Project class
+
+#### Properties
+
+| Property                                   | Description                                                            |
+| :----------------------------------------- | :--------------------------------------------------------------------- |
+| `string Name`                              | The project's name                                                     |
+| `Dictionary<string, Board> Boards`         | The boards of the project, by ID                                       |
+| `Dictionary<string, Component> Components` | The components of the project, by ID                                   |
+| `Array<Variable> Variables`                | The global variables of the project. Board and component variables are in their `Variables` |
+| `Dictionary<string, Element> Elements`     | The elements of the project, by ID                                     |
+| `Dictionary<string, Asset> Assets`         | The assets of the project, by ID                                       |
+| `Element StartingElement`                  | The starting element of the project, or null if it has none            |
+| `string StartingElementId`                 | The starting element's ID in the project data, also when no element has it. Empty if none is set |
+
+#### Methods
+
+| Method Name | Description |
+| :---------- | :---------- |
+| `Element ElementWithId(string id)` | Returns the element with the ID, or null |
+| `Dictionary<string, Board> GetBoards()` | Returns the boards of the project, by ID |
+| `Variable GetVariable(string name)` | Returns the global variable with the name, or null |
+| `Variable GetScopedVariable(string name, string scope)` | Returns the variable with the name of the board or component whose custom ID is `scope`, or null |
+| `Variable GetVariableById(string id)` | Returns the global, board or component variable with the stable ID, or null |
+| `IEnumerable<Variable> GetAllVariables()` | Returns the global, board and component variables |
+| `bool SetVariable(string name, object value)` | Sets the global variable with the name. Returns false if there is no such variable or the value is null or of an unsupported type |
+| `bool SetScopedVariable(string name, string scope, object value)` | Like `SetVariable`, for the variable of the board or component whose custom ID is `scope` |
+| `bool SetVariableById(string id, object value)` | Like `SetVariable`, for the variable with the stable ID |
+| `void ResetVariables()` | Resets all the variables to their default values |
+| `void ResetVisits()` | Resets the visits of all the elements to 0 |
+| `Dictionary<string, Variant> SaveVariables()` | Returns the values of all the variables, by stable ID |
+| `void LoadVariables(Dictionary<string, Variant> save)` | Loads variable values saved with `SaveVariables()` |
+
+### ArcweaveNode class
+
+| Member | Description |
+| :----- | :---------- |
+| `GodotObject ArcweaveAsset` | The ArcweaveAsset the node plays |
+| `Story Story` | The node's Story, created when the node is ready |
+| `signal ProjectUpdated()` | Emitted after a refresh updated the Story |
+| `void UpdateStory()` | Refreshes the project with the ArcweaveAsset's receive method. A WebAPI refresh uses the API key saved in the inspector, otherwise the `ARCWEAVE_API_KEY` environment variable |
+| `void UpdateStoryWithApiKey(string apiKey)` | Like `UpdateStory()`, refreshing from the WebAPI with the API key, eg. in an exported game. An empty key finds the key like `UpdateStory()` |
+| `Story CreateStory()` | Creates a new Story from the ArcweaveAsset's project settings |
+
+### ArcweaveAsset class (GDScript)
+
+| Member | Description |
+| :----- | :---------- |
+| `signal project_updated(project_settings)` | Emitted when a refresh ends, with the new project settings, or with null if the refresh failed |
+| `Dictionary project_settings` | The project data, passed to `Story` |
+| `String receive_method` | `"File"` or `"WebAPI"` |
+| `String project_file` | The JSON file exported from Arcweave, for the `"File"` method |
+| `String project_hash` | The project's hash, for the `"WebAPI"` method |
+| `bool download_media` | Download the project's media when initializing from the WebAPI in the editor |
+| `refresh_project(api_request: APIRequest, api_key := "")` | Reloads the project from the file or the WebAPI and emits `project_updated`. `api_key` is the key a WebAPI refresh uses. When empty, it uses the key saved in the inspector, then the `ARCWEAVE_API_KEY` environment variable, then a key an older version saved in the resource |
+| `Dictionary get_media_paths()` | Returns the downloaded media that still exists, by Arcweave asset ID |
+| `bool has_legacy_api_key()` | Returns true if the resource contains an API key saved by an older version of the plugin |
+
+### APIRequest class (GDScript)
+
+A Node that requests the project from Arcweave's web API. Create it with `APIRequest.new(arcweave_asset)` and add it to the scene tree, then pass it to `ArcweaveAsset.refresh_project()`.
 
 ## Running the Tests
 
