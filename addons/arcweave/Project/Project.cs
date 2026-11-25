@@ -35,6 +35,7 @@ namespace Arcweave.Project
             Variables = variables;
             Elements = elements;
             StartingElement = startingElement;
+            StartingElementId = startingElement?.Id ?? "";
         }
         
         /// <summary>
@@ -137,6 +138,7 @@ namespace Arcweave.Project
             Elements = elements;
             Assets = assets;
             StartingElement = startingElement;
+            StartingElementId = startingElement?.Id ?? "";
         }
 
         /// <summary>

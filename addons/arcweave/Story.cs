@@ -57,13 +57,19 @@ namespace Arcweave
 			if (Project.StartingElement == null)
 			{
 				_currentElement = null;
-				GD.PushError(string.IsNullOrEmpty(Project.StartingElementId)
-					? "[Arcweave] The project has no starting element. Set one in Arcweave, or call SetCurrentElementById."
-					: $"[Arcweave] The project's starting element \"{Project.StartingElementId}\" doesn't exist. Set another one in Arcweave, or call SetCurrentElementById.");
+				GD.PushError(MissingStartingElementMessage(Project.StartingElementId));
 				return;
 			}
 			CurrentElement = Project.StartingElement;
 		}
+
+		internal static string MissingStartingElementMessage(string startingElementId) =>
+			string.IsNullOrEmpty(startingElementId)
+				? "[Arcweave] The project has no starting element. Set one in Arcweave, or call SetCurrentElementById."
+				: $"[Arcweave] The project's starting element \"{startingElementId}\" doesn't exist. Set another one in Arcweave, or call SetCurrentElementById.";
+
+		internal static string UnknownElementMessage(string id) =>
+			$"[Arcweave] The project has no element with ID \"{id}\". The current element doesn't change.";
 
 		/// <summary>
 		/// Updates the current story instance based on the retreived Project Settings.
@@ -149,7 +155,7 @@ namespace Arcweave
 			var element = Project.ElementWithId(id);
 			if (element == null)
 			{
-				GD.PushError($"[Arcweave] The project has no element with ID \"{id}\". The current element doesn't change.");
+				GD.PushError(UnknownElementMessage(id));
 				return;
 			}
 			CurrentElement = element;

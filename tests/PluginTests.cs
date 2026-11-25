@@ -29,6 +29,7 @@ public partial class PluginTests : RefCounted
 		Test(nameof(FoldersWithOmittedChildrenAreNotImported), FoldersWithOmittedChildrenAreNotImported);
 		Test(nameof(InvalidElementsAndPathsKeepTheStoryUsable), InvalidElementsAndPathsKeepTheStoryUsable);
 		Test(nameof(MissingStartingElementKeepsItsId), MissingStartingElementKeepsItsId);
+		Test(nameof(RejectedPathHasNoSideEffects), RejectedPathHasNoSideEffects);
 		return _failures;
 	}
 
@@ -212,7 +213,39 @@ public partial class PluginTests : RefCounted
 		AreEqual("missing", project.StartingElementId, "starting element ID");
 		AreEqual("start", new ProjectMaker(Parse(OmittedListsProjectJson(false))).MakeProject().StartingElementId, "existing starting element ID");
 		AreEqual("", new ProjectMaker(Parse(OmittedListsProjectJson(false).Replace("\"startingElement\": \"start\",", ""))).MakeProject().StartingElementId, "no starting element ID");
+
+		// The story reports the missing ID, and starts by ID
+		var story = new Story(Parse(json));
+		Assert(story.GetCurrentElement() == null, "the story has no current element");
+		Assert(Story.MissingStartingElementMessage("missing").Contains("\"missing\""), "the error names the ID");
+		Assert(Story.UnknownElementMessage("unknown").Contains("\"unknown\""), "the unknown element error names the ID");
+		story.SetCurrentElementById("start");
+		AreEqual("start", story.GetCurrentElement().Id, "story element set by id");
+
+		// Setting the starting element later keeps its ID in sync
+		var reset = new ProjectMaker(Parse(OmittedListsProjectJson(false))).MakeProject();
+		reset.Set(null, reset.Boards, reset.Components, reset.Variables, reset.Elements, reset.Assets);
+		AreEqual("", reset.StartingElementId, "ID after removing the starting element");
+		reset.Set(reset.Elements["end"], reset.Boards, reset.Components, reset.Variables, reset.Elements, reset.Assets);
+		AreEqual("end", reset.StartingElementId, "ID after setting the starting element");
 	}
+
+	// Rejecting a path without a target doesn't run its connection labels
+	private void RejectedPathHasNoSideEffects()
+	{
+		var json = VariablesProjectJson
+			.Replace("\"connections\": {}",
+				"\"connections\": { \"label\": { \"label\": \"<pre><code>health = 1</code></pre>\", \"sourceid\": \"start\", \"sourceType\": \"elements\" } }")
+			.Replace("\"connections\": [],", "\"connections\": [\"label\"],");
+		var story = new Story(Parse(json));
+		var project = story.GetProject();
+		var path = new Path();
+		path.AppendConnection(project.Boards.Values.Single().Connections.Single());
+		story.SelectPath(path);
+		AreEqual(100, project.GetVariable("health").Value.AsInt32(), "health");
+		AreEqual("start", story.GetCurrentElement().Id, "current element");
+	}
+
 
 	private void ResetAllWithoutVariables()
 	{

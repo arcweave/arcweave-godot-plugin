@@ -163,7 +163,7 @@ the Arcweave API for requesting and retrieving the updated Arcweave Project.
 
 You can also create your own nodes and interact with the ArcweaveAsset. 
 
-In order to update during runtime though, you would have to add the node `APIRequest.gd` inside your scene. This will insert an HTTPRequest node in your scene and you will be able to make requests. You can see how we implemented owr own [`ArcweaveNode.cs`](./addons/arcweave/Editor/ArcweaveNode.cs) for C# or [`gd_script_scene_no_arcweave_node.gd`](./scripts/gd_script_scene_no_arcweave_node.gd) for GDScript and follow a similar pattern.
+In order to update during runtime though, you would have to add an [`APIRequest`](./addons/arcweave/Editor/APIRequestScript.gd) node to your scene, created with `APIRequest.new(arcweave_asset)`. It adds an HTTPRequest node to your scene to make the requests. You can see how we implemented owr own [`ArcweaveNode.cs`](./addons/arcweave/Editor/ArcweaveNode.cs) for C# or [`gd_script_scene_no_arcweave_node.gd`](./scripts/gd_script_scene_no_arcweave_node.gd) for GDScript and follow a similar pattern.
 
 ### Your API Key
 
@@ -172,9 +172,12 @@ The **API Key** field in the ArcweaveAsset inspector isn't saved in the resource
 Refreshes from the WebAPI use, in this order:
 
 1. The key passed to the refresh, with `ArcweaveNode.UpdateStoryWithApiKey(apiKey)` or `arcweave_asset.refresh_project(api_request, api_key)`.
-2. The key saved in the inspector.
-3. The `ARCWEAVE_API_KEY` environment variable, for example on a build server.
-4. A key saved in the resource by an older version of the plugin (see below).
+2. A key passed to the ArcweaveAsset's constructor, `ArcweaveAsset.new(project_settings, api_key, project_hash)`. It is never saved.
+3. The key saved in the inspector.
+4. The `ARCWEAVE_API_KEY` environment variable, for example on a build server.
+5. A key saved in the resource by an older version of the plugin (see below).
+
+The key saved in the inspector is used by all the ArcweaveAssets of the project. If ArcweaveAssets need different keys, for example for projects in different Arcweave workspaces, pass each one's key to the refresh.
 
 A game run from the editor reads the same user data folder, so refreshing the story at runtime works without passing a key. An exported game on another computer doesn't have your key, so pass one to the refresh if it should refresh from the WebAPI. Initializing the ArcweaveAsset in the editor before exporting means the game doesn't need to refresh at all.
 
@@ -186,7 +189,7 @@ Exporting a game that includes an ArcweaveAsset that still contains a key, in it
 
 ## Our Implementation
 
-Most of our implementation, except ArcweaveAsset and some editor GDScript classes, is written in C#. The project classes use Godot types (`Godot.Collections.Dictionary`, `Godot.Collections.Array` and `Variant`), so GDScript can use them directly, for example `story.GenerateCurrentOptions().Paths`. Members that use plain C# types, like `Project.GetAllVariables()`, are easier to use from C#.
+Most of our implementation, except ArcweaveAsset and some editor GDScript classes, is written in C#. The project classes use Godot types (`Godot.Collections.Dictionary`, `Godot.Collections.Array` and `Variant`), so GDScript can use them directly, for example `story.GenerateCurrentOptions().Paths`. Members that use plain C# types can't be called from GDScript; the API tables below mark them **C# only**.
 
 ## Using the Plugin
 
@@ -249,7 +252,7 @@ You can also use `Story.GenerateCurrentOptions()` function to get the options of
 private void Repaint()
 {
     TextContainer.Text = ArcweaveNode.Story.GetCurrentRuntimeContent();
-    AddOptions()
+    AddOptions();
 }
 
 private void AddOptions()
@@ -261,7 +264,8 @@ private void AddOptions()
     }
     // Retrieve the current options
     Options options = ArcweaveNode.Story.GenerateCurrentOptions();
-    if (options.Paths != null)
+    // Null if the story has no current element
+    if (options?.Paths != null)
     {
         foreach (var path in options.Paths)
         {
@@ -391,13 +395,13 @@ Use `GetProject()` and `GetCurrentElement()` to get the project and the current 
 | :---------- | :---------- |
 | `Story(Dictionary projectData)` | Creates a Story from the project data and goes to the starting element |
 | `Story(Dictionary projectData, Dictionary mediaPaths)` | Like the above, linking the downloaded media (`ArcweaveAsset.get_media_paths()`) to the project's assets |
-| `Story UpdateStory(Dictionary projectData)` | Updates the story with new project data, keeping the variable values, the visits and the current element if it still exists. Returns the story |
+| `Story UpdateStory(Dictionary projectData)` | Updates the story with new project data, keeping the visits and the current element if it still exists, and going to the starting element otherwise. Variables keep the values they had before the current element: the changes of its content and of the connection labels that led to it are undone, and the content of the current element is run again. Returns the story |
 | `Story UpdateStory(Dictionary projectData, Dictionary mediaPaths)` | Like the above, linking the downloaded media |
 | `void ResetStory()` | Resets the variables to their default values and the visits to 0, and goes to the starting element |
 | `void SetCurrentElementById(string id)` | Goes to the element with the ID. If there is none, reports an error and stays on the current element |
 | `void SetCurrentElement(Element element)` | Goes to the element. If it is null, reports an error and stays on the current element |
-| `Element GetCurrentElement()` | Returns the current element, or null if the project has no starting element and none was set |
-| `string GetCurrentRuntimeContent()` | Returns the current element's content as BBCode, after running its scripts. Null without a current element |
+| `Element GetCurrentElement()` | Returns the current element, or null if the project has no starting element and none was set. Use it to check whether the story has a current element |
+| `string GetCurrentRuntimeContent()` | Returns the current element's content as BBCode, after running its scripts. Without a current element it returns null in C#, which GDScript receives as `""` |
 | `Options GenerateCurrentOptions()` | Returns the current element's options. Their `Paths` is null if the element has no outputs. Null without a current element |
 | `void SelectPath(Path path)` | Runs the path's connection labels and goes to its target element. If the path has no target element, reports an error and stays on the current element |
 | `Project GetProject()` | Returns the project |
@@ -429,10 +433,10 @@ Use `GetProject()` and `GetCurrentElement()` to get the project and the current 
 | `Variable GetVariable(string name)` | Returns the global variable with the name, or null |
 | `Variable GetScopedVariable(string name, string scope)` | Returns the variable with the name of the board or component whose custom ID is `scope`, or null |
 | `Variable GetVariableById(string id)` | Returns the global, board or component variable with the stable ID, or null |
-| `IEnumerable<Variable> GetAllVariables()` | Returns the global, board and component variables |
-| `bool SetVariable(string name, object value)` | Sets the global variable with the name. Returns false if there is no such variable or the value is null or of an unsupported type |
-| `bool SetScopedVariable(string name, string scope, object value)` | Like `SetVariable`, for the variable of the board or component whose custom ID is `scope` |
-| `bool SetVariableById(string id, object value)` | Like `SetVariable`, for the variable with the stable ID |
+| `IEnumerable<Variable> GetAllVariables()` | Returns the global, board and component variables. **C# only** |
+| `bool SetVariable(string name, object value)` | Sets the global variable with the name. Returns false if there is no such variable or the value is null or of an unsupported type. **C# only** |
+| `bool SetScopedVariable(string name, string scope, object value)` | Like `SetVariable`, for the variable of the board or component whose custom ID is `scope`. **C# only** |
+| `bool SetVariableById(string id, object value)` | Like `SetVariable`, for the variable with the stable ID. **C# only** |
 | `void ResetVariables()` | Resets all the variables to their default values |
 | `void ResetVisits()` | Resets the visits of all the elements to 0 |
 | `Dictionary<string, Variant> SaveVariables()` | Returns the values of all the variables, by stable ID |
@@ -459,7 +463,7 @@ Use `GetProject()` and `GetCurrentElement()` to get the project and the current 
 | `String project_file` | The JSON file exported from Arcweave, for the `"File"` method |
 | `String project_hash` | The project's hash, for the `"WebAPI"` method |
 | `bool download_media` | Download the project's media when initializing from the WebAPI in the editor |
-| `refresh_project(api_request: APIRequest, api_key := "")` | Reloads the project from the file or the WebAPI and emits `project_updated`. `api_key` is the key a WebAPI refresh uses. When empty, it uses the key saved in the inspector, then the `ARCWEAVE_API_KEY` environment variable, then a key an older version saved in the resource |
+| `refresh_project(api_request: APIRequest, api_key := "")` | Reloads the project from the file or the WebAPI and emits `project_updated`. `api_key` is the key a WebAPI refresh uses. When empty, the key is found as described in [Your API Key](#your-api-key) |
 | `Dictionary get_media_paths()` | Returns the downloaded media that still exists, by Arcweave asset ID |
 | `bool has_legacy_api_key()` | Returns true if the resource contains an API key saved by an older version of the plugin |
 
