@@ -14,7 +14,7 @@ public partial class ArcweaveNode : Node
 	{
 		var requestScript = GD.Load<GDScript>("res://addons/arcweave/Editor/APIRequestScript.gd");
 		ApiRequest = (Node)requestScript.New(ArcweaveAsset);
-		ArcweaveAsset.Connect("project_updated", Callable.From((Dictionary projectSettings) => OnProjectUpdate(projectSettings)));
+		ArcweaveAsset.Connect("project_updated", Callable.From((Variant projectSettings) => OnProjectUpdate(projectSettings)));
 		Story = CreateStory();
 		AddChild(ApiRequest);
 	}
@@ -22,19 +22,36 @@ public partial class ArcweaveNode : Node
 	/// <summary>
 	/// Calls for an update through API for the project settings. When the project settings are updated, a
 	/// "ProjectUpdated" signal is emitted. 
+	/// The API key is the one saved in the ArcweaveAsset inspector, otherwise the ARCWEAVE_API_KEY environment variable.
 	/// </summary>
 	public void UpdateStory()
 	{
-		ArcweaveAsset.Call("refresh_project", ApiRequest);
+		UpdateStoryWithApiKey("");
 	}
 
 	/// <summary>
-	/// Signal handler for "project_updated" signal from ArcweaveAsset.
+	/// Like <see cref="UpdateStory()"/>, refreshing from the WebAPI with the given API key, eg. in an exported game.
+	/// An empty key finds the key like <see cref="UpdateStory()"/>.
 	/// </summary>
-	/// <param name="projectSettings"></param>
-	private void OnProjectUpdate(Dictionary projectSettings)
+	/// <param name="apiKey">The API key</param>
+	public void UpdateStoryWithApiKey(string apiKey)
 	{
-		Story = Story.UpdateStory(projectSettings, GetMediaPaths());
+		ArcweaveAsset.Call("refresh_project", ApiRequest, apiKey ?? "");
+	}
+
+	/// <summary>
+	/// Signal handler for "project_updated" signal from ArcweaveAsset. A failed update sends null instead of the
+	/// project data; the current story is then kept as it is and "ProjectUpdated" is not emitted.
+	/// </summary>
+	/// <param name="projectSettings">The new project data, or null if the update failed</param>
+	private void OnProjectUpdate(Variant projectSettings)
+	{
+		if (projectSettings.VariantType != Variant.Type.Dictionary)
+		{
+			GD.PushWarning("[Arcweave] Project update failed, keeping the current story");
+			return;
+		}
+		Story = Story.UpdateStory(projectSettings.AsGodotDictionary(), GetMediaPaths());
 		EmitSignal(SignalName.ProjectUpdated);
 	}
 

@@ -1,0 +1,9 @@
+{
+	"name": "Fixture",
+	"startingElement": "start",
+	"boards": { "main": { "name": "Main", "elements": ["start"] } },
+	"elements": { "start": { "title": "<p>Start</p>", "content": "<p>Hello</p>" } },
+	"branches": {}, "jumpers": {}, "conditions": {}, "connections": {}, "components": {}, "attributes": {},
+	"variables": {}, "notes": {},
+	"assets": { "root": { "root": true, "children": [] } }
+}

@@ -33,29 +33,33 @@ namespace Arcweave.Project
 
             AwInterpreter interpreter = new AwInterpreter(Project);
             var output = interpreter.RunScript("<pre><code>"+Script+"</code></pre>");
-            if (output.Result is Variant result)
+            return IsTruthy(output.Result);
+        }
+
+        /// <summary>
+        /// Returns whether the result of a condition script is true, like the C# and C++ Arcscript interpreters:
+        /// true, a non-empty string, or a number greater than 0. Anything else, including negative numbers and null,
+        /// is false.
+        /// </summary>
+        internal static bool IsTruthy(object result)
+        {
+            if (result is Variant variant)
             {
-                if (result.VariantType == Variant.Type.Bool) { return result.AsBool(); }
-                if (result.VariantType == Variant.Type.String) { return result.AsString().Length > 0; }
-                if (result.VariantType == Variant.Type.Int) { return result.AsInt32() > 0; }
-                if (result.VariantType == Variant.Type.Float) { return result.AsDouble() > 0; }    
-            }
-            else
-            {
-                var value = output.Result;
-                switch (value)
+                return variant.VariantType switch
                 {
-                    case bool b:
-                        return b;
-                    case string s:
-                        return s.Length > 0;
-                    case int i:
-                        return i > 0;
-                    case float f:
-                        return f > 0;
-                }
+                    Variant.Type.Bool => variant.AsBool(),
+                    Variant.Type.String => variant.AsString().Length > 0,
+                    Variant.Type.Int => variant.AsInt64() > 0,
+                    Variant.Type.Float => variant.AsDouble() > 0,
+                    _ => false
+                };
             }
-            return (bool)output.Result;
+            return result switch
+            {
+                float f => f > 0,
+                long l => l > 0,
+                _ => Interpreter.Expression.GetBoolValue(result)
+            };
         }
 
         public Path ResolvePath(Path path)

@@ -15,6 +15,7 @@ public partial class ArcweavePlugin : EditorPlugin
 	private string _resourceName = "ArcweaveAsset";
 	private GDScript _arcweaveResource;
 	private EditorInspectorPlugin _gdInspector;
+	private EditorExportPlugin _exportPlugin;
 
 	public override void _EnterTree()
 	{
@@ -22,6 +23,10 @@ public partial class ArcweavePlugin : EditorPlugin
 		var inspectorScript = GD.Load<GDScript>("res://addons/arcweave/Editor/Inspector/ArcweaveInspector.gd");
 		_gdInspector = (EditorInspectorPlugin)inspectorScript.New();
 		AddInspectorPlugin(_gdInspector);
+
+		var exportScript = GD.Load<GDScript>("res://addons/arcweave/Editor/ArcweaveExportPlugin.gd");
+		_exportPlugin = (EditorExportPlugin)exportScript.New();
+		AddExportPlugin(_exportPlugin);
 
 		_logo = (CompressedTexture2D)GD.Load("res://addons/arcweave/Editor/icon.svg");
 
@@ -34,6 +39,7 @@ public partial class ArcweavePlugin : EditorPlugin
 		RemoveArcweaveResource();
 		RemoveArcweaveNodes();
 		RemoveInspectorPlugin(_gdInspector);
+		RemoveExportPlugin(_exportPlugin);
 	}
 
 	/// <summary>
