@@ -42,8 +42,23 @@ namespace Arcweave
 			{
 				VariableChanges.AddVariable(variable);
 			}
-			
-			CurrentElement = Project.StartingElement as Element;
+
+			GoToStartingElement();
+		}
+
+		/// <summary>
+		/// Sets the current element to the project's starting element. A project without one has no current element
+		/// until SetCurrentElementById or SetCurrentElement is called.
+		/// </summary>
+		private void GoToStartingElement()
+		{
+			if (Project.StartingElement == null)
+			{
+				_currentElement = null;
+				GD.PushError("[Arcweave] The project has no starting element. Set one in Arcweave, or call SetCurrentElementById.");
+				return;
+			}
+			CurrentElement = Project.StartingElement;
 		}
 
 		/// <summary>
@@ -94,7 +109,7 @@ namespace Arcweave
 			}
 
 			// Set the current element
-			var currentElement = Project.ElementWithId(CurrentElement.Id);
+			var currentElement = CurrentElement != null ? Project.ElementWithId(CurrentElement.Id) : null;
 			if (currentElement != null)
 			{
 				_currentElement = currentElement;
@@ -103,7 +118,7 @@ namespace Arcweave
 			}
 			else
 			{
-				CurrentElement = Project.StartingElement;
+				GoToStartingElement();
 			}
 			return this;
 		}
@@ -117,7 +132,7 @@ namespace Arcweave
 		{
 			Project.ResetVariables();
 			Project.ResetVisits();
-			CurrentElement = Project.StartingElement;
+			GoToStartingElement();
 		}
 
 		/// <summary>

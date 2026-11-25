@@ -41,17 +41,17 @@ namespace Arcweave.Project
 		{
 			_projectData = projectData;
 			_mediaPaths = mediaPaths ?? new Dictionary();
-			_boardsDict = _projectData["boards"].AsGodotDictionary();
-			_attributesDict = _projectData["attributes"].AsGodotDictionary();
-			_componentsDict = _projectData["components"].AsGodotDictionary();
-			_conditionsDict = _projectData["conditions"].AsGodotDictionary();
-			_connectionsDict = _projectData["connections"].AsGodotDictionary();
-			_elementsDict = _projectData["elements"].AsGodotDictionary();
-			_jumpersDict = _projectData["jumpers"].AsGodotDictionary();
-			_branchesDict = _projectData["branches"].AsGodotDictionary();
-			_variablesDict = _projectData["variables"].AsGodotDictionary();
-			_notesDict = _projectData["notes"].AsGodotDictionary();
-			_assetsDict = _projectData["assets"].AsGodotDictionary();
+			_boardsDict = GetDictionary(_projectData, "boards");
+			_attributesDict = GetDictionary(_projectData, "attributes");
+			_componentsDict = GetDictionary(_projectData, "components");
+			_conditionsDict = GetDictionary(_projectData, "conditions");
+			_connectionsDict = GetDictionary(_projectData, "connections");
+			_elementsDict = GetDictionary(_projectData, "elements");
+			_jumpersDict = GetDictionary(_projectData, "jumpers");
+			_branchesDict = GetDictionary(_projectData, "branches");
+			_variablesDict = GetDictionary(_projectData, "variables");
+			_notesDict = GetDictionary(_projectData, "notes");
+			_assetsDict = GetDictionary(_projectData, "assets");
 			
 			_boards = new Dictionary<string, Board>();
 			_attributes = new Dictionary<string, Attribute>();
@@ -69,15 +69,17 @@ namespace Arcweave.Project
 
 		public Project MakeProject()
 		{
-			Project project = new Project(_projectData["name"].AsString());
+			Project project = new Project(GetString(_projectData, "name"));
 
-			Dictionary assetRoot = _assetsDict.Values.First(asset =>
+			Variant assetRoot = _assetsDict.Values.FirstOrDefault(asset =>
 			{
 				Dictionary assetDict = asset.AsGodotDictionary();
 				return assetDict.ContainsKey("root") && assetDict["root"].AsBool();
-			}).AsGodotDictionary();
-
-			MakeAssets(assetRoot["children"].AsGodotArray<string>(), "");
+			});
+			if (assetRoot.VariantType == Variant.Type.Dictionary)
+			{
+				MakeAssets(GetStringList(assetRoot.AsGodotDictionary(), "children"), "");
+			}
 			
 			foreach (string key in _attributesDict.Keys)
 			{
@@ -92,26 +94,19 @@ namespace Arcweave.Project
 					continue;
 				}
 				Asset coverAsset = null;
-				if (comp.ContainsKey("assets"))
+				var cover = GetDictionary(GetDictionary(comp, "assets"), "cover");
+				if (GetString(cover, "type") is "icon")
 				{
-					var compAssets = comp["assets"].AsGodotDictionary();
-					if (compAssets.ContainsKey("cover"))
-					{
-						var cover = compAssets["cover"].AsGodotDictionary();
-						if (cover.ContainsKey("type") && cover["type"].AsString() is "icon")
-						{
-							coverAsset = new Asset(cover["file"].AsString(), cover["file"].AsString(), "",
-								Asset.AssetType.Icon);
-						}
-						else
-						{
-							coverAsset = _assets[cover["id"].AsString()];
-						}
-					}
+					coverAsset = new Asset(GetString(cover, "file"), GetString(cover, "file"), "",
+						Asset.AssetType.Icon);
+				}
+				else if (GetString(cover, "id").Length > 0)
+				{
+					coverAsset = _assets[GetString(cover, "id")];
 				}
 				string customId = comp.ContainsKey("customId") ? comp["customId"].AsString() : null;
-				_components[key] = new Component(key, customId, comp["name"].AsString(), coverAsset);
-				foreach (string attrId in comp["attributes"].AsStringArray())
+				_components[key] = new Component(key, customId, GetString(comp, "name"), coverAsset);
+				foreach (string attrId in GetStringList(comp, "attributes"))
 				{
 					_components[key].AddAttribute(_attributes[attrId]);
 				}
@@ -121,8 +116,8 @@ namespace Arcweave.Project
 			{
 				Dictionary attr = _attributesDict[key].AsGodotDictionary();
 				IAttribute.DataType attrType = IAttribute.DataType.Undefined;
-				Dictionary attrValue = attr["value"].AsGodotDictionary();
-				string valueType = attrValue["type"].AsString();
+				Dictionary attrValue = GetDictionary(attr, "value");
+				string valueType = GetString(attrValue, "type");
 				object data = null;
 				if (valueType == "string")
 				{
@@ -145,7 +140,7 @@ namespace Arcweave.Project
 				{
 					attrType = IAttribute.DataType.ComponentList;
 					Array<Component> attrComps = new();
-					foreach (string compId in attrValue["data"].AsStringArray())
+					foreach (string compId in GetStringList(attrValue, "data"))
 					{
 						attrComps.Add(_components[compId]);
 					}
@@ -155,7 +150,7 @@ namespace Arcweave.Project
 				{
 					attrType = IAttribute.DataType.AssetList;
 					Array<Asset> attrAssets = new();
-					foreach (string assetId in attrValue["data"].AsStringArray())
+					foreach (string assetId in GetStringList(attrValue, "data"))
 					{
 						attrAssets.Add(_assets[assetId]);
 					}
@@ -180,7 +175,7 @@ namespace Arcweave.Project
 					data = attrValue["data"].AsDouble();
 				}
 
-				var containerType = attr["cType"].AsString() switch
+				var containerType = GetString(attr, "cType") switch
 				{
 					"elements" => IAttribute.ContainerType.Element,
 					"components" => IAttribute.ContainerType.Component,
@@ -189,7 +184,7 @@ namespace Arcweave.Project
 				};
 				string customId = attr.ContainsKey("customId") ? attr["customId"].AsString() : null;
 
-				_attributes[key].Set(key, customId, attr["name"].AsString(), attrType, data, containerType, attr["cId"].AsString());
+				_attributes[key].Set(key, customId, GetString(attr, "name"), attrType, data, containerType, GetString(attr, "cId"));
 			}
 
 			foreach (string key in _connectionsDict.Keys)
@@ -201,46 +196,37 @@ namespace Arcweave.Project
 			{
 				Dictionary el = _elementsDict[key].AsGodotDictionary();
 				Array<Connection> elConnections = new();
-				foreach (string output in el["outputs"].AsStringArray())
+				foreach (string output in GetStringList(el, "outputs"))
 				{
 					elConnections.Add(_connections[output]);
 				}
 
 				Array<Attribute> elAttributes = new();
-				if (el.ContainsKey("attributes"))
+				foreach (string attrId in GetStringList(el, "attributes"))
 				{
-					foreach (string attrId in el["attributes"].AsStringArray())
-					{
-						elAttributes.Add(_attributes[attrId]);
-					}
+					elAttributes.Add(_attributes[attrId]);
 				}
 
 				Array<Component> elComponents = new();
-				if (el.ContainsKey("components"))
+				foreach (string componentId in GetStringList(el, "components"))
 				{
-					foreach (string componentId in el["components"].AsStringArray())
-					{
-						elComponents.Add(_components[componentId]);
-					}
+					elComponents.Add(_components[componentId]);
 				}
 
 				Asset coverAsset = null;
-				if (el.ContainsKey("assets"))
+				string coverId = GetString(GetDictionary(GetDictionary(el, "assets"), "cover"), "id");
+				if (coverId.Length > 0)
 				{
-					var elAssets = el["assets"].AsGodotDictionary();
-					if (elAssets.ContainsKey("cover"))
-					{
-						var cover = elAssets["cover"].AsGodotDictionary();
-						if (cover.ContainsKey("id"))
-						{
-							coverAsset = _assets[cover["id"].AsString()];
-						}
-					}
+					coverAsset = _assets[coverId];
 				}
-				_elements[key] = new Element(key, el["title"].AsString(), el["content"].AsString(), project, elConnections, elComponents, elAttributes, coverAsset);
+				_elements[key] = new Element(key, GetString(el, "title"), GetString(el, "content"), project, elConnections, elComponents, elAttributes, coverAsset);
 			}
 
-			_startingElement = _elements[_projectData["startingElement"].AsString()];
+			// A project without a starting element has none
+			string startingElementId = GetString(_projectData, "startingElement");
+			_startingElement = startingElementId.Length > 0 && _elements.TryGetValue(startingElementId, out var startingElement)
+				? startingElement
+				: null;
 
 			foreach (string key in _jumpersDict.Keys)
 			{
@@ -262,7 +248,7 @@ namespace Arcweave.Project
 				{
 					condOutput = _connections[cond["output"].AsString()];
 				}
-				if (cond["script"].Obj != null)
+				if (cond.ContainsKey("script") && cond["script"].VariantType != Variant.Type.Nil)
 				{
 					script = cond["script"].AsString();
 				}
@@ -272,22 +258,21 @@ namespace Arcweave.Project
 			foreach (string key in _branchesDict.Keys)
 			{
 				Dictionary branch = _branchesDict[key].AsGodotDictionary();
-				Dictionary branchConditions = branch["conditions"].AsGodotDictionary();
+				Dictionary branchConditions = GetDictionary(branch, "conditions");
 				Array<Condition> branchConditionList = new();
-				if (branchConditions.ContainsKey("ifCondition"))
+				string ifCondition = GetString(branchConditions, "ifCondition");
+				if (ifCondition.Length > 0)
 				{
-					branchConditionList.Add(_conditions[branchConditions["ifCondition"].AsString()]);
+					branchConditionList.Add(_conditions[ifCondition]);
 				}
-				if (branchConditions.ContainsKey("elseIfConditions"))
+				foreach (string condKey in GetStringList(branchConditions, "elseIfConditions"))
 				{
-					foreach (string condKey in branchConditions["elseIfConditions"].AsStringArray())
-					{
-						branchConditionList.Add(_conditions[condKey]);
-					}
+					branchConditionList.Add(_conditions[condKey]);
 				}
-				if (branchConditions.ContainsKey("elseCondition"))
+				string elseCondition = GetString(branchConditions, "elseCondition");
+				if (elseCondition.Length > 0)
 				{
-					branchConditionList.Add(_conditions[branchConditions["elseCondition"].AsString()]);
+					branchConditionList.Add(_conditions[elseCondition]);
 				}
 
 				_branches[key] = new Branch(key, project, branchConditionList);
@@ -297,7 +282,7 @@ namespace Arcweave.Project
 			{
 				Dictionary con = _connectionsDict[key].AsGodotDictionary();
 				INode source, target;
-				switch (con["sourceType"].AsString())
+				switch (GetString(con, "sourceType"))
 				{
 					case "elements":
 						source = _elements[con["sourceid"].AsString()];
@@ -315,7 +300,7 @@ namespace Arcweave.Project
 						source = null;
 						break;
 				}
-				switch (con["targetType"].AsString())
+				switch (GetString(con, "targetType"))
 				{
 					case "elements":
 						target = _elements[con["targetid"].AsString()];
@@ -334,7 +319,7 @@ namespace Arcweave.Project
 						break;
 				}
 
-				_connections[key].Set(con["label"].AsString(), source, target);
+				_connections[key].Set(GetString(con, "label"), source, target);
 			}
 
 			foreach (string key in _boardsDict.Keys)
@@ -345,48 +330,45 @@ namespace Arcweave.Project
 					continue;
 				}
 				Array<Element> boardElements = new();
-				foreach (string elementKey in board["elements"].AsStringArray())
+				foreach (string elementKey in GetStringList(board, "elements"))
 				{
 					boardElements.Add(_elements[elementKey]);
 				}
 
 				Array<Jumper> boardJumpers = new();
-				foreach (string jumperKey in board["jumpers"].AsStringArray())
+				foreach (string jumperKey in GetStringList(board, "jumpers"))
 				{
 					boardJumpers.Add(_jumpers[jumperKey]);
 				}
 
 				Array<Branch> boardBranches = new();
-				foreach (string branchKey in board["branches"].AsStringArray())
+				foreach (string branchKey in GetStringList(board, "branches"))
 				{
 					boardBranches.Add(_branches[branchKey]);
 				}
 
 				Array<Connection> boardConnections = new();
-				foreach (string connectionKey in board["connections"].AsStringArray())
+				foreach (string connectionKey in GetStringList(board, "connections"))
 				{
 					boardConnections.Add(_connections[connectionKey]);
 				}
 
 				Array<Note> boardNotes = new();
-				foreach (string noteKey in board["notes"].AsStringArray())
+				foreach (string noteKey in GetStringList(board, "notes"))
 				{
 					Dictionary note = _notesDict[noteKey].AsGodotDictionary();
-					_notes[noteKey] = new Note(Interpreter.Utils.CleanString(note["content"].AsString()), note["theme"].AsString());
+					_notes[noteKey] = new Note(Interpreter.Utils.CleanString(GetString(note, "content")), GetString(note, "theme"));
 					boardNotes.Add(_notes[noteKey]);
 				}
 
 				string customId = board.ContainsKey("customId") ? board["customId"].AsString() : null;
 
-				_boards[key] = new Board(key, board["name"].AsString(), customId, boardElements, boardConnections, boardJumpers, boardBranches, boardNotes);
-				if (board.ContainsKey("attributes"))
+				_boards[key] = new Board(key, GetString(board, "name"), customId, boardElements, boardConnections, boardJumpers, boardBranches, boardNotes);
+				foreach (string attributeId in GetStringList(board, "attributes"))
 				{
-					foreach (string attributeId in board["attributes"].AsStringArray())
+					if (_attributes.TryGetValue(attributeId, out var attribute))
 					{
-						if (_attributes.TryGetValue(attributeId, out var attribute))
-						{
-							_boards[key].AddAttribute(attribute);
-						}
+						_boards[key].AddAttribute(attribute);
 					}
 				}
 			}
@@ -426,6 +408,33 @@ namespace Arcweave.Project
 
 			project.Set(_startingElement, _boards, _components, _variables, _elements, _assets);
 			return project;
+		}
+
+		// Arcweave exports omit empty lists and unset values, and may write them as null, so a missing or null value
+		// is read as empty.
+
+		/// <summary>Returns the list of strings under key, or an empty list if it is missing or null.</summary>
+		private static string[] GetStringList(Dictionary dict, string key)
+		{
+			return dict.TryGetValue(key, out var value) && value.VariantType != Variant.Type.Nil
+				? value.AsStringArray()
+				: System.Array.Empty<string>();
+		}
+
+		/// <summary>Returns the dictionary under key, or an empty dictionary if it is missing or null.</summary>
+		private static Dictionary GetDictionary(Dictionary dict, string key)
+		{
+			return dict.TryGetValue(key, out var value) && value.VariantType == Variant.Type.Dictionary
+				? value.AsGodotDictionary()
+				: new Dictionary();
+		}
+
+		/// <summary>Returns the string under key, or an empty string if it is missing or null.</summary>
+		private static string GetString(Dictionary dict, string key)
+		{
+			return dict.TryGetValue(key, out var value) && value.VariantType != Variant.Type.Nil
+				? value.AsString()
+				: string.Empty;
 		}
 
 		private bool TryGetVariableValue(Dictionary variable, out Variant value)
@@ -501,7 +510,7 @@ namespace Arcweave.Project
 			       attribute.Type == IAttribute.DataType.StringPlainText;
 		}
 
-		public void MakeAssets(Array<string> assetIds, string path)
+		public void MakeAssets(System.Collections.Generic.IEnumerable<string> assetIds, string path)
 		{
 			foreach (var assetId in assetIds)
 			{
@@ -510,19 +519,19 @@ namespace Arcweave.Project
 				{
 					string assetName = asset.ContainsKey("root") && asset["root"].AsBool()
 						? ""
-						: asset["name"].AsString();
-					MakeAssets(asset["children"].AsGodotArray<string>(), path + "/" + assetName);
+						: GetString(asset, "name");
+					MakeAssets(GetStringList(asset, "children"), path + "/" + assetName);
 				}
 				else
 				{
-					string assetType = asset["type"].AsString();
+					string assetType = GetString(asset, "type");
 					Asset.AssetType type = assetType switch
 					{
 						"image" or "template-image" => Asset.AssetType.Image,
 						"audio" or "template-audio" => Asset.AssetType.Audio,
 						_ => Asset.AssetType.Undefined
 					};
-					string assetName = asset["name"].AsString();
+					string assetName = GetString(asset, "name");
 					_assets[assetId] = new Asset(assetId, assetName, path + '/' + assetName, type);
 					if (_mediaPaths.TryGetValue(assetId, out var localPath))
 					{
