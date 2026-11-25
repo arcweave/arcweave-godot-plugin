@@ -76,6 +76,7 @@ namespace Arcweave.Project
         /// </summary>
         public void ExecuteAppendedConnectionLabels()
         {
+            if (_connections == null) return;
             foreach  ( var connection in _connections)
             {
                 connection.RunLabelScript();
