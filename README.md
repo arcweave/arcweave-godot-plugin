@@ -180,9 +180,9 @@ A game run from the editor reads the same user data folder, so refreshing the st
 
 #### Upgrading from 3.1 and older
 
-Older versions of the plugin saved the API key in the ArcweaveAsset resource. The plugin still reads and uses that key, and keeps it in the resource until you move it, so it isn't lost. The ArcweaveAsset inspector shows a warning with a **Move API Key Out of Resource** button, which moves the key to your user settings and saves the resource without it. If you already have a key in your user settings or the `ARCWEAVE_API_KEY` environment variable, that key is kept and the one in the resource is removed.
+Older versions of the plugin saved the API key in the ArcweaveAsset resource. The plugin still reads and uses that key, and keeps it in the resource until you move it, so it isn't lost. The ArcweaveAsset inspector shows a warning with a **Move API Key Out of Resource** button, which moves the key to your user settings and saves the resource without it. If you already have the same key in your user settings or the `ARCWEAVE_API_KEY` environment variable, it is kept and the one in the resource is removed. If you have a different key, the plugin asks before removing the resource's key. An ArcweaveAsset saved inside a scene is removed from the scene file when you save the scene.
 
-Exporting a game that includes an ArcweaveAsset that still contains a key shows a warning. The key also stays in your version control history, so consider generating a new key in Arcweave if the repository is shared.
+Exporting a game that includes an ArcweaveAsset that still contains a key, in its own file or saved inside a scene or another resource, shows a warning. The key also stays in your version control history, so consider generating a new key in Arcweave if the repository is shared.
 
 ## Our Implementation
 

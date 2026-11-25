@@ -2,6 +2,17 @@
 class_name ArcweaveAsset extends Resource
 
 signal project_updated(project_settings)
+
+## The environment variable the API key is read from when none is saved in the user settings, eg. on a build server.
+const API_KEY_ENVIRONMENT_VARIABLE = "ARCWEAVE_API_KEY"
+const _USER_SETTINGS_SECTION = "api"
+const _USER_SETTINGS_API_KEY = "api_key"
+
+## The file the API key of the current user is saved in. [code]user://[/code] is the project's user data folder, outside
+## the project folder, so it is never committed or exported. Games run from the editor read the same folder.
+## ArcweaveUserSettings saves the key. Tests point it at another file.
+static var user_settings_path := "user://arcweave_settings.cfg"
+
 @export_group("File Settings")
 ## The JSON file exported from Arcweave
 @export_global_file() var project_file : String 
@@ -44,12 +55,14 @@ var is_downloading_media : bool = false
 # The API key saved in the resource by an older version of the plugin. It is still saved, so it isn't lost before the
 # inspector moves it to the user settings, and still used when no other key is found.
 var _legacy_api_key : String = ""
+# The API key passed to the constructor. Never saved.
+var _constructor_api_key : String = ""
 
-## [param _api_key] is deprecated: it is saved in the resource like the API key of older versions of the plugin.
-## Pass the key to [method refresh_project] instead.
+## [param _api_key] is deprecated: pass the key to [method refresh_project] instead. It is used like a key passed to
+## refresh_project() and never saved.
 func _init(_project_settings = {}, _api_key = "", _project_hash = ""):
 	project_settings = _project_settings
-	_legacy_api_key = _api_key
+	_constructor_api_key = "" if _api_key == null else str(_api_key)
 	project_hash = _project_hash
 
 # Older versions of the plugin saved the API key in an exported "api_key" property. Loading such a resource sets it here,
@@ -87,14 +100,18 @@ func set_legacy_api_key(key: String):
 	_legacy_api_key = key
 	notify_property_list_changed()
 
-## Returns the API key refreshes from the WebAPI use: [param api_key] if it isn't empty, then the key saved in the user
-## settings, then the ARCWEAVE_API_KEY environment variable, then a key saved in the resource by an older version of the
-## plugin. Empty if there is none.
+## Returns the API key refreshes from the WebAPI use: [param api_key] if it isn't empty (or the deprecated key passed to
+## the constructor), then the key saved in the user settings, then the ARCWEAVE_API_KEY environment variable, then a key
+## saved in the resource by an older version of the plugin. Empty if there is none.
 func resolve_api_key(api_key := "", warn_if_saved_in_resource := false) -> String:
 	api_key = api_key.strip_edges()
+	if api_key.is_empty():
+		api_key = _constructor_api_key.strip_edges()
 	if not api_key.is_empty():
 		return api_key
-	api_key = ArcweaveUserSettings.resolve_api_key()
+	api_key = get_user_api_key()
+	if api_key.is_empty():
+		api_key = get_environment_api_key()
 	if not api_key.is_empty() or not has_legacy_api_key():
 		return api_key
 	if warn_if_saved_in_resource:
@@ -102,6 +119,17 @@ func resolve_api_key(api_key := "", warn_if_saved_in_resource := false) -> Strin
 			+ "version control and includes it in exports. Select the resource and use \"Move API Key Out of Resource\" in "
 			+ "its inspector.")
 	return get_legacy_api_key()
+
+## Returns the API key saved for the current user in [member user_settings_path], or an empty String if none is saved.
+static func get_user_api_key() -> String:
+	var config := ConfigFile.new()
+	if config.load(user_settings_path) != OK:
+		return ""
+	return str(config.get_value(_USER_SETTINGS_SECTION, _USER_SETTINGS_API_KEY, "")).strip_edges()
+
+## Returns the API key in the ARCWEAVE_API_KEY environment variable, or an empty String if it is not set.
+static func get_environment_api_key() -> String:
+	return OS.get_environment(API_KEY_ENVIRONMENT_VARIABLE).strip_edges()
 
 ## Returns the downloaded media that still exists, as Arcweave asset id -> res:// path.
 ## Empty when download_media is disabled, so the project never relies on media it no longer downloads.

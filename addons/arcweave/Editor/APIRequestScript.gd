@@ -65,7 +65,7 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 	if response_code == 401:
 		if api_key.is_empty():
 			printerr("[Arcweave] No API key found. Enter it in the ArcweaveAsset inspector, set the "
-				+ ArcweaveUserSettings.API_KEY_ENVIRONMENT_VARIABLE + " environment variable or pass it to refresh_project()")
+				+ ArcweaveAsset.API_KEY_ENVIRONMENT_VARIABLE + " environment variable or pass it to refresh_project()")
 		else:
 			printerr("[Arcweave] Your API key is invalid")
 		project_updated.emit(null)

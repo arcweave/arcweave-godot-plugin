@@ -110,6 +110,11 @@ public partial class PluginTests : RefCounted
 		// The story reports the missing starting element instead of throwing, and can still be started by id
 		var story = new Story(Parse(OmittedListsProjectJson(false).Replace("\"startingElement\": \"start\",", "")));
 		Assert(story.GetCurrentElement() == null, "the story has no current element");
+		Assert(story.GetCurrentRuntimeContent() == null, "no runtime content");
+		Assert(story.GenerateCurrentOptions() == null, "no options");
+		AreEqual("", story.GetSave()["currentElement"].AsString(), "saved current element");
+		story.ResetStory();
+		Assert(story.GetCurrentElement() == null, "resetting keeps no current element");
 		story.SetCurrentElementById("end");
 		AreEqual("end", story.GetCurrentElement().Id, "story element set by id");
 	}

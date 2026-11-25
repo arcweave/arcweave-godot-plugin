@@ -93,7 +93,7 @@ func _create_api_key_editor(object: ArcweaveAsset) -> Control:
 	label.text = "API Key"
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.size_flags_stretch_ratio = 0.7
-	label.tooltip_text = ("Saved for you only, in " + ArcweaveUserSettings.file_path + ", outside the project folder, so "
+	label.tooltip_text = ("Saved for you only, in " + ArcweaveUserSettings.get_file_path() + ", outside the project folder, so "
 		+ "it isn't committed or exported. Used by all the ArcweaveAssets of this project.\nWhen empty, the "
 		+ ArcweaveUserSettings.API_KEY_ENVIRONMENT_VARIABLE + " environment variable is used.")
 	label.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -106,7 +106,7 @@ func _create_api_key_editor(object: ArcweaveAsset) -> Control:
 		key_edit.placeholder_text = "Using " + ArcweaveUserSettings.API_KEY_ENVIRONMENT_VARIABLE
 	key_edit.text_changed.connect(func(text):
 		if ArcweaveUserSettings.set_api_key(text) != OK:
-			push_error("[Arcweave] Could not save the API key in " + ArcweaveUserSettings.file_path))
+			push_error("[Arcweave] Could not save the API key in " + ArcweaveUserSettings.get_file_path()))
 	row.add_child(label)
 	row.add_child(key_edit)
 	container.add_child(row)
@@ -120,23 +120,42 @@ func _create_api_key_editor(object: ArcweaveAsset) -> Control:
 		warning.add_theme_color_override("font_color", Color.DARK_ORANGE)
 		var move_button = Button.new()
 		move_button.text = "Move API Key Out of Resource"
-		move_button.tooltip_text = ("Moves the key to your user settings, unless you already have a key there or in the "
-			+ ArcweaveUserSettings.API_KEY_ENVIRONMENT_VARIABLE + " environment variable, and saves the resource without it.")
-		move_button.pressed.connect(func():
-			match ArcweaveUserSettings.move_api_key_out_of_asset(object):
-				ArcweaveUserSettings.MoveResult.MOVED:
-					print("[Arcweave] Moved the API key of \"" + object.resource_path + "\" to " + ArcweaveUserSettings.file_path)
-				ArcweaveUserSettings.MoveResult.KEPT_EXISTING:
-					print("[Arcweave] Removed the API key of \"" + object.resource_path
-						+ "\", keeping the key already in your user settings or environment")
-				ArcweaveUserSettings.MoveResult.FAILED:
-					push_error("[Arcweave] Could not move the API key out of \"" + object.resource_path + "\"")
-					return
-			if object.resource_path.contains("::"):
-				push_warning("[Arcweave] Save the scene to remove the API key from the file.")
-			# Rebuilds the inspector without the warning
-			EditorInterface.inspect_object(null)
-			EditorInterface.inspect_object(object))
+		move_button.tooltip_text = ("Moves the key to your user settings and saves the resource without it. If you already "
+			+ "have the same key there or in the " + ArcweaveUserSettings.API_KEY_ENVIRONMENT_VARIABLE + " environment "
+			+ "variable, it is kept. If you have a different key, you are asked before the resource's key is removed.")
+		move_button.pressed.connect(_move_api_key.bind(object, false))
 		container.add_child(warning)
 		container.add_child(move_button)
 	return container
+
+func _move_api_key(object: ArcweaveAsset, discard_different_key: bool):
+	var path = object.resource_path
+	match ArcweaveUserSettings.move_api_key_out_of_asset(object, discard_different_key):
+		ArcweaveUserSettings.MoveResult.MOVED:
+			print("[Arcweave] Moved the API key of \"" + path + "\" to " + ArcweaveUserSettings.get_file_path())
+		ArcweaveUserSettings.MoveResult.KEPT_EXISTING:
+			print("[Arcweave] Removed the API key of \"" + path + "\", keeping the key in your user settings or environment")
+		ArcweaveUserSettings.MoveResult.SAVE_SCENE:
+			EditorInterface.mark_scene_as_unsaved()
+			push_warning("[Arcweave] Removed the API key of the ArcweaveAsset. Save the scene that contains it to remove the "
+				+ "key from the file.")
+		ArcweaveUserSettings.MoveResult.DIFFERENT_KEY_EXISTS:
+			var dialog = ConfirmationDialog.new()
+			dialog.title = "Arcweave"
+			dialog.dialog_text = ("Your user settings or the " + ArcweaveUserSettings.API_KEY_ENVIRONMENT_VARIABLE
+				+ " environment variable already have a different API key.\n\nRemove the key from this resource and keep "
+				+ "yours? The resource's key will be lost.")
+			dialog.ok_button_text = "Remove the Resource's Key"
+			dialog.confirmed.connect(_move_api_key.bind(object, true))
+			dialog.visibility_changed.connect(func():
+				if not dialog.visible:
+					dialog.queue_free())
+			EditorInterface.get_base_control().add_child(dialog)
+			dialog.popup_centered()
+			return
+		ArcweaveUserSettings.MoveResult.FAILED:
+			push_error("[Arcweave] Could not move the API key out of \"" + path + "\"")
+			return
+	# Rebuilds the inspector without the warning
+	EditorInterface.inspect_object(null)
+	EditorInterface.inspect_object(object)

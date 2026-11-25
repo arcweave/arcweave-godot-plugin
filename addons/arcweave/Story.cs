@@ -156,10 +156,10 @@ namespace Arcweave
 		/// <summary>
 		/// Generates the options for the current element
 		/// </summary>
-		/// <returns></returns>
+		/// <returns>The options, or null if there is no current element</returns>
 		public Options GenerateCurrentOptions()
 		{
-			return CurrentElement.GetOptions() as Options;
+			return CurrentElement?.GetOptions();
 		}
 
 		/// <summary>
@@ -194,10 +194,10 @@ namespace Arcweave
 		/// <summary>
 		/// Returns the runtime content of the current element
 		/// </summary>
-		/// <returns>The runtime content</returns>
+		/// <returns>The runtime content, or null if there is no current element</returns>
 		public string GetCurrentRuntimeContent()
 		{
-			return CurrentElement.RuntimeContent;
+			return CurrentElement?.RuntimeContent;
 		}
 
 		/// <summary>
@@ -224,7 +224,7 @@ namespace Arcweave
 			foreach (var element in Project.Elements.Values)
 			{
 				visits[element.Id] = element.Visits;
-				if (element.Id == _currentElement.Id) visits[element.Id]--;
+				if (element.Id == _currentElement?.Id) visits[element.Id]--;
 			}
 
 			var variables = Project.SaveVariables();
@@ -234,7 +234,7 @@ namespace Arcweave
 			}
 			return new Dictionary<string, Variant>()
 			{
-				{ "currentElement", _currentElement.Id },
+				{ "currentElement", _currentElement?.Id ?? "" },
 				{ "variables", variables },
 				{ "visits", visits }
 			};

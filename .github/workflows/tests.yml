@@ -34,4 +34,11 @@ jobs:
         run: timeout 300 "$GODOT" --headless --path . --import
 
       - name: Run the tests
-        run: timeout 300 "$GODOT" --headless --path . --script res://tests/run_tests.gd
+        run: |
+          set -o pipefail
+          timeout 300 "$GODOT" --headless --path . --script res://tests/run_tests.gd 2>&1 | tee test.log
+          # A script error outside a test assertion, eg. in the runner, fails the run too
+          if grep -q "SCRIPT ERROR" test.log; then
+            echo "::error::The tests logged script errors"
+            exit 1
+          fi
