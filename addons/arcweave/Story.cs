@@ -42,8 +42,23 @@ namespace Arcweave
 			{
 				VariableChanges.AddVariable(variable);
 			}
-			
-			CurrentElement = Project.StartingElement as Element;
+
+			GoToStartingElement();
+		}
+
+		/// <summary>
+		/// Sets the current element to the project's starting element. A project without one has no current element
+		/// until SetCurrentElementById or SetCurrentElement is called.
+		/// </summary>
+		private void GoToStartingElement()
+		{
+			if (Project.StartingElement == null)
+			{
+				_currentElement = null;
+				GD.PushError("[Arcweave] The project has no starting element. Set one in Arcweave, or call SetCurrentElementById.");
+				return;
+			}
+			CurrentElement = Project.StartingElement;
 		}
 
 		/// <summary>
@@ -94,7 +109,7 @@ namespace Arcweave
 			}
 
 			// Set the current element
-			var currentElement = Project.ElementWithId(CurrentElement.Id);
+			var currentElement = CurrentElement != null ? Project.ElementWithId(CurrentElement.Id) : null;
 			if (currentElement != null)
 			{
 				_currentElement = currentElement;
@@ -103,7 +118,7 @@ namespace Arcweave
 			}
 			else
 			{
-				CurrentElement = Project.StartingElement;
+				GoToStartingElement();
 			}
 			return this;
 		}
@@ -117,7 +132,7 @@ namespace Arcweave
 		{
 			Project.ResetVariables();
 			Project.ResetVisits();
-			CurrentElement = Project.StartingElement;
+			GoToStartingElement();
 		}
 
 		/// <summary>
@@ -141,10 +156,10 @@ namespace Arcweave
 		/// <summary>
 		/// Generates the options for the current element
 		/// </summary>
-		/// <returns></returns>
+		/// <returns>The options, or null if there is no current element</returns>
 		public Options GenerateCurrentOptions()
 		{
-			return CurrentElement.GetOptions() as Options;
+			return CurrentElement?.GetOptions();
 		}
 
 		/// <summary>
@@ -179,10 +194,10 @@ namespace Arcweave
 		/// <summary>
 		/// Returns the runtime content of the current element
 		/// </summary>
-		/// <returns>The runtime content</returns>
+		/// <returns>The runtime content, or null if there is no current element</returns>
 		public string GetCurrentRuntimeContent()
 		{
-			return CurrentElement.RuntimeContent;
+			return CurrentElement?.RuntimeContent;
 		}
 
 		/// <summary>
@@ -209,7 +224,7 @@ namespace Arcweave
 			foreach (var element in Project.Elements.Values)
 			{
 				visits[element.Id] = element.Visits;
-				if (element.Id == _currentElement.Id) visits[element.Id]--;
+				if (element.Id == _currentElement?.Id) visits[element.Id]--;
 			}
 
 			var variables = Project.SaveVariables();
@@ -219,7 +234,7 @@ namespace Arcweave
 			}
 			return new Dictionary<string, Variant>()
 			{
-				{ "currentElement", _currentElement.Id },
+				{ "currentElement", _currentElement?.Id ?? "" },
 				{ "variables", variables },
 				{ "visits", visits }
 			};

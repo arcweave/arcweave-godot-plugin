@@ -360,7 +360,7 @@ namespace Arcweave.Interpreter
         }
 
         public override object VisitFunction_call([NotNull] ArcscriptParser.Function_callContext context) {
-            IList<object>? argument_list_result = null;
+            IList<object> argument_list_result = Array.Empty<object>();
             string fname = context.FNAME().GetText();
 
             if ( context.argument_list() != null ) {

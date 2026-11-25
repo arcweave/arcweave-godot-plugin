@@ -14,6 +14,8 @@ var project_hash : String
 var env_vars : Dictionary
 var default_domain = "https://arcweave.com/"
 var arcweave_asset: ArcweaveAsset
+# The API key passed to request(), used instead of the one the asset finds
+var _explicit_api_key : String = ""
 
 func _init(object : ArcweaveAsset):
 	arcweave_asset = object
@@ -38,18 +40,26 @@ func cancel():
 	printerr("[Arcweave] Project request cancelled")
 	project_updated.emit(null)
 
-func request():
+## Requests the project. [param key] is the API key to use; when empty, the key is found like in
+## ArcweaveAsset.resolve_api_key().
+func request(key := ""):
 	if is_requesting:
 		# The pending request will emit project_updated when it ends
 		printerr("[Arcweave] A project request is already in progress")
 		return
+	_explicit_api_key = key
 	_update_settings()
 	if api_key.strip_edges().is_empty() or project_hash.strip_edges().is_empty():
-		printerr("[Arcweave] Set the API key and project hash in the ArcweaveAsset to refresh from the API")
+		printerr("[Arcweave] Set the project hash in the ArcweaveAsset, and the API key in its inspector, the "
+			+ ArcweaveAsset.API_KEY_ENVIRONMENT_VARIABLE + " environment variable or refresh_project(), to refresh from the API")
+		_explicit_api_key = ""
 		project_updated.emit(null)
 		return
+	arcweave_asset.resolve_api_key(key, true)
 	var request_url = get_api_url() + project_hash + "/godot"
 	var headers = get_headers()
+	# Later calls, eg. get_headers(), find the key again instead of keeping the one passed here
+	_explicit_api_key = ""
 	print("[Arcweave] Retrieving: " + request_url)
 	var error = http_request.request(request_url, headers)
 	if error != OK:
@@ -83,7 +93,7 @@ func get_headers() -> PackedStringArray:
 	return headers
 
 func _update_settings():
-	api_key = arcweave_asset.api_key
+	api_key = arcweave_asset.resolve_api_key(_explicit_api_key)
 	project_hash = arcweave_asset.project_hash
 	_update_env_vars()
 
@@ -94,7 +104,11 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 		project_updated.emit(null)
 		return
 	if response_code == 401:
-		printerr("[Arcweave] Your API key is invalid")
+		if api_key.is_empty():
+			printerr("[Arcweave] No API key found. Enter it in the ArcweaveAsset inspector, set the "
+				+ ArcweaveAsset.API_KEY_ENVIRONMENT_VARIABLE + " environment variable or pass it to refresh_project()")
+		else:
+			printerr("[Arcweave] Your API key is invalid")
 		project_updated.emit(null)
 		return
 	if response_code == 403:
