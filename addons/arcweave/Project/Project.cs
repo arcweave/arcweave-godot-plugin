@@ -15,6 +15,10 @@ namespace Arcweave.Project
         [Export] public Dictionary<string, Element> Elements { get; private set; }
         [Export] public Dictionary<string, Asset> Assets { get; private set; }
         [Export] public Element StartingElement { get; private set; }
+        /// <summary>
+        /// The ID of the starting element in the project data, also when no element has it. Empty if none is set.
+        /// </summary>
+        public string StartingElementId { get; internal set; } = "";
         
         public Project() : this("") {}
 
@@ -40,7 +44,7 @@ namespace Arcweave.Project
         /// <returns>The element or null if not found</returns>
         public Element ElementWithId(string id)
         {
-            if (Elements.TryGetValue(id, out var element))
+            if (!string.IsNullOrEmpty(id) && Elements != null && Elements.TryGetValue(id, out var element))
             {
                 return element;
             }

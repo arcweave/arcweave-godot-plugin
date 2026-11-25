@@ -27,6 +27,8 @@ public partial class PluginTests : RefCounted
 		Test(nameof(ConditionsEvaluateWithTheProjectVariables), ConditionsEvaluateWithTheProjectVariables);
 		Test(nameof(ResetAllWithoutVariables), ResetAllWithoutVariables);
 		Test(nameof(FoldersWithOmittedChildrenAreNotImported), FoldersWithOmittedChildrenAreNotImported);
+		Test(nameof(InvalidElementsAndPathsKeepTheStoryUsable), InvalidElementsAndPathsKeepTheStoryUsable);
+		Test(nameof(MissingStartingElementKeepsItsId), MissingStartingElementKeepsItsId);
 		return _failures;
 	}
 
@@ -173,6 +175,43 @@ public partial class PluginTests : RefCounted
 		{
 			AreEqual(expected, new Condition("c", project, script, null).Evaluate(), $"'{script}'");
 		}
+	}
+
+	// Each of these reports an error and leaves the current element unchanged
+	private void InvalidElementsAndPathsKeepTheStoryUsable()
+	{
+		var story = new Story(Parse(OmittedListsProjectJson(false)));
+		var start = story.GetCurrentElement();
+		var visits = start.Visits;
+
+		story.SetCurrentElementById("unknown");
+		story.SetCurrentElementById("");
+		story.SetCurrentElementById(null);
+		story.SetCurrentElement(null);
+		story.SelectPath(null);
+		story.SelectPath(new Path());
+		story.SelectPath(new Path { label = "no target" });
+
+		Assert(story.GetCurrentElement() == start, "the current element doesn't change");
+		AreEqual(visits, start.Visits, "visits of the current element");
+		AreEqual("<p>Hello</p>".Replace("<p>", "").Replace("</p>", ""), story.GetCurrentRuntimeContent(), "runtime content");
+
+		// The story still works
+		var options = story.GenerateCurrentOptions();
+		story.SelectPath(options.Paths.Single());
+		AreEqual("end", story.GetCurrentElement().Id, "story element after the branch");
+		story.SetCurrentElementById("start");
+		AreEqual("start", story.GetCurrentElement().Id, "story element set by id");
+	}
+
+	private void MissingStartingElementKeepsItsId()
+	{
+		var json = OmittedListsProjectJson(false).Replace("\"startingElement\": \"start\"", "\"startingElement\": \"missing\"");
+		var project = new ProjectMaker(Parse(json)).MakeProject();
+		Assert(project.StartingElement == null, "no starting element");
+		AreEqual("missing", project.StartingElementId, "starting element ID");
+		AreEqual("start", new ProjectMaker(Parse(OmittedListsProjectJson(false))).MakeProject().StartingElementId, "existing starting element ID");
+		AreEqual("", new ProjectMaker(Parse(OmittedListsProjectJson(false).Replace("\"startingElement\": \"start\",", ""))).MakeProject().StartingElementId, "no starting element ID");
 	}
 
 	private void ResetAllWithoutVariables()

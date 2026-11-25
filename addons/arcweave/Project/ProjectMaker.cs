@@ -408,6 +408,7 @@ namespace Arcweave.Project
 			MakeAttributeVariables();
 
 			project.Set(_startingElement, _boards, _components, _variables, _elements, _assets);
+			project.StartingElementId = GetString(_projectData, "startingElement");
 			return project;
 		}
 

@@ -16,6 +16,8 @@ namespace Arcweave
 			get => _currentElement;
 			set
 			{
+				// The callers report why there is no element
+				if (value == null) return;
 				_currentElement = value;
 				_currentElement.Visits++;
 				_currentElement.RunContentScript();
@@ -55,7 +57,9 @@ namespace Arcweave
 			if (Project.StartingElement == null)
 			{
 				_currentElement = null;
-				GD.PushError("[Arcweave] The project has no starting element. Set one in Arcweave, or call SetCurrentElementById.");
+				GD.PushError(string.IsNullOrEmpty(Project.StartingElementId)
+					? "[Arcweave] The project has no starting element. Set one in Arcweave, or call SetCurrentElementById."
+					: $"[Arcweave] The project's starting element \"{Project.StartingElementId}\" doesn't exist. Set another one in Arcweave, or call SetCurrentElementById.");
 				return;
 			}
 			CurrentElement = Project.StartingElement;
@@ -136,20 +140,33 @@ namespace Arcweave
 		}
 
 		/// <summary>
-		/// Sets the current element to the element with the provided ID
+		/// Sets the current element to the element with the provided ID. If there is no such element, an error is
+		/// reported and the current element doesn't change.
 		/// </summary>
 		/// <param name="id">The element's ID</param>
 		public void SetCurrentElementById(string id)
 		{
-			CurrentElement = Project.ElementWithId(id);
+			var element = Project.ElementWithId(id);
+			if (element == null)
+			{
+				GD.PushError($"[Arcweave] The project has no element with ID \"{id}\". The current element doesn't change.");
+				return;
+			}
+			CurrentElement = element;
 		}
 
 		/// <summary>
-		/// Sets the current element to the provided element
+		/// Sets the current element to the provided element. If it is null, an error is reported and the current
+		/// element doesn't change.
 		/// </summary>
 		/// <param name="element">The element</param>
 		public void SetCurrentElement(Element element)
 		{
+			if (element == null)
+			{
+				GD.PushError("[Arcweave] Can't set the current element to null. The current element doesn't change.");
+				return;
+			}
 			CurrentElement = element;
 		}
 
@@ -163,12 +180,17 @@ namespace Arcweave
 		}
 
 		/// <summary>
-		/// Selects a Path/Option
+		/// Selects a Path/Option. If the path is null or has no target element, an error is reported and the story
+		/// doesn't change.
 		/// </summary>
 		/// <param name="path">The path to select</param>
 		public void SelectPath(Path path)
 		{
-			
+			if (path?.TargetElement == null)
+			{
+				GD.PushError("[Arcweave] Can't select a path without a target element. The current element doesn't change.");
+				return;
+			}
 			path.ExecuteAppendedConnectionLabels();
 			CurrentElement = path.TargetElement;
 		}
