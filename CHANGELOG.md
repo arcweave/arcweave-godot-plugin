@@ -7,11 +7,6 @@ The notable changes of each release of the Arcweave Godot Plugin. Earlier releas
 
 ### Upgrading from 3.1
 
-> [!WARNING]
-> **If your API key was ever committed or shared, generate a new one in Arcweave.** Earlier versions saved the key in
-> the ArcweaveAsset resource, so it is in your version control history and in games you exported, even after you
-> move it out of the resource.
-
 - The API key is no longer saved in the ArcweaveAsset resource. After upgrading, select each ArcweaveAsset that has a
   key and click **Move API Key Out of Resource** in its inspector. Until then the plugin still uses the key from the
   resource, and keeps it there, so nothing stops working. See [Your API Key](README.md#your-api-key).
